@@ -114,8 +114,13 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
   // Watch fields for conditional rendering specific to 'cronograma-diario-obra'
   const situacaoEtapaDia = formDefinition.id === 'cronograma-diario-obra' ? watch('situacaoEtapaDia' as any) : undefined;
   const horasRetrabalhoParadasDia = formDefinition.id === 'cronograma-diario-obra' ? watch('horasRetrabalhoParadasDia' as any) : undefined;
+  
   const horarioEfetivoInicioAtividades = formDefinition.id === 'cronograma-diario-obra' ? watch('horarioEfetivoInicioAtividades' as any) : undefined;
+  const horarioInicioJornadaPrevisto = formDefinition.id === 'cronograma-diario-obra' ? watch('horarioInicioJornadaPrevisto' as any) : undefined;
+  
   const horarioEfetivoSaidaObra = formDefinition.id === 'cronograma-diario-obra' ? watch('horarioEfetivoSaidaObra' as any) : undefined;
+  const horarioTerminoJornadaPrevisto = formDefinition.id === 'cronograma-diario-obra' ? watch('horarioTerminoJornadaPrevisto' as any) : undefined;
+
 
   useEffect(() => {
     if (formDefinition.id === 'cronograma-diario-obra') {
@@ -135,19 +140,23 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
 
   useEffect(() => {
     if (formDefinition.id === 'cronograma-diario-obra') {
-      if (!horarioEfetivoInicioAtividades || String(horarioEfetivoInicioAtividades).trim() === '') {
+      const efetivo = String(horarioEfetivoInicioAtividades || '').trim();
+      const previsto = String(horarioInicioJornadaPrevisto || '').trim();
+      if (efetivo === '' || efetivo === previsto) {
         setValue('motivoNaoCumprimentoHorarioInicio' as any, '', { shouldValidate: false });
       }
     }
-  }, [horarioEfetivoInicioAtividades, setValue, formDefinition.id]);
-
+  }, [horarioEfetivoInicioAtividades, horarioInicioJornadaPrevisto, setValue, formDefinition.id]);
+  
   useEffect(() => {
     if (formDefinition.id === 'cronograma-diario-obra') {
-      if (!horarioEfetivoSaidaObra || String(horarioEfetivoSaidaObra).trim() === '') {
+      const efetivo = String(horarioEfetivoSaidaObra || '').trim();
+      const previsto = String(horarioTerminoJornadaPrevisto || '').trim();
+      if (efetivo === '' || efetivo === previsto) {
         setValue('motivoNaoCumprimentoHorarioSaida' as any, '', { shouldValidate: false });
       }
     }
-  }, [horarioEfetivoSaidaObra, setValue, formDefinition.id]);
+  }, [horarioEfetivoSaidaObra, horarioTerminoJornadaPrevisto, setValue, formDefinition.id]);
 
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
@@ -189,6 +198,8 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
           description: `Formulário "${formDefinition.name}" para OS "${osValue.trim()}" salvo!`,
         });
       } else {
+        // This case should ideally not be hit if OS is always required for this form type as per config
+        // But kept for safety or if other forms without OS are handled here.
         const genericReportsCollectionRef = collection(db, "submitted_reports");
         await addDoc(genericReportsCollectionRef, reportPayload);
         toast({
@@ -248,9 +259,13 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                   } else if (field.id === 'motivoRetrabalhoParadaDia') {
                     shouldRenderField = !!horasRetrabalhoParadasDia && String(horasRetrabalhoParadasDia).trim() !== '';
                   } else if (field.id === 'motivoNaoCumprimentoHorarioInicio') {
-                    shouldRenderField = !!horarioEfetivoInicioAtividades && String(horarioEfetivoInicioAtividades).trim() !== '';
+                    const efetivo = String(horarioEfetivoInicioAtividades || '').trim();
+                    const previsto = String(horarioInicioJornadaPrevisto || '').trim();
+                    shouldRenderField = efetivo !== '' && efetivo !== previsto;
                   } else if (field.id === 'motivoNaoCumprimentoHorarioSaida') {
-                    shouldRenderField = !!horarioEfetivoSaidaObra && String(horarioEfetivoSaidaObra).trim() !== '';
+                    const efetivo = String(horarioEfetivoSaidaObra || '').trim();
+                    const previsto = String(horarioTerminoJornadaPrevisto || '').trim();
+                    shouldRenderField = efetivo !== '' && efetivo !== previsto;
                   }
                 }
 
@@ -363,6 +378,8 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     </>
   );
 }
+    
+
     
 
     
