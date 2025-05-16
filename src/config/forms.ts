@@ -18,19 +18,16 @@ export interface FormDefinition {
   id: string;
   name: string;
   description: string;
-  iconName?: string; // Alterado de icon: React.ElementType para iconName: string
+  iconName?: string; 
   fields: FormField[];
 }
-
-// Os ícones reais serão resolvidos em tempo de execução nos componentes do cliente
-// import { ClipboardList, Wrench, Truck } from 'lucide-react'; // Não é mais necessário importar aqui
 
 export const formDefinitions: FormDefinition[] = [
   {
     id: 'site-inspection',
     name: 'Relatório de Inspeção do Local',
     description: 'Relatório diário para inspeções de canteiros de obras.',
-    iconName: 'ClipboardList', // Alterado de icon: ClipboardList
+    iconName: 'ClipboardList',
     fields: [
       { id: 'inspectionDate', label: 'Data da Inspeção', type: 'date', required: true },
       { id: 'inspectorName', label: 'Nome do Inspetor', type: 'text', placeholder: 'Ex: João Silva', required: true },
@@ -56,7 +53,7 @@ export const formDefinitions: FormDefinition[] = [
     id: 'equipment-check',
     name: 'Verificação de Manutenção de Equipamento',
     description: 'Formulário para verificações de rotina de manutenção de equipamentos.',
-    iconName: 'Wrench', // Alterado de icon: Wrench
+    iconName: 'Wrench',
     fields: [
       { id: 'checkDate', label: 'Data da Verificação', type: 'date', required: true },
       { id: 'equipmentId', label: 'ID do Equipamento', type: 'text', placeholder: 'Ex: EXCV-003', required: true },
@@ -74,7 +71,7 @@ export const formDefinitions: FormDefinition[] = [
       },
       { id: 'operatorName', label: 'Operador/Técnico', type: 'text', required: true, placeholder: 'Ex: Carlos Alberto' },
       { id: 'hoursMeter', label: 'Leitura do Horímetro', type: 'number', placeholder: 'Ex: 1250,5' },
-      { id: 'fuelLevel', label: 'Nível de Combustível (%)', type: 'number', placeholder: 'Ex: 75', min: 0, max: 100 },
+      { id: 'fuelLevel', label: 'Nível de Combustível (%)', type: 'number', placeholder: 'Ex: 75' }, // Min/max validation can be added via Zod schema if needed
       { id: 'oilLevelOk', label: 'Nível de Óleo OK', type: 'checkbox', defaultValue: false },
       { id: 'maintenanceNotes', label: 'Notas de Manutenção', type: 'textarea', placeholder: 'Quaisquer notas específicas sobre a manutenção realizada ou necessária.' },
     ],
@@ -83,7 +80,7 @@ export const formDefinitions: FormDefinition[] = [
     id: 'material-delivery',
     name: 'Recibo de Entrega de Material',
     description: 'Registrar detalhes dos materiais entregues no local.',
-    iconName: 'Truck', // Alterado de icon: Truck
+    iconName: 'Truck',
     fields: [
       { id: 'deliveryDate', label: 'Data de Entrega', type: 'date', required: true },
       { id: 'supplierName', label: 'Nome do Fornecedor', type: 'text', placeholder: 'Ex: Concreto Ltda.', required: true },
@@ -107,6 +104,77 @@ export const formDefinitions: FormDefinition[] = [
       { id: 'qualityCheckPassed', label: 'Verificação de Qualidade Aprovada', type: 'checkbox', defaultValue: false },
       { id: 'receivedBy', label: 'Recebido Por (Gerente do Local)', type: 'text', required: true, placeholder: 'Ex: Ana Paula Souza' },
       { id: 'deliveryNotes', label: 'Notas de Entrega/Discrepâncias', type: 'textarea', placeholder: 'Alguma observação sobre a entrega ou material.' },
+    ],
+  },
+  {
+    id: 'cronograma-diario-obra',
+    name: 'Acompanhamento de Cronograma e Diário de Obra',
+    description: 'Registra o progresso diário da obra, incluindo cronograma, mão de obra e ocorrências.',
+    iconName: 'CalendarClock',
+    fields: [
+      // Informações Gerais da Etapa
+      { id: 'etapaDescricao', label: 'ETAPA (Descrição)', type: 'text', placeholder: 'Descreva a etapa atual da obra', required: true },
+      { id: 'dataInicialEtapa', label: 'Data Inicial da Etapa', type: 'date', required: true },
+      { id: 'dataFinalProjetadaEtapa', label: 'Data Final Projetada da Etapa', type: 'date', required: true },
+      { id: 'ordemServico', label: 'OS (Ordem de Serviço)', type: 'text', placeholder: 'Número da OS', required: true },
+      { id: 'dataProjetadaParaEtapaConclusao', label: 'Data Projetada para Conclusão desta Etapa Específica', type: 'date', required: true },
+      
+      // Relatório de Desenvolvimento da Etapa da Obra (para um dia)
+      { id: 'acompanhamentoDataAtual', label: 'Data do Acompanhamento Diário', type: 'date', required: true },
+      { 
+        id: 'situacaoEtapaDia', 
+        label: 'Situação da Etapa no Dia', 
+        type: 'select', 
+        options: [
+          { value: 'em_dia', label: 'Em dia' },
+          { value: 'em_atraso', label: 'Em atraso' },
+        ], 
+        required: true 
+      },
+      { id: 'motivoAtrasoDia', label: 'Motivo do Atraso (se aplicável)', type: 'textarea', placeholder: 'Descreva o motivo do atraso' },
+      { id: 'equipamentosUtilizadosDia', label: 'Equipamentos Utilizados no Dia', type: 'textarea', placeholder: 'Liste os equipamentos' },
+      { 
+        id: 'fotosEtapaDia', 
+        label: 'Fotos da Etapa Foram Tiradas?', 
+        type: 'select', 
+        options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
+        defaultValue: 'nao'
+      },
+      { 
+        id: 'relatorioInspecaoDia', 
+        label: 'Relatório de Inspeção Emitido?', 
+        type: 'select', 
+        options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
+        defaultValue: 'nao'
+      },
+      { 
+        id: 'emissaoRNCDia', 
+        label: 'Emissão de RNC (Relatório de Não Conformidade)?', 
+        type: 'select', 
+        options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
+        defaultValue: 'nao'
+      },
+      { id: 'equipeTrabalhoDia', label: 'Equipe de Trabalho Presente', type: 'textarea', placeholder: 'Nomes ou quantidade por função' },
+      { 
+        id: 'pteDia', 
+        label: 'PTE (Permissão de Trabalho Especial) Emitida?', 
+        type: 'select', 
+        options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
+        defaultValue: 'nao'
+      },
+
+      // Relatório de Mão de Obra Envolvida Nesta Etapa (para o mesmo dia)
+      { id: 'tempoTotalTrabalhoDia', label: 'Tempo Total de Trabalho (Ex: 07:30-17:30 +2h extra)', type: 'text', placeholder: 'HH:MM-HH:MM ou Total de Horas' },
+      { id: 'horasRetrabalhoParadasDia', label: 'Horas de Retrabalho/Paradas', type: 'text', placeholder: 'Ex: 1.5h' },
+      { id: 'motivoRetrabalhoParadaDia', label: 'Motivo do Retrabalho/Parada', type: 'textarea', placeholder: 'Descreva o motivo' },
+      
+      { id: 'horarioInicioJornadaPrevisto', label: 'Horário Previsto Início Jornada (07:30h)', type: 'text', defaultValue: '07:30', placeholder: 'HH:MM' },
+      { id: 'horarioEfetivoInicioAtividades', label: 'Horário Efetivo Início Atividades', type: 'text', placeholder: 'HH:MM' },
+      { id: 'motivoNaoCumprimentoHorarioInicio', label: 'Motivo Não Cumprimento Horário Início', type: 'textarea' },
+      
+      { id: 'horarioTerminoJornadaPrevisto', label: 'Horário Previsto Término Jornada (17:30h)', type: 'text', defaultValue: '17:30', placeholder: 'HH:MM' },
+      { id: 'horarioEfetivoSaidaObra', label: 'Horário Efetivo Saída da Obra', type: 'text', placeholder: 'HH:MM' },
+      { id: 'motivoNaoCumprimentoHorarioSaida', label: 'Motivo Não Cumprimento Horário Saída', type: 'textarea' },
     ],
   },
 ];
