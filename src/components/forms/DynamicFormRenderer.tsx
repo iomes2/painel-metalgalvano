@@ -20,7 +20,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { getFormIcon } from '@/components/icons/icon-resolver';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
   AlertDialog,
@@ -63,7 +63,7 @@ const buildZodSchema = (fields: FormFieldType[]) => {
         else fieldSchema = fieldSchema.optional().nullable();
         break;
       case 'date':
-        fieldSchema = z.date({
+        fieldSchema = z.coerce.date({ // Use z.coerce.date for better handling of string inputs from date pickers
             required_error: `${field.label} é obrigatório(a).`,
             invalid_type_error: `Esta não é uma data válida para ${field.label}!`,
         });
@@ -89,6 +89,7 @@ const buildZodSchema = (fields: FormFieldType[]) => {
 export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps) {
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const formSchema = buildZodSchema(formDefinition.fields);
@@ -99,6 +100,8 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     acc[field.id] = field.defaultValue !== undefined ? field.defaultValue :
                     field.type === 'checkbox' ? false :
                     field.type === 'number' ? null : 
+                    field.type === 'date' && field.id === 'dataRnc' ? new Date() : // Pre-fill RNC date
+                    field.type === 'date' && field.id === 'acompanhamentoDataAtual' ? new Date() : // Pre-fill Acompanhamento date
                     ''; 
     return acc;
   }, {} as Record<string, any>);
@@ -120,6 +123,16 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
   
   const horarioEfetivoSaidaObra = formDefinition.id === 'cronograma-diario-obra' ? watch('horarioEfetivoSaidaObra' as any) : undefined;
   const horarioTerminoJornadaPrevisto = formDefinition.id === 'cronograma-diario-obra' ? watch('horarioTerminoJornadaPrevisto' as any) : undefined;
+
+  // Pre-fill OS for RNC form if passed as query param
+  useEffect(() => {
+    if (formDefinition.id === 'rnc-report') {
+      const osFromQuery = searchParams.get('os');
+      if (osFromQuery) {
+        setValue('ordemServico' as any, osFromQuery, { shouldValidate: true });
+      }
+    }
+  }, [formDefinition.id, searchParams, setValue]);
 
 
   useEffect(() => {
@@ -175,12 +188,21 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
 
     const db = getFirestore();
     
+    // Convert date fields to Firebase Timestamps before saving if they are Date objects
+    const formDataWithTimestamps = { ...data };
+    formDefinition.fields.forEach(field => {
+      if (field.type === 'date' && formDataWithTimestamps[field.id] instanceof Date) {
+        formDataWithTimestamps[field.id] = Timestamp.fromDate(formDataWithTimestamps[field.id] as Date);
+      }
+    });
+    
     const reportPayload = {
       formType: formDefinition.id,
       formName: formDefinition.name,
-      formData: data,
+      formData: formDataWithTimestamps, // Use data with converted timestamps
       submittedBy: currentUser.uid,
       submittedAt: Timestamp.now(),
+      gerenteId: currentUser.email?.split('@')[0] || 'desconhecido', // Assuming email format id_gerente@metalgalvano.forms
     };
 
     const ordemServicoField = formDefinition.fields.find(f => f.id === 'ordemServico');
@@ -189,7 +211,14 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     try {
       if (ordemServicoField && osValue && osValue.trim() !== '') {
         const osDocRef = doc(db, "ordens_servico", osValue.trim());
-        await setDoc(osDocRef, { lastReportAt: Timestamp.now(), os: osValue.trim() }, { merge: true });
+        // Optionally update a field on the OS document itself, e.g., last activity
+        await setDoc(osDocRef, { 
+            lastReportAt: Timestamp.now(), 
+            os: osValue.trim(), 
+            updatedBy: currentUser.uid,
+            updatedByGerenteId: reportPayload.gerenteId 
+        }, { merge: true });
+        
         const reportsSubCollectionRef = collection(db, "ordens_servico", osValue.trim(), "relatorios");
         await addDoc(reportsSubCollectionRef, reportPayload);
         
@@ -198,8 +227,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
           description: `Formulário "${formDefinition.name}" para OS "${osValue.trim()}" salvo!`,
         });
       } else {
-        // This case should ideally not be hit if OS is always required for this form type as per config
-        // But kept for safety or if other forms without OS are handled here.
+        // Fallback for forms without OS or if OS is somehow not captured (should be rare with validation)
         const genericReportsCollectionRef = collection(db, "submitted_reports");
         await addDoc(genericReportsCollectionRef, reportPayload);
         toast({
@@ -209,7 +237,19 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
       }
       
       form.reset(); 
-      setIsShareDialogOpen(true);
+
+      // Conditional RNC flow
+      if (formDefinition.id === 'cronograma-diario-obra' && (data as any).emissaoRNCDia === 'sim' && osValue) {
+        toast({
+          title: "Próximo Passo",
+          description: "Formulário de cronograma salvo. Por favor, preencha o Relatório de Não Conformidade (RNC).",
+          duration: 5000,
+        });
+        router.push(`/dashboard/forms/rnc-report?os=${osValue.trim()}`);
+      } else {
+        setIsShareDialogOpen(true); // Show PDF/share dialog for other forms or if no RNC
+      }
+
     } catch (error) {
       console.error("Error saving form data to Firestore:", error);
       toast({
@@ -283,10 +323,10 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                       <FormLabel className="font-semibold">{field.label}{field.required && <span className="text-destructive ml-1">*</span>}</FormLabel>
                       <FormControl>
                         <div> 
-                          {field.type === 'text' && <Input placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} disabled={isSubmitting} />}
-                          {field.type === 'email' && <Input type="email" placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} disabled={isSubmitting} />}
-                          {field.type === 'number' && <Input type="number" placeholder={field.placeholder} {...controllerField} value={controllerField.value === null ? '' : controllerField.value} onChange={e => controllerField.onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={isSubmitting} />}
-                          {field.type === 'textarea' && <Textarea placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} disabled={isSubmitting} />}
+                          {field.type === 'text' && <Input placeholder={field.placeholder} {...controllerField} value={controllerField.value as string || ''} disabled={isSubmitting} />}
+                          {field.type === 'email' && <Input type="email" placeholder={field.placeholder} {...controllerField} value={controllerField.value as string || ''} disabled={isSubmitting} />}
+                          {field.type === 'number' && <Input type="number" placeholder={field.placeholder} {...controllerField} value={controllerField.value === null || controllerField.value === undefined ? '' : controllerField.value as number} onChange={e => controllerField.onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={isSubmitting} />}
+                          {field.type === 'textarea' && <Textarea placeholder={field.placeholder} {...controllerField} value={controllerField.value as string || ''} disabled={isSubmitting} />}
                           {field.type === 'checkbox' && (
                              <div className="flex items-center space-x-2 pt-2">
                               <Checkbox
@@ -294,7 +334,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                                 checked={!!controllerField.value}
                                 onCheckedChange={controllerField.onChange}
                                 disabled={isSubmitting}
-                                aria-labelledby={`${field.id}-label`} 
+                                aria-labelledby={`${form.control._fields[field.id as keyof FormValues]?._f.name}-label`}
                               />
                             </div>
                           )}
@@ -331,7 +371,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                                 <Calendar
                                   mode="single"
                                   selected={controllerField.value ? new Date(controllerField.value as string | number | Date) : undefined}
-                                  onSelect={controllerField.onChange}
+                                  onSelect={(date) => controllerField.onChange(date)} // Pass date directly
                                   initialFocus
                                   locale={ptBR}
                                 />
@@ -378,10 +418,3 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     </>
   );
 }
-    
-
-    
-
-    
-
-    

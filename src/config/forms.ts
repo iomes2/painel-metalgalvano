@@ -1,4 +1,6 @@
 
+import type { LucideIcon } from 'lucide-react';
+
 export interface FormFieldOption {
   value: string;
   label: string;
@@ -10,7 +12,7 @@ export interface FormField {
   placeholder?: string;
   options?: FormFieldOption[]; // For select, radio-group
   required?: boolean;
-  defaultValue?: string | number | boolean;
+  defaultValue?: string | number | boolean | Date;
   validation?: any; // Zod schema for validation
 }
 
@@ -71,7 +73,7 @@ export const formDefinitions: FormDefinition[] = [
       },
       { id: 'operatorName', label: 'Operador/Técnico', type: 'text', required: true, placeholder: 'Ex: Carlos Alberto' },
       { id: 'hoursMeter', label: 'Leitura do Horímetro', type: 'number', placeholder: 'Ex: 1250,5' },
-      { id: 'fuelLevel', label: 'Nível de Combustível (%)', type: 'number', placeholder: 'Ex: 75' }, // Min/max validation can be added via Zod schema if needed
+      { id: 'fuelLevel', label: 'Nível de Combustível (%)', type: 'number', placeholder: 'Ex: 75' },
       { id: 'oilLevelOk', label: 'Nível de Óleo OK', type: 'checkbox', defaultValue: false },
       { id: 'maintenanceNotes', label: 'Notas de Manutenção', type: 'textarea', placeholder: 'Quaisquer notas específicas sobre a manutenção realizada ou necessária.' },
     ],
@@ -112,13 +114,10 @@ export const formDefinitions: FormDefinition[] = [
     description: 'Registra o progresso diário da obra, incluindo cronograma, mão de obra e ocorrências.',
     iconName: 'CalendarClock',
     fields: [
-      // Informações Gerais da Etapa
       { id: 'etapaDescricao', label: 'ETAPA (Descrição)', type: 'text', placeholder: 'Descreva a etapa atual da obra', required: true },
       { id: 'dataInicialEtapa', label: 'Data Inicial da Etapa', type: 'date', required: true },
       { id: 'dataFinalProjetadaEtapa', label: 'Data Final Projetada da Etapa', type: 'date', required: true },
       { id: 'ordemServico', label: 'OS (Ordem de Serviço)', type: 'text', placeholder: 'Número da OS', required: true },
-      
-      // Relatório de Desenvolvimento da Etapa da Obra (para um dia)
       { id: 'acompanhamentoDataAtual', label: 'Data do Acompanhamento Diário', type: 'date', required: true },
       { 
         id: 'situacaoEtapaDia', 
@@ -151,7 +150,8 @@ export const formDefinitions: FormDefinition[] = [
         label: 'Emissão de RNC (Relatório de Não Conformidade)?', 
         type: 'select', 
         options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
-        defaultValue: 'nao'
+        defaultValue: 'nao',
+        required: true
       },
       { id: 'equipeTrabalhoDia', label: 'Equipe de Trabalho Presente', type: 'textarea', placeholder: 'Nomes ou quantidade por função' },
       { 
@@ -161,21 +161,48 @@ export const formDefinitions: FormDefinition[] = [
         options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
         defaultValue: 'nao'
       },
-
-      // Relatório de Mão de Obra Envolvida Nesta Etapa (para o mesmo dia)
       { id: 'tempoTotalTrabalhoDia', label: 'Tempo Total de Trabalho (Ex: 07:30-17:30 +2h extra)', type: 'text', placeholder: 'HH:MM-HH:MM ou Total de Horas' },
       { id: 'horasRetrabalhoParadasDia', label: 'Horas de Retrabalho/Paradas', type: 'text', placeholder: 'Ex: 1.5h' },
       { id: 'motivoRetrabalhoParadaDia', label: 'Motivo do Retrabalho/Parada', type: 'textarea', placeholder: 'Descreva o motivo' },
-      
       { id: 'horarioInicioJornadaPrevisto', label: 'Horário Previsto Início Jornada (07:30h)', type: 'text', defaultValue: '07:30', placeholder: 'HH:MM' },
       { id: 'horarioEfetivoInicioAtividades', label: 'Horário Efetivo Início Atividades', type: 'text', placeholder: 'HH:MM' },
       { id: 'motivoNaoCumprimentoHorarioInicio', label: 'Motivo Não Cumprimento Horário Início', type: 'textarea' },
-      
       { id: 'horarioTerminoJornadaPrevisto', label: 'Horário Previsto Término Jornada (17:30h)', type: 'text', defaultValue: '17:30', placeholder: 'HH:MM' },
       { id: 'horarioEfetivoSaidaObra', label: 'Horário Efetivo Saída da Obra', type: 'text', placeholder: 'HH:MM' },
       { id: 'motivoNaoCumprimentoHorarioSaida', label: 'Motivo Não Cumprimento Horário Saída', type: 'textarea' },
     ],
   },
+  {
+    id: 'rnc-report',
+    name: 'Relatório de Não Conformidade (RNC)',
+    description: 'Documenta não conformidades identificadas e ações corretivas.',
+    iconName: 'FileWarning',
+    fields: [
+      { id: 'dataRnc', label: 'Data da RNC', type: 'date', required: true },
+      { id: 'ordemServico', label: 'OS (Ordem de Serviço)', type: 'text', placeholder: 'Número da OS relacionada', required: true },
+      { id: 'descricaoNaoConformidade', label: 'Descrição da Não Conformidade', type: 'textarea', placeholder: 'Detalhe a não conformidade observada', required: true },
+      { id: 'localOcorrencia', label: 'Local da Ocorrência', type: 'text', placeholder: 'Ex: Setor B, Andar 3', required: true },
+      { id: 'fotosNaoConformidade', label: 'Fotos da Não Conformidade Tiradas?', type: 'select', options: [{value: 'sim', label: 'Sim'}, {value: 'nao', label: 'Não'}], defaultValue: 'nao' },
+      { id: 'causaRaizIdentificada', label: 'Causa Raiz Identificada', type: 'textarea', placeholder: 'Descreva a causa fundamental do problema' },
+      { id: 'acoesCorretivasPropostas', label: 'Ações Corretivas Propostas/Executadas', type: 'textarea', placeholder: 'Detalhe as ações para corrigir e prevenir a recorrência', required: true },
+      { id: 'responsavelImplementacao', label: 'Responsável pela Implementação das Ações', type: 'text', placeholder: 'Nome do responsável' },
+      { id: 'prazoConclusaoAcoes', label: 'Prazo para Conclusão das Ações', type: 'date' },
+      { 
+        id: 'statusRnc', 
+        label: 'Status da RNC', 
+        type: 'select', 
+        options: [
+          { value: 'aberta', label: 'Aberta' },
+          { value: 'em_andamento', label: 'Em Andamento' },
+          { value: 'concluida', label: 'Concluída' },
+          { value: 'cancelada', label: 'Cancelada' },
+        ], 
+        defaultValue: 'aberta',
+        required: true 
+      },
+      { id: 'observacoesAdicionaisRnc', label: 'Observações Adicionais', type: 'textarea', placeholder: 'Qualquer informação relevante adicional' },
+    ],
+  }
 ];
 
 export const getFormDefinition = (formId: string): FormDefinition | undefined => {
