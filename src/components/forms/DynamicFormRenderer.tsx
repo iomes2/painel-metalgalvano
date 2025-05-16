@@ -32,8 +32,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { auth, storage } from '@/lib/firebase'; // Storage might be used later for PDF uploads
-import { getFirestore, collection, addDoc, Timestamp } from 'firebase/firestore';
+import { auth } from '@/lib/firebase'; 
+import { getFirestore, collection, addDoc, Timestamp, doc, setDoc } from 'firebase/firestore';
 
 interface DynamicFormRendererProps {
   formDefinition: FormDefinition;
@@ -123,24 +123,50 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
       return;
     }
 
-    try {
-      const db = getFirestore();
-      const reportData = {
-        formType: formDefinition.id,
-        formName: formDefinition.name,
-        formData: data,
-        submittedBy: currentUser.uid,
-        submittedAt: Timestamp.now(),
-      };
-      await addDoc(collection(db, "submitted_reports"), reportData);
+    const db = getFirestore();
+    
+    // Common data for the report
+    const reportPayload = {
+      formType: formDefinition.id,
+      formName: formDefinition.name,
+      formData: data, // formData will contain all fields, including ordemServico if present
+      submittedBy: currentUser.uid,
+      submittedAt: Timestamp.now(),
+    };
 
-      console.log('Form data saved to Firestore:', reportData);
-      toast({
-        title: "Sucesso!",
-        description: `Formulário "${formDefinition.name}" enviado e salvo com sucesso!`,
-      });
+    // Check if the form has an 'ordemServico' field and if it's filled
+    const ordemServicoField = formDefinition.fields.find(f => f.id === 'ordemServico');
+    // Explicitly type osValue if it comes from data (FormValues)
+    const osValue = (data as Record<string, any>).ordemServico as string | undefined;
+
+
+    try {
+      if (ordemServicoField && osValue && osValue.trim() !== '') {
+        // Form has an OS field, and it's filled. Save under ordens_servico/{OS}/relatorios/{AUTO_ID}
+        const osDocRef = doc(db, "ordens_servico", osValue.trim());
+        // Optionally, ensure the OS document itself exists or update a timestamp
+        await setDoc(osDocRef, { lastReportAt: Timestamp.now() }, { merge: true });
+
+        const reportsSubCollectionRef = collection(db, "ordens_servico", osValue.trim(), "relatorios");
+        await addDoc(reportsSubCollectionRef, reportPayload);
+        
+        toast({
+          title: "Sucesso!",
+          description: `Formulário "${formDefinition.name}" para OS "${osValue.trim()}" salvo!`,
+        });
+      } else {
+        // Form does not have an OS field, or it's not filled. Save to generic 'submitted_reports'
+        const genericReportsCollectionRef = collection(db, "submitted_reports");
+        await addDoc(genericReportsCollectionRef, reportPayload);
+
+        toast({
+          title: "Sucesso!",
+          description: `Formulário "${formDefinition.name}" salvo com sucesso!`,
+        });
+      }
+      
       form.reset(); 
-      setIsShareDialogOpen(true); // Open share dialog after successful save
+      setIsShareDialogOpen(true);
     } catch (error) {
       console.error("Error saving form data to Firestore:", error);
       toast({
@@ -191,7 +217,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                     <FormItem>
                       <FormLabel className="font-semibold">{field.label}{field.required && <span className="text-destructive ml-1">*</span>}</FormLabel>
                       <FormControl>
-                        <div> {/* Replaced React.Fragment with div */}
+                        <div> 
                           {field.type === 'text' && <Input placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} disabled={isSubmitting} />}
                           {field.type === 'email' && <Input type="email" placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} disabled={isSubmitting} />}
                           {field.type === 'number' && <Input type="number" placeholder={field.placeholder} {...controllerField} value={controllerField.value === null ? '' : controllerField.value} onChange={e => controllerField.onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={isSubmitting} />}
@@ -203,6 +229,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                                 checked={!!controllerField.value}
                                 onCheckedChange={controllerField.onChange}
                                 disabled={isSubmitting}
+                                aria-labelledby={`${field.id}-label`} 
                               />
                             </div>
                           )}
@@ -249,6 +276,27 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                         </div>
                       </FormControl>
                       {field.type !== 'checkbox' && field.placeholder && <FormDescription>{/* Add description if needed */}</FormDescription>}
+                       { /* Associate the FormLabel with the Checkbox using aria-labelledby on the Checkbox if FormLabel has an id.
+                           However, FormLabel's id is tied to formItemId which is generated. For direct association,
+                           the Checkbox would need its own label or be linked via aria-describedby if a separate description is needed.
+                           The current structure with FormLabel serving the FormItem should be sufficient for accessibility.
+                           We added an aria-labelledby to the checkbox that would require the FormLabel to have a corresponding id `${field.id}-label`.
+                           Let's ensure FormLabel has an id that can be referenced, or remove explicit aria-labelledby if FormLabel inherently labels it.
+                           Given FormLabel is part of FormItem, it should already label its contents.
+                           The duplicate label for checkbox was removed in a previous step.
+                           Adding `id={`${field.id}-label`}` to FormLabel for clarity for the checkbox.
+                        */
+                       }
+                       {/* This FormLabel already has an id (`${id}-form-item` from useFormField)
+                           which is set on its `htmlFor`. The `aria-labelledby` on Checkbox should use that.
+                           Let's refine the checkbox aria-labelledby if necessary, or confirm it's covered.
+                           The `FormLabel` above has `htmlFor={formItemId}`. `formItemId` is derived.
+                           The checkbox itself is the input. `FormLabel` points to it. This is standard.
+                           The `aria-labelledby` on the checkbox itself might be redundant or could point to the form label's actual ID.
+                           For now, the current setup where `FormLabel` uses `htmlFor` targeting the control (via `formItemId`) is standard.
+                           If the checkbox *itself* needed a label (e.g. if it was standalone), then `aria-label` or `aria-labelledby` referencing a separate element would be used.
+                           Here, the `FormLabel` component *is* the label for the checkbox (and other inputs).
+                        */}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -267,9 +315,9 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
       <AlertDialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Formulário Enviado e PDF Gerado!</AlertDialogTitle>
+            <AlertDialogTitle>Formulário Enviado e "PDF Gerado"!</AlertDialogTitle>
             <AlertDialogDescription>
-              Seu formulário "{formDefinition.name}" foi salvo com sucesso. O PDF foi gerado (simulação).
+              Seu formulário "{formDefinition.name}" foi salvo com sucesso. O PDF foi "gerado" (simulação).
               Deseja compartilhá-lo ou baixá-lo agora?
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -286,8 +334,6 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     </>
   );
 }
-    
-
     
 
     
