@@ -2,7 +2,7 @@
 "use client";
 
 import type { FormDefinition, FormField as FormFieldType, FormFieldOption } from '@/config/forms';
-import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
+import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -15,11 +15,23 @@ import { Calendar } from "@/components/ui/calendar";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Printer, CloudUpload, CalendarIcon } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { getFormIcon } from '@/components/icons/icon-resolver';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface DynamicFormRendererProps {
   formDefinition: FormDefinition;
@@ -36,7 +48,7 @@ const buildZodSchema = (fields: FormFieldType[]) => {
       case 'textarea':
         fieldSchema = z.string();
         if (field.required) fieldSchema = fieldSchema.min(1, `${field.label} é obrigatório(a).`);
-        else fieldSchema = fieldSchema.optional().or(z.literal('')); // Allow empty string for optional fields
+        else fieldSchema = fieldSchema.optional().or(z.literal('')); 
         break;
       case 'email':
         fieldSchema = z.string().email(`Formato de e-mail inválido para ${field.label}.`);
@@ -44,7 +56,7 @@ const buildZodSchema = (fields: FormFieldType[]) => {
         else fieldSchema = fieldSchema.optional().or(z.literal(''));
         break;
       case 'number':
-        fieldSchema = z.coerce.number(); // coerce to handle string input from forms
+        fieldSchema = z.coerce.number(); 
         if (field.required) fieldSchema = fieldSchema.min(0.00001, `${field.label} é obrigatório(a) e deve ser diferente de zero, se aplicável.`);
         else fieldSchema = fieldSchema.optional().nullable();
         break;
@@ -74,6 +86,8 @@ const buildZodSchema = (fields: FormFieldType[]) => {
 
 export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps) {
   const { toast } = useToast();
+  const router = useRouter();
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const formSchema = buildZodSchema(formDefinition.fields);
   
   type FormValues = z.infer<typeof formSchema>;
@@ -81,8 +95,8 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
   const defaultValues = formDefinition.fields.reduce((acc, field) => {
     acc[field.id] = field.defaultValue !== undefined ? field.defaultValue :
                     field.type === 'checkbox' ? false :
-                    field.type === 'number' ? null : // Or 0 if appropriate
-                    ''; // Default for text, select, etc.
+                    field.type === 'number' ? null : 
+                    ''; 
     return acc;
   }, {} as Record<string, any>);
 
@@ -94,7 +108,6 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log('Form data:', data);
-    // Here you would typically send data to a server or Firebase
     toast({
       title: `Formulário Enviado: ${formDefinition.name}`,
       description: (
@@ -103,128 +116,146 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
         </pre>
       ),
     });
-    // form.reset(); // Optionally reset form after submission
-  };
-
-  const handleGeneratePdf = () => {
-    // Placeholder for PDF generation logic
-    toast({
-      title: 'Geração de PDF',
-      description: 'A funcionalidade de geração de PDF ainda não foi implementada.',
-    });
-  };
-
-  const handleSaveToCloud = () => {
-    // Placeholder for saving to Firebase Storage
-    toast({
-      title: 'Salvar na Nuvem',
-      description: 'A funcionalidade de salvar no armazenamento em nuvem ainda não foi implementada.',
-    });
+    form.reset(); 
+    // Simulate PDF generation for now
+    // In a real scenario, you'd trigger PDF generation here
+    setIsShareDialogOpen(true);
   };
   
   const IconComponent = getFormIcon(formDefinition.iconName);
 
+  const handleShareDialogAction = () => {
+    toast({
+      title: "Compartilhar/Baixar PDF",
+      description: "Funcionalidade de compartilhamento/download de PDF ainda não implementada.",
+    });
+    setIsShareDialogOpen(false);
+    router.push('/dashboard');
+  };
+
+  const handleShareDialogCancel = () => {
+    setIsShareDialogOpen(false);
+    router.push('/dashboard');
+  };
 
   return (
-    <Card className="w-full shadow-xl">
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <IconComponent className="h-8 w-8 text-primary" />
-          <CardTitle className="text-2xl">{formDefinition.name}</CardTitle>
-        </div>
-        <CardDescription>{formDefinition.description}</CardDescription>
-      </CardHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-6">
-            {formDefinition.fields.map((field) => (
-              <FormField
-                key={field.id}
-                control={form.control}
-                name={field.id as keyof FormValues}
-                render={({ field: controllerField }) => (
-                  <FormItem>
-                    <FormLabel className="font-semibold">{field.label}{field.required && <span className="text-destructive ml-1">*</span>}</FormLabel>
-                    <FormControl>
-                      <>
-                        {field.type === 'text' && <Input placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} />}
-                        {field.type === 'email' && <Input type="email" placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} />}
-                        {field.type === 'number' && <Input type="number" placeholder={field.placeholder} {...controllerField} value={controllerField.value === null ? '' : controllerField.value} onChange={e => controllerField.onChange(e.target.value === '' ? null : Number(e.target.value))}/>}
-                        {field.type === 'textarea' && <Textarea placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} />}
-                        {field.type === 'checkbox' && (
-                           <div className="flex items-center space-x-2 pt-2">
-                            <Checkbox
-                              id={field.id}
-                              checked={!!controllerField.value}
-                              onCheckedChange={controllerField.onChange}
-                            />
-                            <label
-                              htmlFor={field.id}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {field.label} 
-                            </label>
-                          </div>
-                        )}
-                        {field.type === 'select' && (
-                          <Select onValueChange={controllerField.onChange} defaultValue={controllerField.value as string || undefined} value={controllerField.value as string || undefined}>
-                            <SelectTrigger>
-                              <SelectValue placeholder={field.placeholder || "Selecione..."} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {field.options?.map((option: FormFieldOption) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                        {field.type === 'date' && (
-                           <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full justify-start text-left font-normal",
-                                  !controllerField.value && "text-muted-foreground"
-                                )}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {controllerField.value ? format(new Date(controllerField.value as string | number | Date), "PPP", { locale: ptBR }) : <span>{field.placeholder || "Escolha uma data"}</span>}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                              <Calendar
-                                mode="single"
-                                selected={controllerField.value ? new Date(controllerField.value as string | number | Date) : undefined}
-                                onSelect={controllerField.onChange}
-                                initialFocus
-                                locale={ptBR}
+    <>
+      <Card className="w-full shadow-xl">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <IconComponent className="h-8 w-8 text-primary" />
+            <CardTitle className="text-2xl">{formDefinition.name}</CardTitle>
+          </div>
+          <CardDescription>{formDefinition.description}</CardDescription>
+        </CardHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardContent className="space-y-6">
+              {formDefinition.fields.map((field) => (
+                <FormField
+                  key={field.id}
+                  control={form.control}
+                  name={field.id as keyof FormValues}
+                  render={({ field: controllerField }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold">{field.label}{field.required && <span className="text-destructive ml-1">*</span>}</FormLabel>
+                      <FormControl>
+                        <>
+                          {field.type === 'text' && <Input placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} />}
+                          {field.type === 'email' && <Input type="email" placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} />}
+                          {field.type === 'number' && <Input type="number" placeholder={field.placeholder} {...controllerField} value={controllerField.value === null ? '' : controllerField.value} onChange={e => controllerField.onChange(e.target.value === '' ? null : Number(e.target.value))}/>}
+                          {field.type === 'textarea' && <Textarea placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} />}
+                          {field.type === 'checkbox' && (
+                             <div className="flex items-center space-x-2 pt-2">
+                              <Checkbox
+                                id={field.id}
+                                checked={!!controllerField.value}
+                                onCheckedChange={controllerField.onChange}
                               />
-                            </PopoverContent>
-                          </Popover>
-                        )}
-                      </>
-                    </FormControl>
-                    {field.type !== 'checkbox' && field.placeholder && <FormDescription>{/* Add description if needed */}</FormDescription>}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ))}
-          </CardContent>
-          <CardFooter className="flex flex-col sm:flex-row justify-end gap-4 pt-6 border-t">
-            <Button type="button" variant="outline" onClick={handleGeneratePdf} className="w-full sm:w-auto">
-              <Printer className="mr-2 h-4 w-4" /> Gerar PDF
-            </Button>
-            <Button type="button" variant="outline" onClick={handleSaveToCloud} className="w-full sm:w-auto">
-              <CloudUpload className="mr-2 h-4 w-4" /> Salvar na Nuvem
-            </Button>
-            <Button type="submit" className="w-full sm:w-auto bg-primary hover:bg-primary/90">Enviar Formulário</Button>
-          </CardFooter>
-        </form>
-      </Form>
-    </Card>
+                              <label
+                                htmlFor={field.id}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                {field.label} 
+                              </label>
+                            </div>
+                          )}
+                          {field.type === 'select' && (
+                            <Select onValueChange={controllerField.onChange} defaultValue={controllerField.value as string || undefined} value={controllerField.value as string || undefined}>
+                              <SelectTrigger>
+                                <SelectValue placeholder={field.placeholder || "Selecione..."} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {field.options?.map((option: FormFieldOption) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                          {field.type === 'date' && (
+                             <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant={"outline"}
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !controllerField.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {controllerField.value ? format(new Date(controllerField.value as string | number | Date), "PPP", { locale: ptBR }) : <span>{field.placeholder || "Escolha uma data"}</span>}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                  mode="single"
+                                  selected={controllerField.value ? new Date(controllerField.value as string | number | Date) : undefined}
+                                  onSelect={controllerField.onChange}
+                                  initialFocus
+                                  locale={ptBR}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          )}
+                        </>
+                      </FormControl>
+                      {field.type !== 'checkbox' && field.placeholder && <FormDescription>{/* Add description if needed */}</FormDescription>}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+            </CardContent>
+            <CardFooter className="flex flex-col sm:flex-row justify-end gap-4 pt-6 border-t">
+              <Button type="submit" className="w-full sm:w-auto bg-primary hover:bg-primary/90">Enviar Formulário</Button>
+            </CardFooter>
+          </form>
+        </Form>
+      </Card>
+
+      <AlertDialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Formulário Enviado e PDF Gerado!</AlertDialogTitle>
+            <AlertDialogDescription>
+              Seu formulário "{formDefinition.name}" foi enviado com sucesso. O PDF foi gerado (simulação).
+              Deseja compartilhá-lo ou baixá-lo agora?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleShareDialogCancel}>
+              Não, Voltar ao Início
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleShareDialogAction}>
+              Sim, Compartilhar/Baixar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
+
+    
