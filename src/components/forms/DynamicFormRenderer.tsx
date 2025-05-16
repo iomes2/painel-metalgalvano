@@ -32,6 +32,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { auth, storage } from '@/lib/firebase'; // Storage might be used later for PDF uploads
+import { getFirestore, collection, addDoc, Timestamp } from 'firebase/firestore';
 
 interface DynamicFormRendererProps {
   formDefinition: FormDefinition;
@@ -88,6 +90,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
   const { toast } = useToast();
   const router = useRouter();
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const formSchema = buildZodSchema(formDefinition.fields);
   
   type FormValues = z.infer<typeof formSchema>;
@@ -106,20 +109,48 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     defaultValues: defaultValues,
   });
 
-  const onSubmit: SubmitHandler<FormValues> = (data) => {
-    console.log('Form data:', data);
-    toast({
-      title: `Formulário Enviado: ${formDefinition.name}`,
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-    });
-    form.reset(); 
-    // Simulate PDF generation for now
-    // In a real scenario, you'd trigger PDF generation here
-    setIsShareDialogOpen(true);
+  const onSubmit: SubmitHandler<FormValues> = async (data) => {
+    setIsSubmitting(true);
+    const currentUser = auth.currentUser;
+
+    if (!currentUser) {
+      toast({
+        title: "Erro de Autenticação",
+        description: "Você precisa estar logado para enviar formulários.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const db = getFirestore();
+      const reportData = {
+        formType: formDefinition.id,
+        formName: formDefinition.name,
+        formData: data,
+        submittedBy: currentUser.uid,
+        submittedAt: Timestamp.now(),
+      };
+      await addDoc(collection(db, "submitted_reports"), reportData);
+
+      console.log('Form data saved to Firestore:', reportData);
+      toast({
+        title: "Sucesso!",
+        description: `Formulário "${formDefinition.name}" enviado e salvo com sucesso!`,
+      });
+      form.reset(); 
+      setIsShareDialogOpen(true); // Open share dialog after successful save
+    } catch (error) {
+      console.error("Error saving form data to Firestore:", error);
+      toast({
+        title: "Erro ao Salvar",
+        description: "Não foi possível salvar o formulário. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   const IconComponent = getFormIcon(formDefinition.iconName);
@@ -161,22 +192,22 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                       <FormLabel className="font-semibold">{field.label}{field.required && <span className="text-destructive ml-1">*</span>}</FormLabel>
                       <FormControl>
                         <div> {/* Replaced React.Fragment with div */}
-                          {field.type === 'text' && <Input placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} />}
-                          {field.type === 'email' && <Input type="email" placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} />}
-                          {field.type === 'number' && <Input type="number" placeholder={field.placeholder} {...controllerField} value={controllerField.value === null ? '' : controllerField.value} onChange={e => controllerField.onChange(e.target.value === '' ? null : Number(e.target.value))}/>}
-                          {field.type === 'textarea' && <Textarea placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} />}
+                          {field.type === 'text' && <Input placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} disabled={isSubmitting} />}
+                          {field.type === 'email' && <Input type="email" placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} disabled={isSubmitting} />}
+                          {field.type === 'number' && <Input type="number" placeholder={field.placeholder} {...controllerField} value={controllerField.value === null ? '' : controllerField.value} onChange={e => controllerField.onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={isSubmitting} />}
+                          {field.type === 'textarea' && <Textarea placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} disabled={isSubmitting} />}
                           {field.type === 'checkbox' && (
                              <div className="flex items-center space-x-2 pt-2">
                               <Checkbox
-                                id={field.id} // Checkbox uses its defined ID
+                                id={field.id} 
                                 checked={!!controllerField.value}
                                 onCheckedChange={controllerField.onChange}
+                                disabled={isSubmitting}
                               />
-                              {/* Inner label removed as it's redundant with FormLabel above */}
                             </div>
                           )}
                           {field.type === 'select' && (
-                            <Select onValueChange={controllerField.onChange} defaultValue={controllerField.value as string || undefined} value={controllerField.value as string || undefined}>
+                            <Select onValueChange={controllerField.onChange} defaultValue={controllerField.value as string || undefined} value={controllerField.value as string || undefined} disabled={isSubmitting}>
                               <SelectTrigger>
                                 <SelectValue placeholder={field.placeholder || "Selecione..."} />
                               </SelectTrigger>
@@ -198,6 +229,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                                     "w-full justify-start text-left font-normal",
                                     !controllerField.value && "text-muted-foreground"
                                   )}
+                                  disabled={isSubmitting}
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
                                   {controllerField.value ? format(new Date(controllerField.value as string | number | Date), "PPP", { locale: ptBR }) : <span>{field.placeholder || "Escolha uma data"}</span>}
@@ -224,7 +256,9 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
               ))}
             </CardContent>
             <CardFooter className="flex flex-col sm:flex-row justify-end gap-4 pt-6 border-t">
-              <Button type="submit" className="w-full sm:w-auto bg-primary hover:bg-primary/90">Enviar Formulário</Button>
+              <Button type="submit" className="w-full sm:w-auto bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+                {isSubmitting ? "Enviando..." : "Enviar Formulário"}
+              </Button>
             </CardFooter>
           </form>
         </Form>
@@ -235,7 +269,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
           <AlertDialogHeader>
             <AlertDialogTitle>Formulário Enviado e PDF Gerado!</AlertDialogTitle>
             <AlertDialogDescription>
-              Seu formulário "{formDefinition.name}" foi enviado com sucesso. O PDF foi gerado (simulação).
+              Seu formulário "{formDefinition.name}" foi salvo com sucesso. O PDF foi gerado (simulação).
               Deseja compartilhá-lo ou baixá-lo agora?
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -252,6 +286,8 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     </>
   );
 }
+    
+
     
 
     
