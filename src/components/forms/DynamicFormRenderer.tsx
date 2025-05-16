@@ -160,7 +160,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                     <FormItem>
                       <FormLabel className="font-semibold">{field.label}{field.required && <span className="text-destructive ml-1">*</span>}</FormLabel>
                       <FormControl>
-                        <>
+                        <div> {/* Replaced React.Fragment with div */}
                           {field.type === 'text' && <Input placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} />}
                           {field.type === 'email' && <Input type="email" placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} />}
                           {field.type === 'number' && <Input type="number" placeholder={field.placeholder} {...controllerField} value={controllerField.value === null ? '' : controllerField.value} onChange={e => controllerField.onChange(e.target.value === '' ? null : Number(e.target.value))}/>}
@@ -168,16 +168,11 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                           {field.type === 'checkbox' && (
                              <div className="flex items-center space-x-2 pt-2">
                               <Checkbox
-                                id={field.id}
+                                id={field.id} // Checkbox uses its defined ID
                                 checked={!!controllerField.value}
                                 onCheckedChange={controllerField.onChange}
                               />
-                              <label
-                                htmlFor={field.id}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                              >
-                                {field.label} 
-                              </label>
+                              {/* Inner label removed as it's redundant with FormLabel above */}
                             </div>
                           )}
                           {field.type === 'select' && (
@@ -219,7 +214,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                               </PopoverContent>
                             </Popover>
                           )}
-                        </>
+                        </div>
                       </FormControl>
                       {field.type !== 'checkbox' && field.placeholder && <FormDescription>{/* Add description if needed */}</FormDescription>}
                       <FormMessage />
@@ -257,5 +252,6 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     </>
   );
 }
+    
 
     
