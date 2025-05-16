@@ -117,7 +117,6 @@ export const formDefinitions: FormDefinition[] = [
       { id: 'dataInicialEtapa', label: 'Data Inicial da Etapa', type: 'date', required: true },
       { id: 'dataFinalProjetadaEtapa', label: 'Data Final Projetada da Etapa', type: 'date', required: true },
       { id: 'ordemServico', label: 'OS (Ordem de Serviço)', type: 'text', placeholder: 'Número da OS', required: true },
-      { id: 'dataProjetadaParaEtapaConclusao', label: 'Data Projetada para Conclusão desta Etapa Específica', type: 'date', required: true },
       
       // Relatório de Desenvolvimento da Etapa da Obra (para um dia)
       { id: 'acompanhamentoDataAtual', label: 'Data do Acompanhamento Diário', type: 'date', required: true },
