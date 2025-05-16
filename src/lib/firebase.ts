@@ -4,14 +4,13 @@ import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
 // IMPORTANT: Replace with your Firebase project's configuration
-const firebaseConfig: FirebaseOptions = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
-  measurementId: "YOUR_MEASUREMENT_ID" // Optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDcaHxOOJnqkxMGd_llzP-4GzlGtYPV9Yo",
+  authDomain: "metalgalvano-22e5b.firebaseapp.com",
+  projectId: "metalgalvano-22e5b",
+  storageBucket: "metalgalvano-22e5b.firebasestorage.app",
+  messagingSenderId: "21385291737",
+  appId: "1:21385291737:web:d1a48669f69ba344829bc8"
 };
 
 // Initialize Firebase

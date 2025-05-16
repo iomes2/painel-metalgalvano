@@ -46,12 +46,35 @@ export function UserNav() {
     return idPart.substring(0, 2).toUpperCase();
   };
 
+  let primaryDisplayName = "Gerente";
+  let secondaryInfoLine = user.email || "Informação indisponível";
+
+  if (user.email) {
+    const emailParts = user.email.split('@');
+    const idPart = emailParts[0];
+    const domainPart = emailParts.length > 1 ? emailParts[1] : "";
+
+    if (domainPart === 'metalgalvano.forms') {
+      // Use displayName if set, otherwise the id_gerente (idPart)
+      primaryDisplayName = user.displayName || idPart; 
+      secondaryInfoLine = `ID Gerente: ${idPart}`;
+    } else {
+      // For other email types or if displayName is set
+      primaryDisplayName = user.displayName || user.email; 
+      secondaryInfoLine = user.email;
+    }
+  } else if (user.displayName) {
+    primaryDisplayName = user.displayName;
+    secondaryInfoLine = "Email não disponível"; // Or some other placeholder
+  }
+
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10 border-2 border-primary">
-            <AvatarImage src={user.photoURL || `https://placehold.co/40x40.png`} alt={user.displayName || user.email || "Usuário"} data-ai-hint="avatar person" />
+            <AvatarImage src={user.photoURL || `https://placehold.co/40x40.png`} alt={primaryDisplayName} data-ai-hint="avatar person" />
             <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
               {getInitials(user.email)}
             </AvatarFallback>
@@ -62,10 +85,10 @@ export function UserNav() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {user.displayName || user.email?.split('@')[0] || "Gerente"}
+              {primaryDisplayName}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user.email}
+              {secondaryInfoLine}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -89,3 +112,4 @@ export function UserNav() {
     </DropdownMenu>
   );
 }
+
