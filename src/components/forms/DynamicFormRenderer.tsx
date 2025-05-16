@@ -1,0 +1,227 @@
+
+"use client";
+
+import type { FormDefinition, FormField as FormFieldType, FormFieldOption } from '@/config/forms';
+import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { Printer, CloudUpload, CalendarIcon } from 'lucide-react';
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+
+interface DynamicFormRendererProps {
+  formDefinition: FormDefinition;
+}
+
+// Helper to build Zod schema from form definition
+const buildZodSchema = (fields: FormFieldType[]) => {
+  const schemaShape: Record<string, z.ZodTypeAny> = {};
+  fields.forEach(field => {
+    let fieldSchema: z.ZodTypeAny;
+
+    switch (field.type) {
+      case 'text':
+      case 'textarea':
+        fieldSchema = z.string();
+        if (field.required) fieldSchema = fieldSchema.min(1, `${field.label} is required.`);
+        else fieldSchema = fieldSchema.optional().or(z.literal('')); // Allow empty string for optional fields
+        break;
+      case 'email':
+        fieldSchema = z.string().email(`Invalid email format for ${field.label}.`);
+        if (field.required) fieldSchema = fieldSchema.min(1, `${field.label} is required.`);
+        else fieldSchema = fieldSchema.optional().or(z.literal(''));
+        break;
+      case 'number':
+        fieldSchema = z.coerce.number(); // coerce to handle string input from forms
+        if (field.required) fieldSchema = fieldSchema.min(0.00001, `${field.label} is required and must be non-zero if applicable.`); // Adjust min as needed
+        else fieldSchema = fieldSchema.optional().nullable();
+        break;
+      case 'date':
+        fieldSchema = z.date({
+            required_error: `${field.label} is required.`,
+            invalid_type_error: `That's not a valid date for ${field.label}!`,
+        });
+        if (!field.required) fieldSchema = fieldSchema.optional().nullable();
+        break;
+      case 'checkbox':
+        fieldSchema = z.boolean().default(field.defaultValue as boolean || false);
+        break;
+      case 'select':
+        fieldSchema = z.string();
+        if (field.required) fieldSchema = fieldSchema.min(1, `Please select an option for ${field.label}.`);
+        else fieldSchema = fieldSchema.optional().or(z.literal(''));
+        break;
+      default:
+        fieldSchema = z.any();
+    }
+    schemaShape[field.id] = fieldSchema;
+  });
+  return z.object(schemaShape);
+};
+
+
+export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps) {
+  const { toast } = useToast();
+  const formSchema = buildZodSchema(formDefinition.fields);
+  
+  type FormValues = z.infer<typeof formSchema>;
+
+  const defaultValues = formDefinition.fields.reduce((acc, field) => {
+    acc[field.id] = field.defaultValue !== undefined ? field.defaultValue :
+                    field.type === 'checkbox' ? false :
+                    field.type === 'number' ? null : // Or 0 if appropriate
+                    ''; // Default for text, select, etc.
+    return acc;
+  }, {} as Record<string, any>);
+
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: defaultValues,
+  });
+
+  const onSubmit: SubmitHandler<FormValues> = (data) => {
+    console.log('Form data:', data);
+    // Here you would typically send data to a server or Firebase
+    toast({
+      title: `Form Submitted: ${formDefinition.name}`,
+      description: (
+        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
+        </pre>
+      ),
+    });
+    // form.reset(); // Optionally reset form after submission
+  };
+
+  const handleGeneratePdf = () => {
+    // Placeholder for PDF generation logic
+    toast({
+      title: 'PDF Generation',
+      description: 'PDF generation functionality is not yet implemented.',
+    });
+  };
+
+  const handleSaveToCloud = () => {
+    // Placeholder for saving to Firebase Storage
+    toast({
+      title: 'Save to Cloud',
+      description: 'Saving to cloud storage functionality is not yet implemented.',
+    });
+  };
+  
+  const IconComponent = formDefinition.icon || Printer;
+
+
+  return (
+    <Card className="w-full shadow-xl">
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <IconComponent className="h-8 w-8 text-primary" />
+          <CardTitle className="text-2xl">{formDefinition.name}</CardTitle>
+        </div>
+        <CardDescription>{formDefinition.description}</CardDescription>
+      </CardHeader>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <CardContent className="space-y-6">
+            {formDefinition.fields.map((field) => (
+              <FormField
+                key={field.id}
+                control={form.control}
+                name={field.id as keyof FormValues}
+                render={({ field: controllerField }) => (
+                  <FormItem>
+                    <FormLabel className="font-semibold">{field.label}{field.required && <span className="text-destructive ml-1">*</span>}</FormLabel>
+                    <FormControl>
+                      <>
+                        {field.type === 'text' && <Input placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} />}
+                        {field.type === 'email' && <Input type="email" placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} />}
+                        {field.type === 'number' && <Input type="number" placeholder={field.placeholder} {...controllerField} value={controllerField.value === null ? '' : controllerField.value} onChange={e => controllerField.onChange(e.target.value === '' ? null : Number(e.target.value))}/>}
+                        {field.type === 'textarea' && <Textarea placeholder={field.placeholder} {...controllerField} value={controllerField.value || ''} />}
+                        {field.type === 'checkbox' && (
+                           <div className="flex items-center space-x-2 pt-2">
+                            <Checkbox
+                              id={field.id}
+                              checked={!!controllerField.value}
+                              onCheckedChange={controllerField.onChange}
+                            />
+                            <label
+                              htmlFor={field.id}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              {field.label} 
+                            </label>
+                          </div>
+                        )}
+                        {field.type === 'select' && (
+                          <Select onValueChange={controllerField.onChange} defaultValue={controllerField.value as string || undefined} value={controllerField.value as string || undefined}>
+                            <SelectTrigger>
+                              <SelectValue placeholder={field.placeholder || `Select ${field.label.toLowerCase()}`} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {field.options?.map((option: FormFieldOption) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                        {field.type === 'date' && (
+                           <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !controllerField.value && "text-muted-foreground"
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {controllerField.value ? format(new Date(controllerField.value as string | number | Date), "PPP") : <span>{field.placeholder || "Pick a date"}</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <Calendar
+                                mode="single"
+                                selected={controllerField.value ? new Date(controllerField.value as string | number | Date) : undefined}
+                                onSelect={controllerField.onChange}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                      </>
+                    </FormControl>
+                    {field.type !== 'checkbox' && field.placeholder && <FormDescription>{/* Add description if needed */}</FormDescription>}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
+          </CardContent>
+          <CardFooter className="flex flex-col sm:flex-row justify-end gap-4 pt-6 border-t">
+            <Button type="button" variant="outline" onClick={handleGeneratePdf} className="w-full sm:w-auto">
+              <Printer className="mr-2 h-4 w-4" /> Generate PDF
+            </Button>
+            <Button type="button" variant="outline" onClick={handleSaveToCloud} className="w-full sm:w-auto">
+              <CloudUpload className="mr-2 h-4 w-4" /> Save to Cloud
+            </Button>
+            <Button type="submit" className="w-full sm:w-auto bg-primary hover:bg-primary/90">Submit Form</Button>
+          </CardFooter>
+        </form>
+      </Form>
+    </Card>
+  );
+}
