@@ -27,11 +27,11 @@ export function UserNav() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      toast({ title: "Logged Out", description: "You have been successfully logged out." });
+      toast({ title: "Saída Efetuada", description: "Você foi desconectado com sucesso." });
       router.push('/login');
     } catch (error) {
       console.error("Logout failed:", error);
-      toast({ title: "Error", description: "Failed to log out. Please try again.", variant: "destructive" });
+      toast({ title: "Erro", description: "Falha ao sair. Por favor, tente novamente.", variant: "destructive" });
     }
   };
 
@@ -51,7 +51,7 @@ export function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10 border-2 border-primary">
-            <AvatarImage src={user.photoURL || `https://placehold.co/40x40.png`} alt={user.displayName || user.email || "User"} data-ai-hint="avatar person" />
+            <AvatarImage src={user.photoURL || `https://placehold.co/40x40.png`} alt={user.displayName || user.email || "Usuário"} data-ai-hint="avatar person" />
             <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
               {getInitials(user.email)}
             </AvatarFallback>
@@ -62,7 +62,7 @@ export function UserNav() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {user.displayName || user.email?.split('@')[0] || "Manager"}
+              {user.displayName || user.email?.split('@')[0] || "Gerente"}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
@@ -73,17 +73,17 @@ export function UserNav() {
         <DropdownMenuGroup>
           <DropdownMenuItem disabled>
             <UserIcon className="mr-2 h-4 w-4" />
-            <span>Profile</span>
+            <span>Perfil</span>
           </DropdownMenuItem>
           <DropdownMenuItem disabled>
             <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
+            <span>Configurações</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>Sair</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

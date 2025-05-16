@@ -16,20 +16,20 @@ export default function DashboardPage() {
     return null; 
   }
 
-  const userName = user.displayName || user.email?.split('@')[0] || "Manager";
+  const userName = user.displayName || user.email?.split('@')[0] || "Gerente";
 
   return (
     <div className="space-y-8">
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-3xl font-bold">Welcome, {userName}!</CardTitle>
+          <CardTitle className="text-3xl font-bold">Bem-vindo(a), {userName}!</CardTitle>
           <CardDescription className="text-lg text-muted-foreground">
-            Select a form from the sidebar or the list below to get started.
-            You can fill out, generate PDFs, and save your construction process reports.
+            Selecione um formulário na barra lateral ou na lista abaixo para começar.
+            Você pode preencher, gerar PDFs e salvar seus relatórios de processo de construção.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p>This dashboard allows you to manage various forms related to Metalgalvano's construction processes. Ensure all data entered is accurate and complete.</p>
+          <p>Este painel permite gerenciar diversos formulários relacionados aos processos de construção da Metalgalvano. Certifique-se de que todos os dados inseridos sejam precisos e completos.</p>
         </CardContent>
       </Card>
 
@@ -51,7 +51,7 @@ export default function DashboardPage() {
               <CardContent>
                  <Button asChild className="w-full bg-primary hover:bg-primary/90">
                   <Link href={`/dashboard/forms/${form.id}`} className="flex items-center justify-center">
-                    Open Form <ArrowRight className="ml-2 h-4 w-4" />
+                    Abrir Formulário <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
               </CardContent>

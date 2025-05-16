@@ -24,20 +24,20 @@ export default function DashboardError({
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 mb-4">
             <AlertTriangle className="h-6 w-6 text-destructive" />
           </div>
-          <CardTitle>Oops! Something went wrong.</CardTitle>
+          <CardTitle>Ops! Algo deu errado.</CardTitle>
           <CardDescription>
-            An unexpected error occurred within the dashboard.
+            Ocorreu um erro inesperado no painel.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-4">
-            {error.message || "We're sorry for the inconvenience. Please try again."}
+            {error.message || "Lamentamos o inconveniente. Por favor, tente novamente."}
           </p>
           <Button
             onClick={() => reset()}
             className="bg-primary hover:bg-primary/90"
           >
-            Try Again
+            Tentar Novamente
           </Button>
         </CardContent>
       </Card>

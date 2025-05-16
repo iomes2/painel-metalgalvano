@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Metalgalvano Forms',
-  description: 'Dynamic forms for construction processes by Metalgalvano.',
+  title: 'Metalgalvano Formulários',
+  description: 'Formulários dinâmicos para processos de construção da Metalgalvano.',
 };
 
 export default function RootLayout({
@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthInitializer>
           {children}

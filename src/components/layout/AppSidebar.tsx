@@ -22,10 +22,10 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" variant="inset" side="left">
       <SidebarHeader className="items-center">
-        <Link href="/dashboard" className="block group-data-[collapsible=icon]:hidden" aria-label="Go to dashboard">
+        <Link href="/dashboard" className="block group-data-[collapsible=icon]:hidden" aria-label="Ir para o painel">
           <Logo textColor="hsl(var(--sidebar-foreground))" iconColor="hsl(var(--sidebar-primary))" />
         </Link>
-         <Link href="/dashboard" className="hidden group-data-[collapsible=icon]:block" aria-label="Go to dashboard">
+         <Link href="/dashboard" className="hidden group-data-[collapsible=icon]:block" aria-label="Ir para o painel">
            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-sidebar-primary"><path d="M5 10 L10 5 L10 19 L5 14 Z" fill="hsl(var(--sidebar-primary))" /><path d="M12 10 L17 5 L17 19 L12 14 Z" fill="hsl(var(--sidebar-primary))" opacity="0.7" /></svg>
         </Link>
       </SidebarHeader>
@@ -35,11 +35,11 @@ export function AppSidebar() {
             <SidebarMenuButton 
               asChild 
               isActive={pathname === '/dashboard'}
-              tooltip={{children: "Dashboard", side:"right"}}
+              tooltip={{children: "Painel", side:"right"}}
             >
               <Link href="/dashboard">
                 <Home />
-                <span>Dashboard</span>
+                <span>Painel</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -20,11 +20,11 @@ export default function FormPage({ params }: FormPageProps) {
     return (
       <Alert variant="destructive" className="max-w-2xl mx-auto my-8">
         <Terminal className="h-4 w-4" />
-        <AlertTitle>Error: Form Not Found</AlertTitle>
+        <AlertTitle>Erro: Formulário Não Encontrado</AlertTitle>
         <AlertDescription>
-          The form type "{formType}" could not be found. Please check the URL or select a valid form.
+          O tipo de formulário "{formType}" não pôde ser encontrado. Por favor, verifique o URL ou selecione um formulário válido.
           <Button asChild variant="link" className="mt-2 p-0 h-auto">
-            <Link href="/dashboard">Go back to Dashboard</Link>
+            <Link href="/dashboard">Voltar para o Painel</Link>
           </Button>
         </AlertDescription>
       </Alert>
@@ -50,6 +50,6 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: FormPageProps) {
   const formDefinition = getFormDefinition(params.formType);
   return {
-    title: formDefinition ? `${formDefinition.name} - Metalgalvano Forms` : 'Form Not Found',
+    title: formDefinition ? `${formDefinition.name} - Metalgalvano Formulários` : 'Formulário Não Encontrado',
   };
 }

@@ -34,8 +34,8 @@ export function LoginForm() {
 
     if (!idGerente || !password) {
       toast({
-        title: "Error",
-        description: "ID Gerente and Password are required.",
+        title: "Erro",
+        description: "ID Gerente e Senha são obrigatórios.",
         variant: "destructive",
       });
       setLoading(false);
@@ -47,20 +47,20 @@ export function LoginForm() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast({
-        title: "Success",
-        description: "Logged in successfully!",
+        title: "Sucesso",
+        description: "Login realizado com sucesso!",
       });
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Firebase Auth Error:", error);
-      let errorMessage = "Login failed. Please check your credentials.";
+      let errorMessage = "Falha no login. Verifique suas credenciais.";
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        errorMessage = "Invalid ID Gerente or Password.";
+        errorMessage = "ID Gerente ou Senha inválidos.";
       } else if (error.code === 'auth/invalid-email') {
-        errorMessage = "The ID Gerente format is incorrect.";
+        errorMessage = "O formato do ID Gerente está incorreto.";
       }
       toast({
-        title: "Login Failed",
+        title: "Falha no Login",
         description: errorMessage,
         variant: "destructive",
       });
@@ -73,8 +73,8 @@ export function LoginForm() {
     <Card className="w-full max-w-md shadow-xl">
       <CardHeader className="items-center text-center">
         <Logo className="mb-4" />
-        <CardTitle className="text-2xl">Manager Login</CardTitle>
-        <CardDescription>Enter your credentials to access the forms dashboard.</CardDescription>
+        <CardTitle className="text-2xl">Login do Gerente</CardTitle>
+        <CardDescription>Insira suas credenciais para acessar o painel de formulários.</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -85,7 +85,7 @@ export function LoginForm() {
               <Input 
                 id="id_gerente" 
                 type="text" 
-                placeholder="e.g., MG001" 
+                placeholder="Ex: MG001" 
                 value={idGerente}
                 onChange={(e) => setIdGerente(e.target.value)}
                 required 
@@ -95,7 +95,7 @@ export function LoginForm() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Senha</Label>
             <div className="relative">
               <Input 
                 id="password" 
@@ -105,7 +105,7 @@ export function LoginForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 required 
                 className="pr-10"
-                aria-label="Password"
+                aria-label="Senha"
               />
               <Button 
                 type="button" 
@@ -113,19 +113,19 @@ export function LoginForm() {
                 size="icon" 
                 className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
                 onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </Button>
             </div>
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Entrando...' : 'Entrar'}
           </Button>
         </form>
       </CardContent>
       <CardFooter className="text-center text-sm text-muted-foreground">
-        <p>Contact support if you have trouble logging in.</p>
+        <p>Entre em contato com o suporte se tiver problemas para fazer login.</p>
       </CardFooter>
     </Card>
   );

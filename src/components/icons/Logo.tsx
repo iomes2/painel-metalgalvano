@@ -14,7 +14,7 @@ const Logo: React.FC<LogoProps> = ({ width = 150, height = 30, textColor = "hsl(
       viewBox={`0 0 ${width} ${height}`} 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
-      aria-label="Metalgalvano Forms Logo"
+      aria-label="Logo Metalgalvano Formulários"
       {...props}
     >
       <path d="M5 10 L15 5 L15 25 L5 20 Z" fill={iconColor} />

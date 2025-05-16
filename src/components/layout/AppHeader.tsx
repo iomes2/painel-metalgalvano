@@ -12,7 +12,7 @@ export function AppHeader() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4">
           <SidebarTrigger className="md:hidden" />
-          <Link href="/dashboard" aria-label="Go to dashboard">
+          <Link href="/dashboard" aria-label="Ir para o painel">
             <Logo textColor="hsl(var(--card-foreground))" iconColor="hsl(var(--primary))" />
           </Link>
         </div>

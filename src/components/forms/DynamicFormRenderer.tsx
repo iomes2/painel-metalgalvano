@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from '@/hooks/use-toast';
 import { Printer, CloudUpload, CalendarIcon } from 'lucide-react';
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 interface DynamicFormRendererProps {
@@ -33,23 +34,23 @@ const buildZodSchema = (fields: FormFieldType[]) => {
       case 'text':
       case 'textarea':
         fieldSchema = z.string();
-        if (field.required) fieldSchema = fieldSchema.min(1, `${field.label} is required.`);
+        if (field.required) fieldSchema = fieldSchema.min(1, `${field.label} é obrigatório(a).`);
         else fieldSchema = fieldSchema.optional().or(z.literal('')); // Allow empty string for optional fields
         break;
       case 'email':
-        fieldSchema = z.string().email(`Invalid email format for ${field.label}.`);
-        if (field.required) fieldSchema = fieldSchema.min(1, `${field.label} is required.`);
+        fieldSchema = z.string().email(`Formato de e-mail inválido para ${field.label}.`);
+        if (field.required) fieldSchema = fieldSchema.min(1, `${field.label} é obrigatório(a).`);
         else fieldSchema = fieldSchema.optional().or(z.literal(''));
         break;
       case 'number':
         fieldSchema = z.coerce.number(); // coerce to handle string input from forms
-        if (field.required) fieldSchema = fieldSchema.min(0.00001, `${field.label} is required and must be non-zero if applicable.`); // Adjust min as needed
+        if (field.required) fieldSchema = fieldSchema.min(0.00001, `${field.label} é obrigatório(a) e deve ser diferente de zero, se aplicável.`);
         else fieldSchema = fieldSchema.optional().nullable();
         break;
       case 'date':
         fieldSchema = z.date({
-            required_error: `${field.label} is required.`,
-            invalid_type_error: `That's not a valid date for ${field.label}!`,
+            required_error: `${field.label} é obrigatório(a).`,
+            invalid_type_error: `Esta não é uma data válida para ${field.label}!`,
         });
         if (!field.required) fieldSchema = fieldSchema.optional().nullable();
         break;
@@ -58,7 +59,7 @@ const buildZodSchema = (fields: FormFieldType[]) => {
         break;
       case 'select':
         fieldSchema = z.string();
-        if (field.required) fieldSchema = fieldSchema.min(1, `Please select an option for ${field.label}.`);
+        if (field.required) fieldSchema = fieldSchema.min(1, `Por favor, selecione uma opção para ${field.label}.`);
         else fieldSchema = fieldSchema.optional().or(z.literal(''));
         break;
       default:
@@ -94,7 +95,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     console.log('Form data:', data);
     // Here you would typically send data to a server or Firebase
     toast({
-      title: `Form Submitted: ${formDefinition.name}`,
+      title: `Formulário Enviado: ${formDefinition.name}`,
       description: (
         <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
           <code className="text-white">{JSON.stringify(data, null, 2)}</code>
@@ -107,16 +108,16 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
   const handleGeneratePdf = () => {
     // Placeholder for PDF generation logic
     toast({
-      title: 'PDF Generation',
-      description: 'PDF generation functionality is not yet implemented.',
+      title: 'Geração de PDF',
+      description: 'A funcionalidade de geração de PDF ainda não foi implementada.',
     });
   };
 
   const handleSaveToCloud = () => {
     // Placeholder for saving to Firebase Storage
     toast({
-      title: 'Save to Cloud',
-      description: 'Saving to cloud storage functionality is not yet implemented.',
+      title: 'Salvar na Nuvem',
+      description: 'A funcionalidade de salvar no armazenamento em nuvem ainda não foi implementada.',
     });
   };
   
@@ -167,7 +168,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                         {field.type === 'select' && (
                           <Select onValueChange={controllerField.onChange} defaultValue={controllerField.value as string || undefined} value={controllerField.value as string || undefined}>
                             <SelectTrigger>
-                              <SelectValue placeholder={field.placeholder || `Select ${field.label.toLowerCase()}`} />
+                              <SelectValue placeholder={field.placeholder || "Selecione..."} />
                             </SelectTrigger>
                             <SelectContent>
                               {field.options?.map((option: FormFieldOption) => (
@@ -189,7 +190,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                                 )}
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {controllerField.value ? format(new Date(controllerField.value as string | number | Date), "PPP") : <span>{field.placeholder || "Pick a date"}</span>}
+                                {controllerField.value ? format(new Date(controllerField.value as string | number | Date), "PPP", { locale: ptBR }) : <span>{field.placeholder || "Escolha uma data"}</span>}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
@@ -198,6 +199,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                                 selected={controllerField.value ? new Date(controllerField.value as string | number | Date) : undefined}
                                 onSelect={controllerField.onChange}
                                 initialFocus
+                                locale={ptBR}
                               />
                             </PopoverContent>
                           </Popover>
@@ -213,12 +215,12 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
           </CardContent>
           <CardFooter className="flex flex-col sm:flex-row justify-end gap-4 pt-6 border-t">
             <Button type="button" variant="outline" onClick={handleGeneratePdf} className="w-full sm:w-auto">
-              <Printer className="mr-2 h-4 w-4" /> Generate PDF
+              <Printer className="mr-2 h-4 w-4" /> Gerar PDF
             </Button>
             <Button type="button" variant="outline" onClick={handleSaveToCloud} className="w-full sm:w-auto">
-              <CloudUpload className="mr-2 h-4 w-4" /> Save to Cloud
+              <CloudUpload className="mr-2 h-4 w-4" /> Salvar na Nuvem
             </Button>
-            <Button type="submit" className="w-full sm:w-auto bg-primary hover:bg-primary/90">Submit Form</Button>
+            <Button type="submit" className="w-full sm:w-auto bg-primary hover:bg-primary/90">Enviar Formulário</Button>
           </CardFooter>
         </form>
       </Form>

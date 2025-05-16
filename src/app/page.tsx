@@ -22,7 +22,7 @@ export default function HomePage() {
   return (
     <div className="flex h-screen items-center justify-center bg-background">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      <p className="ml-4 text-foreground">Loading Metalgalvano Forms...</p>
+      <p className="ml-4 text-foreground">Carregando Metalgalvano Formulários...</p>
     </div>
   );
 }
