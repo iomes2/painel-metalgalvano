@@ -19,6 +19,7 @@ import { Printer, CloudUpload, CalendarIcon } from 'lucide-react';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { getFormIcon } from '@/components/icons/icon-resolver';
 
 interface DynamicFormRendererProps {
   formDefinition: FormDefinition;
@@ -121,7 +122,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     });
   };
   
-  const IconComponent = formDefinition.icon || Printer;
+  const IconComponent = getFormIcon(formDefinition.iconName);
 
 
   return (

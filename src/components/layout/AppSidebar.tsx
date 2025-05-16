@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/sidebar';
 import Logo from '@/components/icons/Logo';
 import { formDefinitions } from '@/config/forms';
-import { Home, FileText } from 'lucide-react';
+import { Home } from 'lucide-react';
+import { getFormIcon } from '@/components/icons/icon-resolver';
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -45,7 +46,7 @@ export function AppSidebar() {
           </SidebarMenuItem>
 
           {formDefinitions.map((form) => {
-            const IconComponent = form.icon || FileText;
+            const IconComponent = getFormIcon(form.iconName);
             return (
               <SidebarMenuItem key={form.id}>
                 <SidebarMenuButton

@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { formDefinitions } from "@/config/forms";
-import { ArrowRight, FileText } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { getFormIcon } from '@/components/icons/icon-resolver';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -35,7 +36,7 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {formDefinitions.map((form) => {
-          const IconComponent = form.icon || FileText;
+          const IconComponent = getFormIcon(form.iconName);
           return (
             <Card key={form.id} className="flex flex-col justify-between shadow-md hover:shadow-lg transition-shadow duration-200">
               <CardHeader>

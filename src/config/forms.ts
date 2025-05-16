@@ -18,19 +18,19 @@ export interface FormDefinition {
   id: string;
   name: string;
   description: string;
-  icon?: React.ElementType; // Lucide icon component
+  iconName?: string; // Alterado de icon: React.ElementType para iconName: string
   fields: FormField[];
 }
 
-// Example using lucide-react icons (ensure these are installed or adjust as needed)
-import { ClipboardList, Wrench, Truck } from 'lucide-react';
+// Os ícones reais serão resolvidos em tempo de execução nos componentes do cliente
+// import { ClipboardList, Wrench, Truck } from 'lucide-react'; // Não é mais necessário importar aqui
 
 export const formDefinitions: FormDefinition[] = [
   {
     id: 'site-inspection',
     name: 'Relatório de Inspeção do Local',
     description: 'Relatório diário para inspeções de canteiros de obras.',
-    icon: ClipboardList,
+    iconName: 'ClipboardList', // Alterado de icon: ClipboardList
     fields: [
       { id: 'inspectionDate', label: 'Data da Inspeção', type: 'date', required: true },
       { id: 'inspectorName', label: 'Nome do Inspetor', type: 'text', placeholder: 'Ex: João Silva', required: true },
@@ -56,7 +56,7 @@ export const formDefinitions: FormDefinition[] = [
     id: 'equipment-check',
     name: 'Verificação de Manutenção de Equipamento',
     description: 'Formulário para verificações de rotina de manutenção de equipamentos.',
-    icon: Wrench,
+    iconName: 'Wrench', // Alterado de icon: Wrench
     fields: [
       { id: 'checkDate', label: 'Data da Verificação', type: 'date', required: true },
       { id: 'equipmentId', label: 'ID do Equipamento', type: 'text', placeholder: 'Ex: EXCV-003', required: true },
@@ -83,7 +83,7 @@ export const formDefinitions: FormDefinition[] = [
     id: 'material-delivery',
     name: 'Recibo de Entrega de Material',
     description: 'Registrar detalhes dos materiais entregues no local.',
-    icon: Truck,
+    iconName: 'Truck', // Alterado de icon: Truck
     fields: [
       { id: 'deliveryDate', label: 'Data de Entrega', type: 'date', required: true },
       { id: 'supplierName', label: 'Nome do Fornecedor', type: 'text', placeholder: 'Ex: Concreto Ltda.', required: true },
