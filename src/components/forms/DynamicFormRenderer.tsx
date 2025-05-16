@@ -21,7 +21,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { getFormIcon } from '@/components/icons/icon-resolver';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -109,6 +109,47 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     defaultValues: defaultValues,
   });
 
+  const { watch, setValue } = form;
+
+  // Watch fields for conditional rendering specific to 'cronograma-diario-obra'
+  const situacaoEtapaDia = formDefinition.id === 'cronograma-diario-obra' ? watch('situacaoEtapaDia' as any) : undefined;
+  const horasRetrabalhoParadasDia = formDefinition.id === 'cronograma-diario-obra' ? watch('horasRetrabalhoParadasDia' as any) : undefined;
+  const horarioEfetivoInicioAtividades = formDefinition.id === 'cronograma-diario-obra' ? watch('horarioEfetivoInicioAtividades' as any) : undefined;
+  const horarioEfetivoSaidaObra = formDefinition.id === 'cronograma-diario-obra' ? watch('horarioEfetivoSaidaObra' as any) : undefined;
+
+  useEffect(() => {
+    if (formDefinition.id === 'cronograma-diario-obra') {
+      if (situacaoEtapaDia !== 'em_atraso') {
+        setValue('motivoAtrasoDia' as any, '', { shouldValidate: false });
+      }
+    }
+  }, [situacaoEtapaDia, setValue, formDefinition.id]);
+
+  useEffect(() => {
+    if (formDefinition.id === 'cronograma-diario-obra') {
+      if (!horasRetrabalhoParadasDia || String(horasRetrabalhoParadasDia).trim() === '') {
+        setValue('motivoRetrabalhoParadaDia' as any, '', { shouldValidate: false });
+      }
+    }
+  }, [horasRetrabalhoParadasDia, setValue, formDefinition.id]);
+
+  useEffect(() => {
+    if (formDefinition.id === 'cronograma-diario-obra') {
+      if (!horarioEfetivoInicioAtividades || String(horarioEfetivoInicioAtividades).trim() === '') {
+        setValue('motivoNaoCumprimentoHorarioInicio' as any, '', { shouldValidate: false });
+      }
+    }
+  }, [horarioEfetivoInicioAtividades, setValue, formDefinition.id]);
+
+  useEffect(() => {
+    if (formDefinition.id === 'cronograma-diario-obra') {
+      if (!horarioEfetivoSaidaObra || String(horarioEfetivoSaidaObra).trim() === '') {
+        setValue('motivoNaoCumprimentoHorarioSaida' as any, '', { shouldValidate: false });
+      }
+    }
+  }, [horarioEfetivoSaidaObra, setValue, formDefinition.id]);
+
+
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
     setIsSubmitting(true);
     const currentUser = auth.currentUser;
@@ -125,28 +166,21 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
 
     const db = getFirestore();
     
-    // Common data for the report
     const reportPayload = {
       formType: formDefinition.id,
       formName: formDefinition.name,
-      formData: data, // formData will contain all fields, including ordemServico if present
+      formData: data,
       submittedBy: currentUser.uid,
       submittedAt: Timestamp.now(),
     };
 
-    // Check if the form has an 'ordemServico' field and if it's filled
     const ordemServicoField = formDefinition.fields.find(f => f.id === 'ordemServico');
-    // Explicitly type osValue if it comes from data (FormValues)
     const osValue = (data as Record<string, any>).ordemServico as string | undefined;
-
 
     try {
       if (ordemServicoField && osValue && osValue.trim() !== '') {
-        // Form has an OS field, and it's filled. Save under ordens_servico/{OS}/relatorios/{AUTO_ID}
         const osDocRef = doc(db, "ordens_servico", osValue.trim());
-        // Optionally, ensure the OS document itself exists or update a timestamp
-        await setDoc(osDocRef, { lastReportAt: Timestamp.now() }, { merge: true });
-
+        await setDoc(osDocRef, { lastReportAt: Timestamp.now(), os: osValue.trim() }, { merge: true });
         const reportsSubCollectionRef = collection(db, "ordens_servico", osValue.trim(), "relatorios");
         await addDoc(reportsSubCollectionRef, reportPayload);
         
@@ -155,10 +189,8 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
           description: `Formulário "${formDefinition.name}" para OS "${osValue.trim()}" salvo!`,
         });
       } else {
-        // Form does not have an OS field, or it's not filled. Save to generic 'submitted_reports'
         const genericReportsCollectionRef = collection(db, "submitted_reports");
         await addDoc(genericReportsCollectionRef, reportPayload);
-
         toast({
           title: "Sucesso!",
           description: `Formulário "${formDefinition.name}" salvo com sucesso!`,
@@ -208,7 +240,25 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-6">
-              {formDefinition.fields.map((field) => (
+              {formDefinition.fields.map((field) => {
+                let shouldRenderField = true;
+                if (formDefinition.id === 'cronograma-diario-obra') {
+                  if (field.id === 'motivoAtrasoDia') {
+                    shouldRenderField = situacaoEtapaDia === 'em_atraso';
+                  } else if (field.id === 'motivoRetrabalhoParadaDia') {
+                    shouldRenderField = !!horasRetrabalhoParadasDia && String(horasRetrabalhoParadasDia).trim() !== '';
+                  } else if (field.id === 'motivoNaoCumprimentoHorarioInicio') {
+                    shouldRenderField = !!horarioEfetivoInicioAtividades && String(horarioEfetivoInicioAtividades).trim() !== '';
+                  } else if (field.id === 'motivoNaoCumprimentoHorarioSaida') {
+                    shouldRenderField = !!horarioEfetivoSaidaObra && String(horarioEfetivoSaidaObra).trim() !== '';
+                  }
+                }
+
+                if (!shouldRenderField) {
+                  return null;
+                }
+                
+                return (
                 <FormField
                   key={field.id}
                   control={form.control}
@@ -276,32 +326,11 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                         </div>
                       </FormControl>
                       {field.type !== 'checkbox' && field.placeholder && <FormDescription>{/* Add description if needed */}</FormDescription>}
-                       { /* Associate the FormLabel with the Checkbox using aria-labelledby on the Checkbox if FormLabel has an id.
-                           However, FormLabel's id is tied to formItemId which is generated. For direct association,
-                           the Checkbox would need its own label or be linked via aria-describedby if a separate description is needed.
-                           The current structure with FormLabel serving the FormItem should be sufficient for accessibility.
-                           We added an aria-labelledby to the checkbox that would require the FormLabel to have a corresponding id `${field.id}-label`.
-                           Let's ensure FormLabel has an id that can be referenced, or remove explicit aria-labelledby if FormLabel inherently labels it.
-                           Given FormLabel is part of FormItem, it should already label its contents.
-                           The duplicate label for checkbox was removed in a previous step.
-                           Adding `id={`${field.id}-label`}` to FormLabel for clarity for the checkbox.
-                        */
-                       }
-                       {/* This FormLabel already has an id (`${id}-form-item` from useFormField)
-                           which is set on its `htmlFor`. The `aria-labelledby` on Checkbox should use that.
-                           Let's refine the checkbox aria-labelledby if necessary, or confirm it's covered.
-                           The `FormLabel` above has `htmlFor={formItemId}`. `formItemId` is derived.
-                           The checkbox itself is the input. `FormLabel` points to it. This is standard.
-                           The `aria-labelledby` on the checkbox itself might be redundant or could point to the form label's actual ID.
-                           For now, the current setup where `FormLabel` uses `htmlFor` targeting the control (via `formItemId`) is standard.
-                           If the checkbox *itself* needed a label (e.g. if it was standalone), then `aria-label` or `aria-labelledby` referencing a separate element would be used.
-                           Here, the `FormLabel` component *is* the label for the checkbox (and other inputs).
-                        */}
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              ))}
+              )})}
             </CardContent>
             <CardFooter className="flex flex-col sm:flex-row justify-end gap-4 pt-6 border-t">
               <Button type="submit" className="w-full sm:w-auto bg-primary hover:bg-primary/90" disabled={isSubmitting}>
@@ -334,6 +363,8 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     </>
   );
 }
+    
+
     
 
     
