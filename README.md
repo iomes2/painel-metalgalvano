@@ -35,7 +35,7 @@ O projeto abrange as seguintes funcionalidades principais:
 - **Frontend**: React com Tailwind CSS para uma interface responsiva e amigável.
 - **Backend**: Firebase (Authentication para login, Firestore para dados, Storage para arquivos).
 - **Geração de PDF**: Biblioteca pdfmake para criar PDFs no lado do cliente.
-- **Desenvolvimento**: Lovable.dev para prototipagem e testes iniciais.
+- **Desenvolvimento**: Firebase Studio para prototipagem e testes iniciais.
 
 ### **4. Estrutura Atual**
 - O projeto está em fase inicial, com foco na implementação do formulário "Acompanhamento de Cronograma e Diário de Obra".
@@ -57,8 +57,8 @@ Este projeto foi escolhido para o TCC porque:
 
 ### **7. Contato**
 Para feedback ou dúvidas, entre em contato com o desenvolvedor:
-- Nome: [Seu Nome]
-- Email: [Seu Email]
+- Nome: Renan Iomes
+- Email: renaniomes10@gmail.com
 - GitHub: [iomes2](https://github.com/iomes2)
 
 ---
@@ -91,6 +91,3 @@ Para feedback ou dúvidas, entre em contato com o desenvolvedor:
 
 ## **Contribuições**
 Este projeto é parte de um TCC e, no momento, não aceita contribuições externas. No entanto, sugestões e feedback são bem-vindos via GitHub Issues.
-
-## **Licença**
-Este projeto é licenciado sob a [MIT License](LICENSE).
