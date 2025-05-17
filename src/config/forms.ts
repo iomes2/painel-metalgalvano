@@ -8,11 +8,11 @@ export interface FormFieldOption {
 export interface FormField {
   id: string;
   label: string;
-  type: 'text' | 'email' | 'password' | 'number' | 'textarea' | 'select' | 'checkbox' | 'date';
+  type: 'text' | 'email' | 'password' | 'number' | 'textarea' | 'select' | 'checkbox' | 'date' | 'file';
   placeholder?: string;
   options?: FormFieldOption[]; // For select, radio-group
   required?: boolean;
-  defaultValue?: string | number | boolean | Date;
+  defaultValue?: string | number | boolean | Date | null;
   validation?: any; // Zod schema for validation
 }
 
@@ -118,7 +118,7 @@ export const formDefinitions: FormDefinition[] = [
       { id: 'dataInicialEtapa', label: 'Data Inicial da Etapa', type: 'date', required: true },
       { id: 'dataFinalProjetadaEtapa', label: 'Data Final Projetada da Etapa', type: 'date', required: true },
       { id: 'ordemServico', label: 'OS (Ordem de Serviço)', type: 'text', placeholder: 'Número da OS', required: true },
-      { id: 'acompanhamentoDataAtual', label: 'Data do Acompanhamento Diário', type: 'date', required: true },
+      { id: 'acompanhamentoDataAtual', label: 'Data do Acompanhamento Diário', type: 'date', required: true, defaultValue: new Date() },
       { 
         id: 'situacaoEtapaDia', 
         label: 'Situação da Etapa no Dia', 
@@ -137,6 +137,11 @@ export const formDefinitions: FormDefinition[] = [
         type: 'select', 
         options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
         defaultValue: 'nao'
+      },
+      {
+        id: 'uploadFotosEtapaDia',
+        label: 'Enviar Fotos da Etapa',
+        type: 'file',
       },
       { 
         id: 'relatorioInspecaoDia', 
@@ -178,11 +183,22 @@ export const formDefinitions: FormDefinition[] = [
     description: 'Documenta não conformidades identificadas e ações corretivas.',
     iconName: 'FileWarning',
     fields: [
-      { id: 'dataRnc', label: 'Data da RNC', type: 'date', required: true },
+      { id: 'dataRnc', label: 'Data da RNC', type: 'date', required: true, defaultValue: new Date() },
       { id: 'ordemServico', label: 'OS (Ordem de Serviço)', type: 'text', placeholder: 'Número da OS relacionada', required: true },
       { id: 'descricaoNaoConformidade', label: 'Descrição da Não Conformidade', type: 'textarea', placeholder: 'Detalhe a não conformidade observada', required: true },
       { id: 'localOcorrencia', label: 'Local da Ocorrência', type: 'text', placeholder: 'Ex: Setor B, Andar 3', required: true },
-      { id: 'fotosNaoConformidade', label: 'Fotos da Não Conformidade Tiradas?', type: 'select', options: [{value: 'sim', label: 'Sim'}, {value: 'nao', label: 'Não'}], defaultValue: 'nao' },
+      { 
+        id: 'fotosNaoConformidade', 
+        label: 'Fotos da Não Conformidade Tiradas?', 
+        type: 'select', 
+        options: [{value: 'sim', label: 'Sim'}, {value: 'nao', label: 'Não'}], 
+        defaultValue: 'nao' 
+      },
+      {
+        id: 'uploadFotosNaoConformidade',
+        label: 'Enviar Fotos da Não Conformidade',
+        type: 'file',
+      },
       { id: 'causaRaizIdentificada', label: 'Causa Raiz Identificada', type: 'textarea', placeholder: 'Descreva a causa fundamental do problema' },
       { id: 'acoesCorretivasPropostas', label: 'Ações Corretivas Propostas/Executadas', type: 'textarea', placeholder: 'Detalhe as ações para corrigir e prevenir a recorrência', required: true },
       { id: 'responsavelImplementacao', label: 'Responsável pela Implementação das Ações', type: 'text', placeholder: 'Nome do responsável' },
@@ -208,3 +224,5 @@ export const formDefinitions: FormDefinition[] = [
 export const getFormDefinition = (formId: string): FormDefinition | undefined => {
   return formDefinitions.find(form => form.id === formId);
 };
+
+    
