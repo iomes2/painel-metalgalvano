@@ -32,8 +32,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { auth } from '@/lib/firebase'; 
+import { auth, storage, db } from '@/lib/firebase'; 
 import { getFirestore, collection, addDoc, Timestamp, doc, setDoc } from 'firebase/firestore';
+import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
 interface DynamicFormRendererProps {
   formDefinition: FormDefinition;
@@ -78,7 +79,7 @@ const buildZodSchema = (fields: FormFieldType[]) => {
         else fieldSchema = fieldSchema.optional().or(z.literal(''));
         break;
       case 'file':
-        fieldSchema = z.any().optional(); // FileList or null/undefined
+        fieldSchema = z.any().optional().nullable(); // FileList or null/undefined
         break;
       default:
         fieldSchema = z.any();
@@ -114,7 +115,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     defaultValues: defaultValues,
   });
 
-  const { watch, setValue } = form;
+  const { watch, setValue, reset } = form;
 
   // Watch fields for conditional rendering
   const situacaoEtapaDia = formDefinition.id === 'cronograma-diario-obra' ? watch('situacaoEtapaDia' as any) : undefined;
@@ -200,74 +201,153 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
       return;
     }
 
-    const db = getFirestore();
+    const firestoreDb = getFirestore(); // Renomeado para evitar conflito com a variável db importada
+    const submissionTimestamp = Date.now();
     
-    const formDataToSave = { ...data };
+    const formDataToSave = { ...data } as Record<string, any>;
 
-    // Handle file uploads (store names for now)
-    if (formDefinition.id === 'cronograma-diario-obra' && formDataToSave.uploadFotosEtapaDia instanceof FileList && (formDataToSave.uploadFotosEtapaDia as FileList).length > 0) {
-      const fileList = formDataToSave.uploadFotosEtapaDia as FileList;
-      formDataToSave.uploadFotosEtapaDia = Array.from(fileList).map(file => file.name) as any;
-      console.log('Arquivos de Etapa Selecionados:', fileList);
-    } else if (formDefinition.id === 'cronograma-diario-obra') {
-      delete (formDataToSave as Record<string, any>).uploadFotosEtapaDia;
-    }
+    // Handle file uploads
+    const fileUploadPromises: Promise<void>[] = [];
 
-    if (formDefinition.id === 'rnc-report' && formDataToSave.uploadFotosNaoConformidade instanceof FileList && (formDataToSave.uploadFotosNaoConformidade as FileList).length > 0) {
-      const fileList = formDataToSave.uploadFotosNaoConformidade as FileList;
-      formDataToSave.uploadFotosNaoConformidade = Array.from(fileList).map(file => file.name) as any;
-      console.log('Arquivos de RNC Selecionados:', fileList);
-    } else if (formDefinition.id === 'rnc-report') {
-        delete (formDataToSave as Record<string, any>).uploadFotosNaoConformidade;
-    }
-    
-    // Convert date fields to Firebase Timestamps
-    const formDataWithTimestamps = { ...formDataToSave };
-    formDefinition.fields.forEach(field => {
-      if (field.type === 'date' && formDataWithTimestamps[field.id] instanceof Date) {
-        formDataWithTimestamps[field.id] = Timestamp.fromDate(formDataWithTimestamps[field.id] as Date);
+    for (const field of formDefinition.fields) {
+      if (field.type === 'file' && data[field.id as keyof FormValues] instanceof FileList) {
+        const fileList = data[field.id as keyof FormValues] as FileList;
+        if (fileList.length > 0) {
+          const osValue = (data as Record<string, any>).ordemServico as string | undefined;
+          const uploadedFileDetails: Array<{ name: string, url: string, type: string, size: number }> = [];
+          
+          for (let i = 0; i < fileList.length; i++) {
+            const file = fileList[i];
+            const filePath = `reports/${currentUser.uid}/${formDefinition.id}/${osValue || 'general'}/${submissionTimestamp}/${file.name}`;
+            const fileStorageRef = storageRef(storage, filePath);
+            
+            const uploadTask = uploadBytesResumable(fileStorageRef, file);
+
+            fileUploadPromises.push(
+              new Promise((resolve, reject) => {
+                uploadTask.on(
+                  'state_changed',
+                  null, //  (snapshot) => { /* progresso */ },
+                  (error) => {
+                    console.error(`Erro no upload do arquivo ${file.name}:`, error);
+                    reject(error);
+                  },
+                  async () => {
+                    try {
+                      const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                      uploadedFileDetails.push({ name: file.name, url: downloadURL, type: file.type, size: file.size });
+                      resolve();
+                    } catch (error) {
+                      console.error(`Erro ao obter URL de download para ${file.name}:`, error);
+                      reject(error);
+                    }
+                  }
+                );
+              })
+            );
+          }
+          // Após todos os uploads para este campo serem preparados,
+          // substituímos o FileList pelos detalhes dos arquivos.
+          // Precisamos esperar que as promises resolvam para ter as URLs.
+           formDataToSave[field.id] = uploadedFileDetails; // Placeholder, será atualizado após promises.
+        } else {
+          delete formDataToSave[field.id]; // Remove o campo se não houver arquivos
+        }
+      } else if (field.type === 'file') {
+         delete formDataToSave[field.id]; // Remove o campo se não for FileList (ex: null)
       }
-    });
+    }
     
-    const reportPayload = {
-      formType: formDefinition.id,
-      formName: formDefinition.name,
-      formData: formDataWithTimestamps,
-      submittedBy: currentUser.uid,
-      submittedAt: Timestamp.now(),
-      gerenteId: currentUser.email?.split('@')[0] || 'desconhecido',
-    };
-
-    const ordemServicoField = formDefinition.fields.find(f => f.id === 'ordemServico');
-    const osValue = (data as Record<string, any>).ordemServico as string | undefined;
-
     try {
+      // Espera todos os uploads de arquivo terminarem, se houver.
+      if (fileUploadPromises.length > 0) {
+         toast({ title: "Enviando arquivos...", description: `Por favor, aguarde. ${fileUploadPromises.length} arquivo(s) sendo processado(s).`});
+      }
+      await Promise.all(fileUploadPromises);
+
+      // Agora, atualize formDataToSave com os detalhes dos arquivos que foram coletados nas promises
+      // Isso precisa ser feito de forma mais inteligente. Se as promises modificam um array `uploadedFileDetails`
+      // que é específico para cada campo 'file', precisamos coletar esses arrays.
+
+      // Reconstruir formDataToSave com os resultados dos uploads
+      const finalFormDataToSave = { ...data } as Record<string, any>;
+      for (const field of formDefinition.fields) {
+        if (field.type === 'file' && data[field.id as keyof FormValues] instanceof FileList) {
+          const fileList = data[field.id as keyof FormValues] as FileList;
+          if (fileList.length > 0) {
+            const osValue = (data as Record<string, any>).ordemServico as string | undefined;
+            const fileDetailsForField: Array<{ name: string, url: string, type: string, size: number }> = [];
+            for (let i = 0; i < fileList.length; i++) {
+                const file = fileList[i];
+                const filePath = `reports/${currentUser.uid}/${formDefinition.id}/${osValue || 'general'}/${submissionTimestamp}/${file.name}`;
+                const fileRef = storageRef(storage, filePath); // Obter ref novamente para garantir que é a correta
+                // Assumimos que o upload já foi feito por Promise.all e a URL está disponível
+                // Esta parte é complicada porque getDownloadURL é async.
+                // A maneira mais fácil é buscar as URLs novamente aqui, assumindo que o upload foi bem sucedido.
+                try {
+                    const url = await getDownloadURL(fileRef);
+                    fileDetailsForField.push({ name: file.name, url: url, type: file.type, size: file.size });
+                } catch(e) {
+                    console.error("Erro ao buscar URL pós-upload (isso não deveria acontecer se Promise.all funcionou):", e);
+                     // Lidar com o erro, talvez o arquivo não tenha sido carregado corretamente.
+                }
+            }
+            finalFormDataToSave[field.id] = fileDetailsForField;
+          } else {
+             delete finalFormDataToSave[field.id];
+          }
+        } else if (field.type === 'file'){
+             delete finalFormDataToSave[field.id];
+        }
+      }
+
+
+      // Convert date fields to Firebase Timestamps
+      const formDataWithTimestamps = { ...finalFormDataToSave };
+      formDefinition.fields.forEach(field => {
+        if (field.type === 'date' && formDataWithTimestamps[field.id] instanceof Date) {
+          formDataWithTimestamps[field.id] = Timestamp.fromDate(formDataWithTimestamps[field.id] as Date);
+        }
+      });
+      
+      const reportPayload = {
+        formType: formDefinition.id,
+        formName: formDefinition.name,
+        formData: formDataWithTimestamps,
+        submittedBy: currentUser.uid,
+        submittedAt: Timestamp.fromMillis(submissionTimestamp), // Usar o mesmo timestamp
+        gerenteId: currentUser.email?.split('@')[0] || 'desconhecido',
+      };
+
+      const ordemServicoField = formDefinition.fields.find(f => f.id === 'ordemServico');
+      const osValue = (data as Record<string, any>).ordemServico as string | undefined;
+
       if (ordemServicoField && osValue && osValue.trim() !== '') {
-        const osDocRef = doc(db, "ordens_servico", osValue.trim());
+        const osDocRef = doc(firestoreDb, "ordens_servico", osValue.trim());
         await setDoc(osDocRef, { 
-            lastReportAt: Timestamp.now(), 
+            lastReportAt: Timestamp.fromMillis(submissionTimestamp), 
             os: osValue.trim(), 
             updatedBy: currentUser.uid,
             updatedByGerenteId: reportPayload.gerenteId 
         }, { merge: true });
         
-        const reportsSubCollectionRef = collection(db, "ordens_servico", osValue.trim(), "relatorios");
+        const reportsSubCollectionRef = collection(firestoreDb, "ordens_servico", osValue.trim(), "relatorios");
         await addDoc(reportsSubCollectionRef, reportPayload);
         
         toast({
           title: "Sucesso!",
-          description: `Formulário "${formDefinition.name}" para OS "${osValue.trim()}" salvo!`,
+          description: `Formulário "${formDefinition.name}" para OS "${osValue.trim()}" salvo com arquivos enviados!`,
         });
       } else {
-        const genericReportsCollectionRef = collection(db, "submitted_reports");
+        const genericReportsCollectionRef = collection(firestoreDb, "submitted_reports");
         await addDoc(genericReportsCollectionRef, reportPayload);
         toast({
           title: "Sucesso!",
-          description: `Formulário "${formDefinition.name}" salvo com sucesso!`,
+          description: `Formulário "${formDefinition.name}" salvo com sucesso e arquivos enviados!`,
         });
       }
       
-      form.reset(defaultValues);
+      reset(defaultValues);
 
       if (formDefinition.id === 'cronograma-diario-obra' && (data as any).emissaoRNCDia === 'sim' && osValue) {
         toast({
@@ -281,10 +361,10 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
       }
 
     } catch (error) {
-      console.error("Erro ao salvar dados do formulário no Firestore:", error);
+      console.error("Erro durante o envio do formulário ou upload de arquivos:", error);
       toast({
         title: "Erro ao Salvar",
-        description: "Não foi possível salvar o formulário. Tente novamente.",
+        description: "Não foi possível salvar o formulário ou enviar os arquivos. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -351,7 +431,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                     <FormItem>
                       <FormLabel className="font-semibold">{field.label}{field.required && <span className="text-destructive ml-1">*</span>}</FormLabel>
                       <FormControl>
-                        <div> 
+                        <div>
                           {field.type === 'text' && <Input placeholder={field.placeholder} {...controllerField} value={controllerField.value as string || ''} disabled={isSubmitting} />}
                           {field.type === 'email' && <Input type="email" placeholder={field.placeholder} {...controllerField} value={controllerField.value as string || ''} disabled={isSubmitting} />}
                           {field.type === 'number' && <Input type="number" placeholder={field.placeholder} {...controllerField} value={controllerField.value === null || controllerField.value === undefined ? '' : controllerField.value as number} onChange={e => controllerField.onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={isSubmitting} />}
@@ -410,11 +490,14 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                           {field.type === 'file' && (
                             <Input
                               type="file"
-                              accept="image/*"
+                              accept="image/*" // Aceita qualquer tipo de imagem
                               multiple
-                              onChange={(e) => controllerField.onChange(e.target.files)}
                               disabled={isSubmitting}
-                              className="pt-2" // Adiciona um pouco de padding para alinhar melhor com outros inputs
+                              className="pt-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                              // Remove o onChange daqui, pois o react-hook-form já gerencia
+                              // o estado através do controllerField.onChange que é chamado internamente
+                              // ao invés disso, o controllerField.onChange será chamado com o FileList
+                              onChange={(e) => controllerField.onChange(e.target.files)}
                             />
                           )}
                         </div>
@@ -457,5 +540,6 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     </>
   );
 }
+    
 
     
