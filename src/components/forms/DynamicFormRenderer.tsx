@@ -32,9 +32,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { auth, storage, db } from '@/lib/firebase';
+import { auth, storage } from '@/lib/firebase';
 import { getFirestore, collection, addDoc, Timestamp, doc, setDoc, type DocumentReference } from 'firebase/firestore';
-import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { getFormDefinition } from '@/config/forms';
 
 
@@ -118,57 +118,92 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     defaultValues: defaultValues,
   });
 
-  const { watch, setValue, reset } = form;
+  const { watch, setValue, reset, getValues } = form;
 
-  // Watch fields for conditional rendering
-  const watchedFields = watch(); // Watch all fields for dynamic conditions
+  // Watch specific fields for conditional rendering & logic
+  const situacaoEtapaDia = watch('situacaoEtapaDia' as any);
+  const fotosEtapaDia = watch('fotosEtapaDia' as any);
+  const horasRetrabalhoParadasDia = watch('horasRetrabalhoParadasDia' as any);
+  const horarioEfetivoInicioAtividades = watch('horarioEfetivoInicioAtividades' as any);
+  const horarioInicioJornadaPrevisto = watch('horarioInicioJornadaPrevisto' as any); 
+  const horarioEfetivoSaidaObra = watch('horarioEfetivoSaidaObra' as any);
+  const horarioTerminoJornadaPrevisto = watch('horarioTerminoJornadaPrevisto' as any);
+  const fotosNaoConformidade = watch('fotosNaoConformidade' as any);
+  // const emissaoRNCDia = watch('emissaoRNCDia' as any); // For linkedFormTrigger, data is accessed directly from 'data' in onSubmit
 
   // Pre-fill OS and originatingFormId if passed as query params
   useEffect(() => {
     const osFromQuery = searchParams.get('os');
     const formOsField = formDefinition.fields.find(f => f.id === 'ordemServico');
     if (formOsField && osFromQuery) {
-      setValue('ordemServico' as any, osFromQuery, { shouldValidate: true });
+      if (getValues('ordemServico' as any) !== osFromQuery) {
+        setValue('ordemServico' as any, osFromQuery, { shouldValidate: true });
+      }
     }
 
     const originatingIdFromQuery = searchParams.get('originatingFormId');
     if (originatingIdFromQuery) {
       setOriginatingFormId(originatingIdFromQuery);
     }
-  }, [formDefinition.id, formDefinition.fields, searchParams, setValue, setOriginatingFormId]);
+  }, [formDefinition.id, formDefinition.fields, searchParams, setValue, getValues]);
 
 
-  // Conditional logic for specific forms, can be generalized if more patterns emerge
+  // Conditional logic for resetting fields
   useEffect(() => {
-    // Specific to 'cronograma-diario-obra'
     if (formDefinition.id === 'cronograma-diario-obra') {
-      if (watchedFields.situacaoEtapaDia !== 'em_atraso') {
-        setValue('motivoAtrasoDia' as any, '', { shouldValidate: false });
+      if (situacaoEtapaDia !== 'em_atraso') {
+        if (getValues('motivoAtrasoDia' as any) !== '') {
+          setValue('motivoAtrasoDia' as any, '', { shouldValidate: false });
+        }
       }
-      if (watchedFields.fotosEtapaDia !== 'sim') {
-        setValue('uploadFotosEtapaDia' as any, null, { shouldValidate: false });
+      if (fotosEtapaDia !== 'sim') {
+        if (getValues('uploadFotosEtapaDia' as any) !== null) {
+          setValue('uploadFotosEtapaDia' as any, null, { shouldValidate: false });
+        }
       }
-      if (!watchedFields.horasRetrabalhoParadasDia || String(watchedFields.horasRetrabalhoParadasDia).trim() === '') {
-        setValue('motivoRetrabalhoParadaDia' as any, '', { shouldValidate: false });
+      if (!horasRetrabalhoParadasDia || String(horasRetrabalhoParadasDia).trim() === '') {
+         if (getValues('motivoRetrabalhoParadaDia' as any) !== '') {
+          setValue('motivoRetrabalhoParadaDia' as any, '', { shouldValidate: false });
+        }
       }
-      const efetivoInicio = String(watchedFields.horarioEfetivoInicioAtividades || '').trim();
-      const previstoInicio = String(watchedFields.horarioInicioJornadaPrevisto || '').trim();
-      if (efetivoInicio === '' || efetivoInicio === previstoInicio) {
-        setValue('motivoNaoCumprimentoHorarioInicio' as any, '', { shouldValidate: false });
+      
+      const efetivoInicioTrimmed = String(horarioEfetivoInicioAtividades || '').trim();
+      const previstoInicioTrimmed = String(horarioInicioJornadaPrevisto || '').trim();
+      if (efetivoInicioTrimmed === '' || efetivoInicioTrimmed === previstoInicioTrimmed) {
+        if (getValues('motivoNaoCumprimentoHorarioInicio' as any) !== '') {
+          setValue('motivoNaoCumprimentoHorarioInicio' as any, '', { shouldValidate: false });
+        }
       }
-      const efetivoSaida = String(watchedFields.horarioEfetivoSaidaObra || '').trim();
-      const previstoSaida = String(watchedFields.horarioTerminoJornadaPrevisto || '').trim();
-      if (efetivoSaida === '' || efetivoSaida === previstoSaida) {
-        setValue('motivoNaoCumprimentoHorarioSaida' as any, '', { shouldValidate: false });
+
+      const efetivoSaidaTrimmed = String(horarioEfetivoSaidaObra || '').trim();
+      const previstoSaidaTrimmed = String(horarioTerminoJornadaPrevisto || '').trim();
+      if (efetivoSaidaTrimmed === '' || efetivoSaidaTrimmed === previstoSaidaTrimmed) {
+        if (getValues('motivoNaoCumprimentoHorarioSaida' as any) !== '') {
+          setValue('motivoNaoCumprimentoHorarioSaida' as any, '', { shouldValidate: false });
+        }
       }
     }
-    // Specific to 'rnc-report'
+    
     if (formDefinition.id === 'rnc-report') {
-      if (watchedFields.fotosNaoConformidade !== 'sim') {
-        setValue('uploadFotosNaoConformidade' as any, null, { shouldValidate: false });
+      if (fotosNaoConformidade !== 'sim') {
+        if (getValues('uploadFotosNaoConformidade' as any) !== null) {
+          setValue('uploadFotosNaoConformidade' as any, null, { shouldValidate: false });
+        }
       }
     }
-  }, [watchedFields, setValue, formDefinition.id]);
+  }, [
+    formDefinition.id,
+    situacaoEtapaDia,
+    fotosEtapaDia,
+    horasRetrabalhoParadasDia,
+    horarioEfetivoInicioAtividades,
+    horarioInicioJornadaPrevisto,
+    horarioEfetivoSaidaObra,
+    horarioTerminoJornadaPrevisto,
+    fotosNaoConformidade,
+    setValue,
+    getValues 
+  ]);
 
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
@@ -188,7 +223,8 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     const firestoreDb = getFirestore();
     const submissionTimestamp = Date.now();
 
-    const formDataToSave = { ...data } as Record<string, any>;
+    // formDataToSave is not strictly needed here as we build finalFormDataToSave later
+    // const formDataToSave = { ...data } as Record<string, any>; 
     const fileUploadPromises: Promise<void>[] = [];
 
     for (const field of formDefinition.fields) {
@@ -196,8 +232,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
         const fileList = data[field.id as keyof FormValues] as FileList;
         if (fileList.length > 0) {
           const osValue = (data as Record<string, any>).ordemServico as string | undefined;
-          const uploadedFileDetails: Array<{ name: string, url: string, type: string, size: number }> = [];
-
+          
           for (let i = 0; i < fileList.length; i++) {
             const file = fileList[i];
             const filePath = `reports/${currentUser.uid}/${formDefinition.id}/${osValue || 'general'}/${submissionTimestamp}/${file.name}`;
@@ -209,18 +244,16 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
               new Promise((resolve, reject) => {
                 uploadTask.on(
                   'state_changed',
-                  null,
+                  null, 
                   (error) => {
                     console.error(`Erro no upload do arquivo ${file.name}:`, error);
                     reject(error);
                   },
                   async () => {
                     try {
-                      const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                      uploadedFileDetails.push({ name: file.name, url: downloadURL, type: file.type, size: file.size });
                       resolve();
                     } catch (error) {
-                      console.error(`Erro ao obter URL de download para ${file.name}:`, error);
+                      console.error(`Erro na fase de upload para ${file.name}:`, error);
                       reject(error);
                     }
                   }
@@ -228,12 +261,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
               })
             );
           }
-           formDataToSave[field.id] = uploadedFileDetails;
-        } else {
-          delete formDataToSave[field.id];
         }
-      } else if (field.type === 'file') {
-         delete formDataToSave[field.id];
       }
     }
 
@@ -263,10 +291,10 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
             }
             finalFormDataToSave[field.id] = fileDetailsForField;
           } else {
-             delete finalFormDataToSave[field.id];
+             delete finalFormDataToSave[field.id]; 
           }
         } else if (field.type === 'file'){
-             delete finalFormDataToSave[field.id];
+             delete finalFormDataToSave[field.id]; 
         }
       }
 
@@ -321,9 +349,8 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
       }
 
       reset(defaultValues);
-      setOriginatingFormId(null); // Limpar após o envio
+      setOriginatingFormId(null); 
 
-      // Check for linked form trigger
       const trigger = formDefinition.linkedFormTrigger;
       if (trigger && savedDocRef && (data as any)[trigger.triggerFieldId] === trigger.triggerFieldValue) {
         const linkedFormDef = getFormDefinition(trigger.linkedFormId);
@@ -336,11 +363,14 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
 
         const queryParams = new URLSearchParams();
         queryParams.append('originatingFormId', savedDocRef.id);
-        if (trigger.passOsFieldId && osValue) {
-          queryParams.append('os', osValue.trim());
+        if (trigger.passOsFieldId && osValue && osValue.trim() !== '') {
+           const osValueForLinkedForm = getValues(trigger.passOsFieldId as any); // Use getValues for current form data
+           if (osValueForLinkedForm) {
+            queryParams.append('os', String(osValueForLinkedForm).trim());
+           }
         }
         router.push(`/dashboard/forms/${trigger.linkedFormId}?${queryParams.toString()}`);
-        return; // Skip share dialog for the primary form
+        return; 
       }
 
       setIsShareDialogOpen(true);
@@ -388,23 +418,21 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
             <CardContent className="space-y-6">
               {formDefinition.fields.map((field) => {
                 let shouldRenderField = true;
-                // Example of specific conditional logic for field visibility
-                // This could be made more generic if needed, e.g., by adding a 'visibleIf' condition to FormField
                 if (formDefinition.id === 'cronograma-diario-obra') {
-                  if (field.id === 'motivoAtrasoDia') shouldRenderField = watchedFields.situacaoEtapaDia === 'em_atraso';
-                  else if (field.id === 'uploadFotosEtapaDia') shouldRenderField = watchedFields.fotosEtapaDia === 'sim';
-                  else if (field.id === 'motivoRetrabalhoParadaDia') shouldRenderField = !!watchedFields.horasRetrabalhoParadasDia && String(watchedFields.horasRetrabalhoParadasDia).trim() !== '';
+                  if (field.id === 'motivoAtrasoDia') shouldRenderField = situacaoEtapaDia === 'em_atraso';
+                  else if (field.id === 'uploadFotosEtapaDia') shouldRenderField = fotosEtapaDia === 'sim';
+                  else if (field.id === 'motivoRetrabalhoParadaDia') shouldRenderField = !!horasRetrabalhoParadasDia && String(horasRetrabalhoParadasDia).trim() !== '';
                   else if (field.id === 'motivoNaoCumprimentoHorarioInicio') {
-                    const efetivo = String(watchedFields.horarioEfetivoInicioAtividades || '').trim();
-                    const previsto = String(watchedFields.horarioInicioJornadaPrevisto || '').trim();
+                    const efetivo = String(horarioEfetivoInicioAtividades || '').trim();
+                    const previsto = String(horarioInicioJornadaPrevisto || '').trim();
                     shouldRenderField = efetivo !== '' && efetivo !== previsto;
                   } else if (field.id === 'motivoNaoCumprimentoHorarioSaida') {
-                    const efetivo = String(watchedFields.horarioEfetivoSaidaObra || '').trim();
-                    const previsto = String(watchedFields.horarioTerminoJornadaPrevisto || '').trim();
+                    const efetivo = String(horarioEfetivoSaidaObra || '').trim();
+                    const previsto = String(horarioTerminoJornadaPrevisto || '').trim();
                     shouldRenderField = efetivo !== '' && efetivo !== previsto;
                   }
                 } else if (formDefinition.id === 'rnc-report') {
-                  if (field.id === 'uploadFotosNaoConformidade') shouldRenderField = watchedFields.fotosNaoConformidade === 'sim';
+                  if (field.id === 'uploadFotosNaoConformidade') shouldRenderField = fotosNaoConformidade === 'sim';
                 }
 
                 if (!shouldRenderField) return null;
@@ -418,7 +446,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                     <FormItem>
                       <FormLabel className="font-semibold">{field.label}{field.required && <span className="text-destructive ml-1">*</span>}</FormLabel>
                       <FormControl>
-                        <div>
+                        <div> 
                           {field.type === 'text' && <Input placeholder={field.placeholder} {...controllerField} value={controllerField.value as string || ''} disabled={isSubmitting} />}
                           {field.type === 'email' && <Input type="email" placeholder={field.placeholder} {...controllerField} value={controllerField.value as string || ''} disabled={isSubmitting} />}
                           {field.type === 'number' && <Input type="number" placeholder={field.placeholder} {...controllerField} value={controllerField.value === null || controllerField.value === undefined ? '' : controllerField.value as number} onChange={e => controllerField.onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={isSubmitting} />}
@@ -426,16 +454,19 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                           {field.type === 'checkbox' && (
                              <div className="flex items-center space-x-2 pt-2">
                               <Checkbox
-                                id={field.id}
+                                id={controllerField.name} // Use controllerField.name for unique id
                                 checked={!!controllerField.value}
                                 onCheckedChange={controllerField.onChange}
                                 disabled={isSubmitting}
-                                aria-labelledby={`${form.control._fields[field.id as keyof FormValues]?._f.name}-label`}
                               />
                             </div>
                           )}
                           {field.type === 'select' && (
-                            <Select onValueChange={controllerField.onChange} defaultValue={controllerField.value as string || undefined} value={controllerField.value as string || undefined} disabled={isSubmitting}>
+                            <Select 
+                              onValueChange={controllerField.onChange} 
+                              value={controllerField.value as string || undefined} 
+                              disabled={isSubmitting}
+                            >
                               <SelectTrigger>
                                 <SelectValue placeholder={field.placeholder || "Selecione..."} />
                               </SelectTrigger>
@@ -477,11 +508,11 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                           {field.type === 'file' && (
                             <Input
                               type="file"
-                              accept="image/*"
+                              accept="image/*" 
                               multiple
                               disabled={isSubmitting}
                               className="pt-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                              onChange={(e) => controllerField.onChange(e.target.files)}
+                              onChange={(e) => controllerField.onChange(e.target.files)} 
                             />
                           )}
                         </div>
@@ -524,3 +555,4 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     </>
   );
 }
+
