@@ -14,10 +14,14 @@ import {
 } from '@/components/ui/sidebar';
 import Logo from '@/components/icons/Logo';
 import { formDefinitions } from '@/config/forms';
-import { Home } from 'lucide-react';
+import { Home, Settings } from 'lucide-react'; // Adicionado Settings
 import { getFormIcon } from '@/components/icons/icon-resolver';
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  isAdminArea?: boolean;
+}
+
+export function AppSidebar({ isAdminArea = false }: AppSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -35,7 +39,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton 
               asChild 
-              isActive={pathname === '/dashboard'}
+              isActive={pathname === '/dashboard' && !isAdminArea}
               tooltip={{children: "Painel", side:"right"}}
             >
               <Link href="/dashboard">
@@ -45,7 +49,7 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
 
-          {formDefinitions.map((form) => {
+          {!isAdminArea && formDefinitions.map((form) => {
             const IconComponent = getFormIcon(form.iconName);
             return (
               <SidebarMenuItem key={form.id}>
@@ -62,6 +66,21 @@ export function AppSidebar() {
               </SidebarMenuItem>
             );
           })}
+
+          {/* Link para a área de administração */}
+           <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname.startsWith('/admin') || isAdminArea}
+                  tooltip={{children: "Admin Formulários", side:"right"}}
+                >
+                  <Link href="/admin/form-builder">
+                    <Settings />
+                    <span>Admin Formulários</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-2 text-center text-xs text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
