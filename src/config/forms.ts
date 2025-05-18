@@ -16,11 +16,17 @@ export interface FormField {
   validation?: any; // Zod schema for validation
 }
 
-export interface LinkedFormTrigger {
-  triggerFieldId: string;      // The ID of the field in the current form that triggers the link
-  triggerFieldValue: string;   // The value of the triggerFieldId that activates the link
-  linkedFormId: string;        // The ID of the form to navigate to
-  passOsFieldId?: string;       // Optional: The ID of the field in the current form containing the OS, to pass to the linked form
+export interface CarryOverParam {
+  fieldIdFromCurrentForm: string; // ID do campo no formulário atual cujo valor será passado
+  queryParamName: string;         // Nome do parâmetro de query que será usado para o próximo formulário
+}
+
+export interface LinkedFormTriggerCondition {
+  triggerFieldId: string;      // O ID do campo no formulário atual OU um _queryParam_ prefixed string (ex: _queryParam_rncTrigger)
+  triggerFieldValue: string;   // O valor que ativa o link
+  linkedFormId: string;        // O ID do formulário para navegar
+  passOsFieldId?: string;       // Opcional: ID do campo de OS no formulário atual para passar
+  carryOverParams?: CarryOverParam[]; // Opcional: Parâmetros para carregar para o próximo formulário
 }
 
 export interface FormDefinition {
@@ -29,17 +35,17 @@ export interface FormDefinition {
   description: string;
   iconName?: string;
   fields: FormField[];
-  linkedFormTrigger?: LinkedFormTrigger;
+  linkedFormTriggers?: LinkedFormTriggerCondition[]; // Modificado para ser um array
 }
 
 export const formDefinitions: FormDefinition[] = [
   {
-    id: 'site-inspection',
-    name: 'Relatório de Inspeção do Local',
+    id: 'site-inspection', // Este é um genérico, vamos criar um mais específico para o fluxo.
+    name: 'Relatório de Inspeção do Local (Genérico)',
     description: 'Relatório diário para inspeções de canteiros de obras.',
     iconName: 'ClipboardList',
     fields: [
-      { id: 'inspectionDate', label: 'Data da Inspeção', type: 'date', required: true },
+      { id: 'inspectionDate', label: 'Data da Inspeção', type: 'date', required: true, defaultValue: new Date() },
       { id: 'inspectorName', label: 'Nome do Inspetor', type: 'text', placeholder: 'Ex: João Silva', required: true },
       { id: 'siteLocation', label: 'Localização/Área do Site', type: 'text', placeholder: 'Ex: Setor A, Prédio 2', required: true },
       {
@@ -65,7 +71,7 @@ export const formDefinitions: FormDefinition[] = [
     description: 'Formulário para verificações de rotina de manutenção de equipamentos.',
     iconName: 'Wrench',
     fields: [
-      { id: 'checkDate', label: 'Data da Verificação', type: 'date', required: true },
+      { id: 'checkDate', label: 'Data da Verificação', type: 'date', required: true, defaultValue: new Date() },
       { id: 'equipmentId', label: 'ID do Equipamento', type: 'text', placeholder: 'Ex: EXCV-003', required: true },
       {
         id: 'equipmentType',
@@ -92,7 +98,7 @@ export const formDefinitions: FormDefinition[] = [
     description: 'Registrar detalhes dos materiais entregues no local.',
     iconName: 'Truck',
     fields: [
-      { id: 'deliveryDate', label: 'Data de Entrega', type: 'date', required: true },
+      { id: 'deliveryDate', label: 'Data de Entrega', type: 'date', required: true, defaultValue: new Date() },
       { id: 'supplierName', label: 'Nome do Fornecedor', type: 'text', placeholder: 'Ex: Concreto Ltda.', required: true },
       { id: 'vehicleReg', label: 'Placa do Veículo', type: 'text', placeholder: 'Ex: ABC-1234' },
       { id: 'driverName', label: 'Nome do Motorista', type: 'text', placeholder: 'Ex: José Oliveira' },
@@ -152,11 +158,12 @@ export const formDefinitions: FormDefinition[] = [
         type: 'file',
       },
       {
-        id: 'relatorioInspecaoDia',
-        label: 'Relatório de Inspeção Emitido?',
+        id: 'relatorioInspecaoEmitidoDia', // Novo campo
+        label: 'Relatório de Inspeção Emitido no Dia?',
         type: 'select',
         options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
-        defaultValue: 'nao'
+        defaultValue: 'nao',
+        required: true
       },
       {
         id: 'emissaoRNCDia',
@@ -184,12 +191,67 @@ export const formDefinitions: FormDefinition[] = [
       { id: 'horarioEfetivoSaidaObra', label: 'Horário Efetivo Saída da Obra', type: 'text', placeholder: 'HH:MM' },
       { id: 'motivoNaoCumprimentoHorarioSaida', label: 'Motivo Não Cumprimento Horário Saída', type: 'textarea' },
     ],
-    linkedFormTrigger: {
-      triggerFieldId: 'emissaoRNCDia',
-      triggerFieldValue: 'sim',
-      linkedFormId: 'rnc-report',
-      passOsFieldId: 'ordemServico',
-    },
+    linkedFormTriggers: [
+      {
+        triggerFieldId: 'relatorioInspecaoEmitidoDia',
+        triggerFieldValue: 'sim',
+        linkedFormId: 'relatorio-inspecao-site', // Novo formulário
+        passOsFieldId: 'ordemServico',
+        carryOverParams: [
+          { fieldIdFromCurrentForm: 'emissaoRNCDia', queryParamName: 'rncTriggerValue' }
+        ]
+      },
+      {
+        triggerFieldId: 'emissaoRNCDia',
+        triggerFieldValue: 'sim',
+        linkedFormId: 'rnc-report',
+        passOsFieldId: 'ordemServico',
+      }
+    ],
+  },
+  { // Novo Formulário de Inspeção Específico
+    id: 'relatorio-inspecao-site',
+    name: 'Relatório de Inspeção do Site (Diário)',
+    description: 'Documenta inspeções diárias do site vinculadas ao acompanhamento.',
+    iconName: 'SearchCheck', // Novo ícone
+    fields: [
+      { id: 'ordemServico', label: 'OS (Ordem de Serviço)', type: 'text', placeholder: 'Número da OS (pré-preenchido)', required: true },
+      { id: 'dataInspecao', label: 'Data da Inspeção', type: 'date', required: true, defaultValue: new Date() },
+      { id: 'inspetorNome', label: 'Nome do Inspetor', type: 'text', placeholder: 'Ex: João Silva', required: true },
+      { id: 'areaInspecionada', label: 'Área Inspecionada', type: 'text', placeholder: 'Ex: Setor A, Andar 2', required: true },
+      { id: 'observacoesInspecao', label: 'Observações da Inspeção', type: 'textarea', placeholder: 'Descreva os achados da inspeção...', required: true },
+      {
+        id: 'conformidadeSeguranca',
+        label: 'Conformidade de Segurança Atendida?',
+        type: 'select',
+        options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
+        defaultValue: 'sim',
+        required: true
+      },
+      { id: 'itensNaoConformes', label: 'Itens Não Conformes (se houver)', type: 'textarea', placeholder: 'Liste os itens não conformes' },
+      { id: 'acoesCorretivasSugeridas', label: 'Ações Corretivas Sugeridas/Tomadas', type: 'textarea', placeholder: 'Detalhe as ações' },
+       {
+        id: 'fotosInspecao',
+        label: 'Fotos da Inspeção Foram Tiradas?',
+        type: 'select',
+        options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
+        defaultValue: 'nao'
+      },
+      {
+        id: 'uploadFotosInspecao',
+        label: 'Enviar Fotos da Inspeção',
+        type: 'file',
+      },
+    ],
+    linkedFormTriggers: [
+      {
+        triggerFieldId: '_queryParam_rncTriggerValue', // Verifica o parâmetro passado
+        triggerFieldValue: 'sim',
+        linkedFormId: 'rnc-report',
+        passOsFieldId: 'ordemServico',
+        // Não precisa de carryOverParams daqui para RNC, pois RNC não depende de mais nada do form de inspeção para ser trigado
+      }
+    ]
   },
   {
     id: 'rnc-report',
@@ -238,3 +300,5 @@ export const formDefinitions: FormDefinition[] = [
 export const getFormDefinition = (formId: string): FormDefinition | undefined => {
   return formDefinitions.find(form => form.id === formId);
 };
+
+    
