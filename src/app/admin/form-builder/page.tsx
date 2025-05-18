@@ -1,2 +1,5 @@
-// This file is being removed as part of cancelling the form builder functionality.
-// If you need to restore it, please check your version control history.
+// This page was part of the form builder functionality which has been cancelled.
+// It now renders null to prevent errors if accessed.
+export default function FormBuilderPage() {
+  return null;
+}
