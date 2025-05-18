@@ -32,9 +32,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { auth, storage, db } from '@/lib/firebase'; 
+import { auth, storage, db } from '@/lib/firebase';
 import { getFirestore, collection, addDoc, Timestamp, doc, setDoc, type DocumentReference } from 'firebase/firestore';
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { getFormDefinition } from '@/config/forms';
+
 
 interface DynamicFormRendererProps {
   formDefinition: FormDefinition;
@@ -51,7 +53,7 @@ const buildZodSchema = (fields: FormFieldType[]) => {
       case 'textarea':
         fieldSchema = z.string();
         if (field.required) fieldSchema = fieldSchema.min(1, `${field.label} é obrigatório(a).`);
-        else fieldSchema = fieldSchema.optional().or(z.literal('')); 
+        else fieldSchema = fieldSchema.optional().or(z.literal(''));
         break;
       case 'email':
         fieldSchema = z.string().email(`Formato de e-mail inválido para ${field.label}.`);
@@ -59,12 +61,12 @@ const buildZodSchema = (fields: FormFieldType[]) => {
         else fieldSchema = fieldSchema.optional().or(z.literal(''));
         break;
       case 'number':
-        fieldSchema = z.coerce.number(); 
+        fieldSchema = z.coerce.number();
         if (field.required) fieldSchema = fieldSchema.min(0.00001, `${field.label} é obrigatório(a) e deve ser diferente de zero, se aplicável.`);
         else fieldSchema = fieldSchema.optional().nullable();
         break;
       case 'date':
-        fieldSchema = z.coerce.date({ 
+        fieldSchema = z.coerce.date({
             required_error: `${field.label} é obrigatório(a).`,
             invalid_type_error: `Esta não é uma data válida para ${field.label}!`,
         });
@@ -96,17 +98,17 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
   const searchParams = useSearchParams();
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [origemAcompanhamentoId, setOrigemAcompanhamentoId] = useState<string | null>(null); // Novo estado
+  const [originatingFormId, setOriginatingFormId] = useState<string | null>(null);
   const formSchema = buildZodSchema(formDefinition.fields);
-  
+
   type FormValues = z.infer<typeof formSchema>;
 
   const defaultValues = formDefinition.fields.reduce((acc, field) => {
     acc[field.id] = field.defaultValue !== undefined ? field.defaultValue :
                     field.type === 'checkbox' ? false :
-                    field.type === 'number' ? null : 
+                    field.type === 'number' ? null :
                     field.type === 'file' ? null :
-                    ''; 
+                    '';
     return acc;
   }, {} as Record<string, any>);
 
@@ -119,77 +121,54 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
   const { watch, setValue, reset } = form;
 
   // Watch fields for conditional rendering
-  const situacaoEtapaDia = formDefinition.id === 'cronograma-diario-obra' ? watch('situacaoEtapaDia' as any) : undefined;
-  const horasRetrabalhoParadasDia = formDefinition.id === 'cronograma-diario-obra' ? watch('horasRetrabalhoParadasDia' as any) : undefined;
-  const horarioEfetivoInicioAtividades = formDefinition.id === 'cronograma-diario-obra' ? watch('horarioEfetivoInicioAtividades' as any) : undefined;
-  const horarioInicioJornadaPrevisto = formDefinition.id === 'cronograma-diario-obra' ? watch('horarioInicioJornadaPrevisto' as any) : undefined;
-  const horarioEfetivoSaidaObra = formDefinition.id === 'cronograma-diario-obra' ? watch('horarioEfetivoSaidaObra' as any) : undefined;
-  const horarioTerminoJornadaPrevisto = formDefinition.id === 'cronograma-diario-obra' ? watch('horarioTerminoJornadaPrevisto' as any) : undefined;
-  const fotosEtapaDia = formDefinition.id === 'cronograma-diario-obra' ? watch('fotosEtapaDia' as any) : undefined;
-  
-  const fotosNaoConformidade = formDefinition.id === 'rnc-report' ? watch('fotosNaoConformidade' as any) : undefined;
+  const watchedFields = watch(); // Watch all fields for dynamic conditions
 
-  // Pre-fill OS for RNC form if passed as query param & set origemAcompanhamentoId
+  // Pre-fill OS and originatingFormId if passed as query params
   useEffect(() => {
-    if (formDefinition.id === 'rnc-report') {
-      const osFromQuery = searchParams.get('os');
-      if (osFromQuery) {
-        setValue('ordemServico' as any, osFromQuery, { shouldValidate: true });
-      }
-      const origemIdFromQuery = searchParams.get('origemAcompanhamentoId');
-      if (origemIdFromQuery) {
-        setOrigemAcompanhamentoId(origemIdFromQuery);
-      }
+    const osFromQuery = searchParams.get('os');
+    const formOsField = formDefinition.fields.find(f => f.id === 'ordemServico');
+    if (formOsField && osFromQuery) {
+      setValue('ordemServico' as any, osFromQuery, { shouldValidate: true });
     }
-  }, [formDefinition.id, searchParams, setValue, setOrigemAcompanhamentoId]);
+
+    const originatingIdFromQuery = searchParams.get('originatingFormId');
+    if (originatingIdFromQuery) {
+      setOriginatingFormId(originatingIdFromQuery);
+    }
+  }, [formDefinition.id, formDefinition.fields, searchParams, setValue, setOriginatingFormId]);
 
 
+  // Conditional logic for specific forms, can be generalized if more patterns emerge
   useEffect(() => {
+    // Specific to 'cronograma-diario-obra'
     if (formDefinition.id === 'cronograma-diario-obra') {
-      if (situacaoEtapaDia !== 'em_atraso') {
+      if (watchedFields.situacaoEtapaDia !== 'em_atraso') {
         setValue('motivoAtrasoDia' as any, '', { shouldValidate: false });
       }
-      if (fotosEtapaDia !== 'sim') {
+      if (watchedFields.fotosEtapaDia !== 'sim') {
         setValue('uploadFotosEtapaDia' as any, null, { shouldValidate: false });
       }
-    }
-  }, [situacaoEtapaDia, fotosEtapaDia, setValue, formDefinition.id]);
-
-  useEffect(() => {
-    if (formDefinition.id === 'rnc-report') {
-      if (fotosNaoConformidade !== 'sim') {
-        setValue('uploadFotosNaoConformidade' as any, null, { shouldValidate: false });
-      }
-    }
-  }, [fotosNaoConformidade, setValue, formDefinition.id]);
-
-  useEffect(() => {
-    if (formDefinition.id === 'cronograma-diario-obra') {
-      if (!horasRetrabalhoParadasDia || String(horasRetrabalhoParadasDia).trim() === '') {
+      if (!watchedFields.horasRetrabalhoParadasDia || String(watchedFields.horasRetrabalhoParadasDia).trim() === '') {
         setValue('motivoRetrabalhoParadaDia' as any, '', { shouldValidate: false });
       }
-    }
-  }, [horasRetrabalhoParadasDia, setValue, formDefinition.id]);
-
-  useEffect(() => {
-    if (formDefinition.id === 'cronograma-diario-obra') {
-      const efetivo = String(horarioEfetivoInicioAtividades || '').trim();
-      const previsto = String(horarioInicioJornadaPrevisto || '').trim();
-      if (efetivo === '' || efetivo === previsto) {
+      const efetivoInicio = String(watchedFields.horarioEfetivoInicioAtividades || '').trim();
+      const previstoInicio = String(watchedFields.horarioInicioJornadaPrevisto || '').trim();
+      if (efetivoInicio === '' || efetivoInicio === previstoInicio) {
         setValue('motivoNaoCumprimentoHorarioInicio' as any, '', { shouldValidate: false });
       }
-    }
-  }, [horarioEfetivoInicioAtividades, horarioInicioJornadaPrevisto, setValue, formDefinition.id]);
-  
-  useEffect(() => {
-    if (formDefinition.id === 'cronograma-diario-obra') {
-      const efetivo = String(horarioEfetivoSaidaObra || '').trim();
-      const previsto = String(horarioTerminoJornadaPrevisto || '').trim();
-      if (efetivo === '' || efetivo === previsto) {
+      const efetivoSaida = String(watchedFields.horarioEfetivoSaidaObra || '').trim();
+      const previstoSaida = String(watchedFields.horarioTerminoJornadaPrevisto || '').trim();
+      if (efetivoSaida === '' || efetivoSaida === previstoSaida) {
         setValue('motivoNaoCumprimentoHorarioSaida' as any, '', { shouldValidate: false });
       }
     }
-  }, [horarioEfetivoSaidaObra, horarioTerminoJornadaPrevisto, setValue, formDefinition.id]);
+    // Specific to 'rnc-report'
+    if (formDefinition.id === 'rnc-report') {
+      if (watchedFields.fotosNaoConformidade !== 'sim') {
+        setValue('uploadFotosNaoConformidade' as any, null, { shouldValidate: false });
+      }
+    }
+  }, [watchedFields, setValue, formDefinition.id]);
 
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
@@ -208,9 +187,8 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
 
     const firestoreDb = getFirestore();
     const submissionTimestamp = Date.now();
-    
-    const formDataToSave = { ...data } as Record<string, any>;
 
+    const formDataToSave = { ...data } as Record<string, any>;
     const fileUploadPromises: Promise<void>[] = [];
 
     for (const field of formDefinition.fields) {
@@ -219,19 +197,19 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
         if (fileList.length > 0) {
           const osValue = (data as Record<string, any>).ordemServico as string | undefined;
           const uploadedFileDetails: Array<{ name: string, url: string, type: string, size: number }> = [];
-          
+
           for (let i = 0; i < fileList.length; i++) {
             const file = fileList[i];
             const filePath = `reports/${currentUser.uid}/${formDefinition.id}/${osValue || 'general'}/${submissionTimestamp}/${file.name}`;
             const fileStorageRef = storageRef(storage, filePath);
-            
+
             const uploadTask = uploadBytesResumable(fileStorageRef, file);
 
             fileUploadPromises.push(
               new Promise((resolve, reject) => {
                 uploadTask.on(
                   'state_changed',
-                  null, 
+                  null,
                   (error) => {
                     console.error(`Erro no upload do arquivo ${file.name}:`, error);
                     reject(error);
@@ -250,15 +228,15 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
               })
             );
           }
-           formDataToSave[field.id] = uploadedFileDetails; 
+           formDataToSave[field.id] = uploadedFileDetails;
         } else {
-          delete formDataToSave[field.id]; 
+          delete formDataToSave[field.id];
         }
       } else if (field.type === 'file') {
-         delete formDataToSave[field.id]; 
+         delete formDataToSave[field.id];
       }
     }
-    
+
     try {
       if (fileUploadPromises.length > 0) {
          toast({ title: "Enviando arquivos...", description: `Por favor, aguarde. ${fileUploadPromises.length} arquivo(s) sendo processado(s).`});
@@ -275,7 +253,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
             for (let i = 0; i < fileList.length; i++) {
                 const file = fileList[i];
                 const filePath = `reports/${currentUser.uid}/${formDefinition.id}/${osValue || 'general'}/${submissionTimestamp}/${file.name}`;
-                const fileRef = storageRef(storage, filePath); 
+                const fileRef = storageRef(storage, filePath);
                 try {
                     const url = await getDownloadURL(fileRef);
                     fileDetailsForField.push({ name: file.name, url: url, type: file.type, size: file.size });
@@ -298,7 +276,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
           formDataWithTimestamps[field.id] = Timestamp.fromDate(formDataWithTimestamps[field.id] as Date);
         }
       });
-      
+
       const reportPayload: Record<string, any> = {
         formType: formDefinition.id,
         formName: formDefinition.name,
@@ -308,27 +286,27 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
         gerenteId: currentUser.email?.split('@')[0] || 'desconhecido',
       };
 
-      if (formDefinition.id === 'rnc-report' && origemAcompanhamentoId) {
-        reportPayload.origemAcompanhamentoId = origemAcompanhamentoId;
+      if (originatingFormId) {
+        reportPayload.originatingFormId = originatingFormId;
       }
 
       const ordemServicoField = formDefinition.fields.find(f => f.id === 'ordemServico');
       const osValue = (data as Record<string, any>).ordemServico as string | undefined;
-      
+
       let savedDocRef: DocumentReference | undefined;
 
       if (ordemServicoField && osValue && osValue.trim() !== '') {
         const osDocRef = doc(firestoreDb, "ordens_servico", osValue.trim());
-        await setDoc(osDocRef, { 
-            lastReportAt: Timestamp.fromMillis(submissionTimestamp), 
-            os: osValue.trim(), 
+        await setDoc(osDocRef, {
+            lastReportAt: Timestamp.fromMillis(submissionTimestamp),
+            os: osValue.trim(),
             updatedBy: currentUser.uid,
-            updatedByGerenteId: reportPayload.gerenteId 
+            updatedByGerenteId: reportPayload.gerenteId
         }, { merge: true });
-        
+
         const reportsSubCollectionRef = collection(firestoreDb, "ordens_servico", osValue.trim(), "relatorios");
         savedDocRef = await addDoc(reportsSubCollectionRef, reportPayload);
-        
+
         toast({
           title: "Sucesso!",
           description: `Formulário "${formDefinition.name}" para OS "${osValue.trim()}" salvo com arquivos enviados!`,
@@ -341,20 +319,31 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
           description: `Formulário "${formDefinition.name}" salvo com sucesso e arquivos enviados!`,
         });
       }
-      
-      reset(defaultValues);
-      setOrigemAcompanhamentoId(null); // Limpar após o envio
 
-      if (formDefinition.id === 'cronograma-diario-obra' && (data as any).emissaoRNCDia === 'sim' && osValue && savedDocRef) {
+      reset(defaultValues);
+      setOriginatingFormId(null); // Limpar após o envio
+
+      // Check for linked form trigger
+      const trigger = formDefinition.linkedFormTrigger;
+      if (trigger && savedDocRef && (data as any)[trigger.triggerFieldId] === trigger.triggerFieldValue) {
+        const linkedFormDef = getFormDefinition(trigger.linkedFormId);
+        const linkedFormName = linkedFormDef ? linkedFormDef.name : "próximo formulário";
         toast({
           title: "Próximo Passo",
-          description: "Formulário de cronograma salvo. Por favor, preencha o Relatório de Não Conformidade (RNC).",
+          description: `Formulário "${formDefinition.name}" salvo. Por favor, preencha o ${linkedFormName}.`,
           duration: 5000,
         });
-        router.push(`/dashboard/forms/rnc-report?os=${osValue.trim()}&origemAcompanhamentoId=${savedDocRef.id}`);
-      } else {
-        setIsShareDialogOpen(true);
+
+        const queryParams = new URLSearchParams();
+        queryParams.append('originatingFormId', savedDocRef.id);
+        if (trigger.passOsFieldId && osValue) {
+          queryParams.append('os', osValue.trim());
+        }
+        router.push(`/dashboard/forms/${trigger.linkedFormId}?${queryParams.toString()}`);
+        return; // Skip share dialog for the primary form
       }
+
+      setIsShareDialogOpen(true);
 
     } catch (error) {
       console.error("Erro durante o envio do formulário ou upload de arquivos:", error);
@@ -367,7 +356,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
       setIsSubmitting(false);
     }
   };
-  
+
   const IconComponent = getFormIcon(formDefinition.iconName);
 
   const handleShareDialogAction = () => {
@@ -399,25 +388,27 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
             <CardContent className="space-y-6">
               {formDefinition.fields.map((field) => {
                 let shouldRenderField = true;
+                // Example of specific conditional logic for field visibility
+                // This could be made more generic if needed, e.g., by adding a 'visibleIf' condition to FormField
                 if (formDefinition.id === 'cronograma-diario-obra') {
-                  if (field.id === 'motivoAtrasoDia') shouldRenderField = situacaoEtapaDia === 'em_atraso';
-                  else if (field.id === 'uploadFotosEtapaDia') shouldRenderField = fotosEtapaDia === 'sim';
-                  else if (field.id === 'motivoRetrabalhoParadaDia') shouldRenderField = !!horasRetrabalhoParadasDia && String(horasRetrabalhoParadasDia).trim() !== '';
+                  if (field.id === 'motivoAtrasoDia') shouldRenderField = watchedFields.situacaoEtapaDia === 'em_atraso';
+                  else if (field.id === 'uploadFotosEtapaDia') shouldRenderField = watchedFields.fotosEtapaDia === 'sim';
+                  else if (field.id === 'motivoRetrabalhoParadaDia') shouldRenderField = !!watchedFields.horasRetrabalhoParadasDia && String(watchedFields.horasRetrabalhoParadasDia).trim() !== '';
                   else if (field.id === 'motivoNaoCumprimentoHorarioInicio') {
-                    const efetivo = String(horarioEfetivoInicioAtividades || '').trim();
-                    const previsto = String(horarioInicioJornadaPrevisto || '').trim();
+                    const efetivo = String(watchedFields.horarioEfetivoInicioAtividades || '').trim();
+                    const previsto = String(watchedFields.horarioInicioJornadaPrevisto || '').trim();
                     shouldRenderField = efetivo !== '' && efetivo !== previsto;
                   } else if (field.id === 'motivoNaoCumprimentoHorarioSaida') {
-                    const efetivo = String(horarioEfetivoSaidaObra || '').trim();
-                    const previsto = String(horarioTerminoJornadaPrevisto || '').trim();
+                    const efetivo = String(watchedFields.horarioEfetivoSaidaObra || '').trim();
+                    const previsto = String(watchedFields.horarioTerminoJornadaPrevisto || '').trim();
                     shouldRenderField = efetivo !== '' && efetivo !== previsto;
                   }
                 } else if (formDefinition.id === 'rnc-report') {
-                  if (field.id === 'uploadFotosNaoConformidade') shouldRenderField = fotosNaoConformidade === 'sim';
+                  if (field.id === 'uploadFotosNaoConformidade') shouldRenderField = watchedFields.fotosNaoConformidade === 'sim';
                 }
 
                 if (!shouldRenderField) return null;
-                
+
                 return (
                 <FormField
                   key={field.id}
@@ -435,7 +426,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                           {field.type === 'checkbox' && (
                              <div className="flex items-center space-x-2 pt-2">
                               <Checkbox
-                                id={field.id} 
+                                id={field.id}
                                 checked={!!controllerField.value}
                                 onCheckedChange={controllerField.onChange}
                                 disabled={isSubmitting}
@@ -486,7 +477,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                           {field.type === 'file' && (
                             <Input
                               type="file"
-                              accept="image/*" 
+                              accept="image/*"
                               multiple
                               disabled={isSubmitting}
                               className="pt-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
@@ -533,8 +524,3 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     </>
   );
 }
-    
-
-    
-
-    

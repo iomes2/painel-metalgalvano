@@ -16,12 +16,20 @@ export interface FormField {
   validation?: any; // Zod schema for validation
 }
 
+export interface LinkedFormTrigger {
+  triggerFieldId: string;      // The ID of the field in the current form that triggers the link
+  triggerFieldValue: string;   // The value of the triggerFieldId that activates the link
+  linkedFormId: string;        // The ID of the form to navigate to
+  passOsFieldId?: string;       // Optional: The ID of the field in the current form containing the OS, to pass to the linked form
+}
+
 export interface FormDefinition {
   id: string;
   name: string;
   description: string;
-  iconName?: string; 
+  iconName?: string;
   fields: FormField[];
+  linkedFormTrigger?: LinkedFormTrigger;
 }
 
 export const formDefinitions: FormDefinition[] = [
@@ -34,17 +42,17 @@ export const formDefinitions: FormDefinition[] = [
       { id: 'inspectionDate', label: 'Data da Inspeção', type: 'date', required: true },
       { id: 'inspectorName', label: 'Nome do Inspetor', type: 'text', placeholder: 'Ex: João Silva', required: true },
       { id: 'siteLocation', label: 'Localização/Área do Site', type: 'text', placeholder: 'Ex: Setor A, Prédio 2', required: true },
-      { 
-        id: 'weatherConditions', 
-        label: 'Condições Climáticas', 
-        type: 'select', 
+      {
+        id: 'weatherConditions',
+        label: 'Condições Climáticas',
+        type: 'select',
         options: [
           { value: 'sunny', label: 'Ensolarado' },
           { value: 'cloudy', label: 'Nublado' },
           { value: 'rainy', label: 'Chuvoso' },
           { value: 'windy', label: 'Ventoso' },
-        ], 
-        required: true 
+        ],
+        required: true
       },
       { id: 'observations', label: 'Observações e Problemas', type: 'textarea', placeholder: 'Descreva quaisquer observações ou problemas encontrados...', required: true },
       { id: 'safetyCompliance', label: 'Conformidade com Equipamentos de Segurança (EPI)', type: 'checkbox', defaultValue: true },
@@ -59,9 +67,9 @@ export const formDefinitions: FormDefinition[] = [
     fields: [
       { id: 'checkDate', label: 'Data da Verificação', type: 'date', required: true },
       { id: 'equipmentId', label: 'ID do Equipamento', type: 'text', placeholder: 'Ex: EXCV-003', required: true },
-      { 
-        id: 'equipmentType', 
-        label: 'Tipo de Equipamento', 
+      {
+        id: 'equipmentType',
+        label: 'Tipo de Equipamento',
         type: 'select',
         options: [
           { value: 'excavator', label: 'Escavadeira' },
@@ -69,7 +77,7 @@ export const formDefinitions: FormDefinition[] = [
           { value: 'generator', label: 'Gerador' },
           { value: 'welder', label: 'Máquina de Solda' },
         ],
-        required: true 
+        required: true
       },
       { id: 'operatorName', label: 'Operador/Técnico', type: 'text', required: true, placeholder: 'Ex: Carlos Alberto' },
       { id: 'hoursMeter', label: 'Leitura do Horímetro', type: 'number', placeholder: 'Ex: 1250,5' },
@@ -90,10 +98,10 @@ export const formDefinitions: FormDefinition[] = [
       { id: 'driverName', label: 'Nome do Motorista', type: 'text', placeholder: 'Ex: José Oliveira' },
       { id: 'materialType', label: 'Tipo de Material', type: 'text', placeholder: 'Ex: Sacos de Cimento, Vergalhões de Aço', required: true },
       { id: 'quantity', label: 'Quantidade Entregue', type: 'number', placeholder: 'Ex: 100', required: true },
-      { 
-        id: 'unit', 
-        label: 'Unidade', 
-        type: 'select', 
+      {
+        id: 'unit',
+        label: 'Unidade',
+        type: 'select',
         options: [
           { value: 'bags', label: 'Sacos' },
           { value: 'tons', label: 'Toneladas' },
@@ -101,7 +109,7 @@ export const formDefinitions: FormDefinition[] = [
           { value: 'units', label: 'Unidades' },
           { value: 'length_m', label: 'Metros (comprimento)' },
         ],
-        required: true 
+        required: true
       },
       { id: 'qualityCheckPassed', label: 'Verificação de Qualidade Aprovada', type: 'checkbox', defaultValue: false },
       { id: 'receivedBy', label: 'Recebido Por (Gerente do Local)', type: 'text', required: true, placeholder: 'Ex: Ana Paula Souza' },
@@ -119,22 +127,22 @@ export const formDefinitions: FormDefinition[] = [
       { id: 'dataFinalProjetadaEtapa', label: 'Data Final Projetada da Etapa', type: 'date', required: true },
       { id: 'ordemServico', label: 'OS (Ordem de Serviço)', type: 'text', placeholder: 'Número da OS', required: true },
       { id: 'acompanhamentoDataAtual', label: 'Data do Acompanhamento Diário', type: 'date', required: true, defaultValue: new Date() },
-      { 
-        id: 'situacaoEtapaDia', 
-        label: 'Situação da Etapa no Dia', 
-        type: 'select', 
+      {
+        id: 'situacaoEtapaDia',
+        label: 'Situação da Etapa no Dia',
+        type: 'select',
         options: [
           { value: 'em_dia', label: 'Em dia' },
           { value: 'em_atraso', label: 'Em atraso' },
-        ], 
-        required: true 
+        ],
+        required: true
       },
       { id: 'motivoAtrasoDia', label: 'Motivo do Atraso (se aplicável)', type: 'textarea', placeholder: 'Descreva o motivo do atraso' },
       { id: 'equipamentosUtilizadosDia', label: 'Equipamentos Utilizados no Dia', type: 'textarea', placeholder: 'Liste os equipamentos' },
-      { 
-        id: 'fotosEtapaDia', 
-        label: 'Fotos da Etapa Foram Tiradas?', 
-        type: 'select', 
+      {
+        id: 'fotosEtapaDia',
+        label: 'Fotos da Etapa Foram Tiradas?',
+        type: 'select',
         options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
         defaultValue: 'nao'
       },
@@ -143,26 +151,26 @@ export const formDefinitions: FormDefinition[] = [
         label: 'Enviar Fotos da Etapa',
         type: 'file',
       },
-      { 
-        id: 'relatorioInspecaoDia', 
-        label: 'Relatório de Inspeção Emitido?', 
-        type: 'select', 
+      {
+        id: 'relatorioInspecaoDia',
+        label: 'Relatório de Inspeção Emitido?',
+        type: 'select',
         options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
         defaultValue: 'nao'
       },
-      { 
-        id: 'emissaoRNCDia', 
-        label: 'Emissão de RNC (Relatório de Não Conformidade)?', 
-        type: 'select', 
+      {
+        id: 'emissaoRNCDia',
+        label: 'Emissão de RNC (Relatório de Não Conformidade)?',
+        type: 'select',
         options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
         defaultValue: 'nao',
         required: true
       },
       { id: 'equipeTrabalhoDia', label: 'Equipe de Trabalho Presente', type: 'textarea', placeholder: 'Nomes ou quantidade por função' },
-      { 
-        id: 'pteDia', 
-        label: 'PTE (Permissão de Trabalho Especial) Emitida?', 
-        type: 'select', 
+      {
+        id: 'pteDia',
+        label: 'PTE (Permissão de Trabalho Especial) Emitida?',
+        type: 'select',
         options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
         defaultValue: 'nao'
       },
@@ -176,6 +184,12 @@ export const formDefinitions: FormDefinition[] = [
       { id: 'horarioEfetivoSaidaObra', label: 'Horário Efetivo Saída da Obra', type: 'text', placeholder: 'HH:MM' },
       { id: 'motivoNaoCumprimentoHorarioSaida', label: 'Motivo Não Cumprimento Horário Saída', type: 'textarea' },
     ],
+    linkedFormTrigger: {
+      triggerFieldId: 'emissaoRNCDia',
+      triggerFieldValue: 'sim',
+      linkedFormId: 'rnc-report',
+      passOsFieldId: 'ordemServico',
+    },
   },
   {
     id: 'rnc-report',
@@ -187,12 +201,12 @@ export const formDefinitions: FormDefinition[] = [
       { id: 'ordemServico', label: 'OS (Ordem de Serviço)', type: 'text', placeholder: 'Número da OS relacionada', required: true },
       { id: 'descricaoNaoConformidade', label: 'Descrição da Não Conformidade', type: 'textarea', placeholder: 'Detalhe a não conformidade observada', required: true },
       { id: 'localOcorrencia', label: 'Local da Ocorrência', type: 'text', placeholder: 'Ex: Setor B, Andar 3', required: true },
-      { 
-        id: 'fotosNaoConformidade', 
-        label: 'Fotos da Não Conformidade Tiradas?', 
-        type: 'select', 
-        options: [{value: 'sim', label: 'Sim'}, {value: 'nao', label: 'Não'}], 
-        defaultValue: 'nao' 
+      {
+        id: 'fotosNaoConformidade',
+        label: 'Fotos da Não Conformidade Tiradas?',
+        type: 'select',
+        options: [{value: 'sim', label: 'Sim'}, {value: 'nao', label: 'Não'}],
+        defaultValue: 'nao'
       },
       {
         id: 'uploadFotosNaoConformidade',
@@ -203,18 +217,18 @@ export const formDefinitions: FormDefinition[] = [
       { id: 'acoesCorretivasPropostas', label: 'Ações Corretivas Propostas/Executadas', type: 'textarea', placeholder: 'Detalhe as ações para corrigir e prevenir a recorrência', required: true },
       { id: 'responsavelImplementacao', label: 'Responsável pela Implementação das Ações', type: 'text', placeholder: 'Nome do responsável' },
       { id: 'prazoConclusaoAcoes', label: 'Prazo para Conclusão das Ações', type: 'date' },
-      { 
-        id: 'statusRnc', 
-        label: 'Status da RNC', 
-        type: 'select', 
+      {
+        id: 'statusRnc',
+        label: 'Status da RNC',
+        type: 'select',
         options: [
           { value: 'aberta', label: 'Aberta' },
           { value: 'em_andamento', label: 'Em Andamento' },
           { value: 'concluida', label: 'Concluída' },
           { value: 'cancelada', label: 'Cancelada' },
-        ], 
+        ],
         defaultValue: 'aberta',
-        required: true 
+        required: true
       },
       { id: 'observacoesAdicionaisRnc', label: 'Observações Adicionais', type: 'textarea', placeholder: 'Qualquer informação relevante adicional' },
     ],
@@ -224,5 +238,3 @@ export const formDefinitions: FormDefinition[] = [
 export const getFormDefinition = (formId: string): FormDefinition | undefined => {
   return formDefinitions.find(form => form.id === formId);
 };
-
-    
