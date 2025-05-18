@@ -10,23 +10,52 @@ export interface FormField {
   label: string;
   type: 'text' | 'email' | 'password' | 'number' | 'textarea' | 'select' | 'checkbox' | 'date' | 'file';
   placeholder?: string;
-  options?: FormFieldOption[]; // For select, radio-group
+  options?: FormFieldOption[]; // Para select, radio-group
   required?: boolean;
   defaultValue?: string | number | boolean | Date | null;
-  validation?: any; // Zod schema for validation
+  validation?: any; // Zod schema para validação
 }
 
+/**
+ * Define um parâmetro a ser carregado do formulário atual para o próximo formulário na sequência,
+ * via query string na URL.
+ */
 export interface CarryOverParam {
-  fieldIdFromCurrentForm: string; // ID do campo no formulário atual cujo valor será passado
-  queryParamName: string;         // Nome do parâmetro de query que será usado para o próximo formulário
+  /** O ID do campo no formulário *atual* cujo valor será passado para o próximo formulário. */
+  fieldIdFromCurrentForm: string;
+  /** O nome do parâmetro de query que será usado na URL para o *próximo* formulário.
+   *  Ex: se queryParamName for 'meuParam', a URL será ...?meuParam=valorDoFieldIdFromCurrentForm
+   */
+  queryParamName: string;
 }
 
+/**
+ * Define uma condição para acionar a navegação para um formulário vinculado após o envio do formulário atual.
+ * Se múltiplas condições forem definidas em `linkedFormTriggers`, elas são avaliadas na ordem em que aparecem no array.
+ * A primeira condição satisfeita acionará a navegação.
+ */
 export interface LinkedFormTriggerCondition {
-  triggerFieldId: string;      // O ID do campo no formulário atual OU um _queryParam_ prefixed string (ex: _queryParam_rncTrigger)
-  triggerFieldValue: string;   // O valor que ativa o link
-  linkedFormId: string;        // O ID do formulário para navegar
-  passOsFieldId?: string;       // Opcional: ID do campo de OS no formulário atual para passar
-  carryOverParams?: CarryOverParam[]; // Opcional: Parâmetros para carregar para o próximo formulário
+  /**
+   * O ID do campo no formulário atual cujo valor será verificado para disparar o gatilho.
+   * OU, pode ser uma string prefixada com '_queryParam_' (ex: '_queryParam_nomeDoParametro')
+   * para verificar o valor de um parâmetro de URL que foi passado de um formulário anterior
+   * (usando `carryOverParams`).
+   */
+  triggerFieldId: string;
+  /** O valor que o campo `triggerFieldId` (ou o query param) deve ter para que este gatilho seja ativado. */
+  triggerFieldValue: string;
+  /** O ID do formulário (definido neste mesmo arquivo `formDefinitions`) para o qual o usuário será redirecionado. */
+  linkedFormId: string;
+  /**
+   * Opcional. Se fornecido, o valor do campo especificado aqui (que geralmente contém a Ordem de Serviço)
+   * no formulário atual será passado como um parâmetro de query `os` para o próximo formulário.
+   */
+  passOsFieldId?: string;
+  /**
+   * Opcional. Um array de `CarryOverParam` para passar valores específicos do formulário atual
+   * para o próximo formulário como parâmetros de query na URL.
+   */
+  carryOverParams?: CarryOverParam[];
 }
 
 export interface FormDefinition {
@@ -35,12 +64,18 @@ export interface FormDefinition {
   description: string;
   iconName?: string;
   fields: FormField[];
-  linkedFormTriggers?: LinkedFormTriggerCondition[]; // Modificado para ser um array
+  /**
+   * Opcional. Um array de `LinkedFormTriggerCondition`.
+   * Permite definir uma sequência de formulários. Após o envio do formulário atual,
+   * as condições em `linkedFormTriggers` são avaliadas em ordem. A primeira condição
+   * satisfeita redirecionará o usuário para o `linkedFormId` correspondente.
+   */
+  linkedFormTriggers?: LinkedFormTriggerCondition[];
 }
 
 export const formDefinitions: FormDefinition[] = [
   {
-    id: 'site-inspection', // Este é um genérico, vamos criar um mais específico para o fluxo.
+    id: 'site-inspection',
     name: 'Relatório de Inspeção do Local (Genérico)',
     description: 'Relatório diário para inspeções de canteiros de obras.',
     iconName: 'ClipboardList',
@@ -158,7 +193,7 @@ export const formDefinitions: FormDefinition[] = [
         type: 'file',
       },
       {
-        id: 'relatorioInspecaoEmitidoDia', // Novo campo
+        id: 'relatorioInspecaoEmitidoDia',
         label: 'Relatório de Inspeção Emitido no Dia?',
         type: 'select',
         options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
@@ -191,29 +226,42 @@ export const formDefinitions: FormDefinition[] = [
       { id: 'horarioEfetivoSaidaObra', label: 'Horário Efetivo Saída da Obra', type: 'text', placeholder: 'HH:MM' },
       { id: 'motivoNaoCumprimentoHorarioSaida', label: 'Motivo Não Cumprimento Horário Saída', type: 'textarea' },
     ],
+    /**
+     * Exemplo de configuração de formulários encadeados (fila):
+     * A ordem no array 'linkedFormTriggers' determina a prioridade. O primeiro gatilho
+     * na lista que tiver sua condição (triggerFieldId/triggerFieldValue) satisfeita será acionado.
+     */
     linkedFormTriggers: [
       {
+        // GATILHO 1: Para Relatório de Inspeção
+        // Se 'relatorioInspecaoEmitidoDia' for 'sim', navega para 'relatorio-inspecao-site'.
         triggerFieldId: 'relatorioInspecaoEmitidoDia',
         triggerFieldValue: 'sim',
-        linkedFormId: 'relatorio-inspecao-site', // Novo formulário
-        passOsFieldId: 'ordemServico',
+        linkedFormId: 'relatorio-inspecao-site',
+        passOsFieldId: 'ordemServico', // Passa a OS para o formulário de inspeção.
         carryOverParams: [
+          // Passa o valor do campo 'emissaoRNCDia' deste formulário de acompanhamento
+          // como um parâmetro de URL chamado 'rncTriggerValue' para o formulário de inspeção.
+          // Isso permite que o formulário de inspeção saiba se deve, posteriormente, acionar um RNC.
           { fieldIdFromCurrentForm: 'emissaoRNCDia', queryParamName: 'rncTriggerValue' }
         ]
       },
       {
+        // GATILHO 2: Para Relatório de Não Conformidade (RNC)
+        // Este gatilho só será avaliado se o GATILHO 1 (para inspeção) não for satisfeito.
+        // Se 'emissaoRNCDia' for 'sim', navega para 'rnc-report'.
         triggerFieldId: 'emissaoRNCDia',
         triggerFieldValue: 'sim',
         linkedFormId: 'rnc-report',
-        passOsFieldId: 'ordemServico',
+        passOsFieldId: 'ordemServico', // Passa a OS para o formulário RNC.
       }
     ],
   },
-  { // Novo Formulário de Inspeção Específico
+  {
     id: 'relatorio-inspecao-site',
     name: 'Relatório de Inspeção do Site (Diário)',
     description: 'Documenta inspeções diárias do site vinculadas ao acompanhamento.',
-    iconName: 'SearchCheck', // Novo ícone
+    iconName: 'SearchCheck',
     fields: [
       { id: 'ordemServico', label: 'OS (Ordem de Serviço)', type: 'text', placeholder: 'Número da OS (pré-preenchido)', required: true },
       { id: 'dataInspecao', label: 'Data da Inspeção', type: 'date', required: true, defaultValue: new Date() },
@@ -245,11 +293,16 @@ export const formDefinitions: FormDefinition[] = [
     ],
     linkedFormTriggers: [
       {
-        triggerFieldId: '_queryParam_rncTriggerValue', // Verifica o parâmetro passado
+        // GATILHO ÚNICO: Para Relatório de Não Conformidade (RNC)
+        // Este gatilho é baseado em um parâmetro de URL que foi passado do formulário de 'Acompanhamento'.
+        // Se o parâmetro de URL 'rncTriggerValue' (cujo valor original veio do campo 'emissaoRNCDia'
+        // do formulário de acompanhamento) for 'sim', então, após este formulário de inspeção,
+        // navega para 'rnc-report'.
+        triggerFieldId: '_queryParam_rncTriggerValue', // Nota o prefixo '_queryParam_'
         triggerFieldValue: 'sim',
         linkedFormId: 'rnc-report',
-        passOsFieldId: 'ordemServico',
-        // Não precisa de carryOverParams daqui para RNC, pois RNC não depende de mais nada do form de inspeção para ser trigado
+        passOsFieldId: 'ordemServico', // Passa a OS (que também foi passada para este form) para o RNC.
+        // Não há 'carryOverParams' aqui, pois o RNC não depende de outros dados específicos da inspeção para ser acionado.
       }
     ]
   },
@@ -260,7 +313,7 @@ export const formDefinitions: FormDefinition[] = [
     iconName: 'FileWarning',
     fields: [
       { id: 'dataRnc', label: 'Data da RNC', type: 'date', required: true, defaultValue: new Date() },
-      { id: 'ordemServico', label: 'OS (Ordem de Serviço)', type: 'text', placeholder: 'Número da OS relacionada', required: true },
+      { id: 'ordemServico', label: 'OS (Ordem de Serviço)', type: 'text', placeholder: 'Número da OS relacionada (pré-preenchido)', required: true },
       { id: 'descricaoNaoConformidade', label: 'Descrição da Não Conformidade', type: 'textarea', placeholder: 'Detalhe a não conformidade observada', required: true },
       { id: 'localOcorrencia', label: 'Local da Ocorrência', type: 'text', placeholder: 'Ex: Setor B, Andar 3', required: true },
       {
@@ -294,6 +347,7 @@ export const formDefinitions: FormDefinition[] = [
       },
       { id: 'observacoesAdicionaisRnc', label: 'Observações Adicionais', type: 'textarea', placeholder: 'Qualquer informação relevante adicional' },
     ],
+    // Este formulário é o último na sequência RNC, então não tem 'linkedFormTriggers' por padrão.
   }
 ];
 
