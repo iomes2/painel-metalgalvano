@@ -33,7 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { auth, storage, db } from '@/lib/firebase'; 
-import { getFirestore, collection, addDoc, Timestamp, doc, setDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, Timestamp, doc, setDoc, type DocumentReference } from 'firebase/firestore';
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
 interface DynamicFormRendererProps {
@@ -96,6 +96,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
   const searchParams = useSearchParams();
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [origemAcompanhamentoId, setOrigemAcompanhamentoId] = useState<string | null>(null); // Novo estado
   const formSchema = buildZodSchema(formDefinition.fields);
   
   type FormValues = z.infer<typeof formSchema>;
@@ -128,15 +129,19 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
   
   const fotosNaoConformidade = formDefinition.id === 'rnc-report' ? watch('fotosNaoConformidade' as any) : undefined;
 
-  // Pre-fill OS for RNC form if passed as query param
+  // Pre-fill OS for RNC form if passed as query param & set origemAcompanhamentoId
   useEffect(() => {
     if (formDefinition.id === 'rnc-report') {
       const osFromQuery = searchParams.get('os');
       if (osFromQuery) {
         setValue('ordemServico' as any, osFromQuery, { shouldValidate: true });
       }
+      const origemIdFromQuery = searchParams.get('origemAcompanhamentoId');
+      if (origemIdFromQuery) {
+        setOrigemAcompanhamentoId(origemIdFromQuery);
+      }
     }
-  }, [formDefinition.id, searchParams, setValue]);
+  }, [formDefinition.id, searchParams, setValue, setOrigemAcompanhamentoId]);
 
 
   useEffect(() => {
@@ -201,12 +206,11 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
       return;
     }
 
-    const firestoreDb = getFirestore(); // Renomeado para evitar conflito com a variável db importada
+    const firestoreDb = getFirestore();
     const submissionTimestamp = Date.now();
     
     const formDataToSave = { ...data } as Record<string, any>;
 
-    // Handle file uploads
     const fileUploadPromises: Promise<void>[] = [];
 
     for (const field of formDefinition.fields) {
@@ -227,7 +231,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
               new Promise((resolve, reject) => {
                 uploadTask.on(
                   'state_changed',
-                  null, //  (snapshot) => { /* progresso */ },
+                  null, 
                   (error) => {
                     console.error(`Erro no upload do arquivo ${file.name}:`, error);
                     reject(error);
@@ -246,30 +250,21 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
               })
             );
           }
-          // Após todos os uploads para este campo serem preparados,
-          // substituímos o FileList pelos detalhes dos arquivos.
-          // Precisamos esperar que as promises resolvam para ter as URLs.
-           formDataToSave[field.id] = uploadedFileDetails; // Placeholder, será atualizado após promises.
+           formDataToSave[field.id] = uploadedFileDetails; 
         } else {
-          delete formDataToSave[field.id]; // Remove o campo se não houver arquivos
+          delete formDataToSave[field.id]; 
         }
       } else if (field.type === 'file') {
-         delete formDataToSave[field.id]; // Remove o campo se não for FileList (ex: null)
+         delete formDataToSave[field.id]; 
       }
     }
     
     try {
-      // Espera todos os uploads de arquivo terminarem, se houver.
       if (fileUploadPromises.length > 0) {
          toast({ title: "Enviando arquivos...", description: `Por favor, aguarde. ${fileUploadPromises.length} arquivo(s) sendo processado(s).`});
       }
       await Promise.all(fileUploadPromises);
 
-      // Agora, atualize formDataToSave com os detalhes dos arquivos que foram coletados nas promises
-      // Isso precisa ser feito de forma mais inteligente. Se as promises modificam um array `uploadedFileDetails`
-      // que é específico para cada campo 'file', precisamos coletar esses arrays.
-
-      // Reconstruir formDataToSave com os resultados dos uploads
       const finalFormDataToSave = { ...data } as Record<string, any>;
       for (const field of formDefinition.fields) {
         if (field.type === 'file' && data[field.id as keyof FormValues] instanceof FileList) {
@@ -280,16 +275,12 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
             for (let i = 0; i < fileList.length; i++) {
                 const file = fileList[i];
                 const filePath = `reports/${currentUser.uid}/${formDefinition.id}/${osValue || 'general'}/${submissionTimestamp}/${file.name}`;
-                const fileRef = storageRef(storage, filePath); // Obter ref novamente para garantir que é a correta
-                // Assumimos que o upload já foi feito por Promise.all e a URL está disponível
-                // Esta parte é complicada porque getDownloadURL é async.
-                // A maneira mais fácil é buscar as URLs novamente aqui, assumindo que o upload foi bem sucedido.
+                const fileRef = storageRef(storage, filePath); 
                 try {
                     const url = await getDownloadURL(fileRef);
                     fileDetailsForField.push({ name: file.name, url: url, type: file.type, size: file.size });
                 } catch(e) {
-                    console.error("Erro ao buscar URL pós-upload (isso não deveria acontecer se Promise.all funcionou):", e);
-                     // Lidar com o erro, talvez o arquivo não tenha sido carregado corretamente.
+                    console.error("Erro ao buscar URL pós-upload:", e);
                 }
             }
             finalFormDataToSave[field.id] = fileDetailsForField;
@@ -301,8 +292,6 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
         }
       }
 
-
-      // Convert date fields to Firebase Timestamps
       const formDataWithTimestamps = { ...finalFormDataToSave };
       formDefinition.fields.forEach(field => {
         if (field.type === 'date' && formDataWithTimestamps[field.id] instanceof Date) {
@@ -310,17 +299,23 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
         }
       });
       
-      const reportPayload = {
+      const reportPayload: Record<string, any> = {
         formType: formDefinition.id,
         formName: formDefinition.name,
         formData: formDataWithTimestamps,
         submittedBy: currentUser.uid,
-        submittedAt: Timestamp.fromMillis(submissionTimestamp), // Usar o mesmo timestamp
+        submittedAt: Timestamp.fromMillis(submissionTimestamp),
         gerenteId: currentUser.email?.split('@')[0] || 'desconhecido',
       };
 
+      if (formDefinition.id === 'rnc-report' && origemAcompanhamentoId) {
+        reportPayload.origemAcompanhamentoId = origemAcompanhamentoId;
+      }
+
       const ordemServicoField = formDefinition.fields.find(f => f.id === 'ordemServico');
       const osValue = (data as Record<string, any>).ordemServico as string | undefined;
+      
+      let savedDocRef: DocumentReference | undefined;
 
       if (ordemServicoField && osValue && osValue.trim() !== '') {
         const osDocRef = doc(firestoreDb, "ordens_servico", osValue.trim());
@@ -332,7 +327,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
         }, { merge: true });
         
         const reportsSubCollectionRef = collection(firestoreDb, "ordens_servico", osValue.trim(), "relatorios");
-        await addDoc(reportsSubCollectionRef, reportPayload);
+        savedDocRef = await addDoc(reportsSubCollectionRef, reportPayload);
         
         toast({
           title: "Sucesso!",
@@ -340,7 +335,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
         });
       } else {
         const genericReportsCollectionRef = collection(firestoreDb, "submitted_reports");
-        await addDoc(genericReportsCollectionRef, reportPayload);
+        savedDocRef = await addDoc(genericReportsCollectionRef, reportPayload);
         toast({
           title: "Sucesso!",
           description: `Formulário "${formDefinition.name}" salvo com sucesso e arquivos enviados!`,
@@ -348,14 +343,15 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
       }
       
       reset(defaultValues);
+      setOrigemAcompanhamentoId(null); // Limpar após o envio
 
-      if (formDefinition.id === 'cronograma-diario-obra' && (data as any).emissaoRNCDia === 'sim' && osValue) {
+      if (formDefinition.id === 'cronograma-diario-obra' && (data as any).emissaoRNCDia === 'sim' && osValue && savedDocRef) {
         toast({
           title: "Próximo Passo",
           description: "Formulário de cronograma salvo. Por favor, preencha o Relatório de Não Conformidade (RNC).",
           duration: 5000,
         });
-        router.push(`/dashboard/forms/rnc-report?os=${osValue.trim()}`);
+        router.push(`/dashboard/forms/rnc-report?os=${osValue.trim()}&origemAcompanhamentoId=${savedDocRef.id}`);
       } else {
         setIsShareDialogOpen(true);
       }
@@ -490,13 +486,10 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                           {field.type === 'file' && (
                             <Input
                               type="file"
-                              accept="image/*" // Aceita qualquer tipo de imagem
+                              accept="image/*" 
                               multiple
                               disabled={isSubmitting}
                               className="pt-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                              // Remove o onChange daqui, pois o react-hook-form já gerencia
-                              // o estado através do controllerField.onChange que é chamado internamente
-                              // ao invés disso, o controllerField.onChange será chamado com o FileList
                               onChange={(e) => controllerField.onChange(e.target.files)}
                             />
                           )}
@@ -540,6 +533,8 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     </>
   );
 }
+    
+
     
 
     
