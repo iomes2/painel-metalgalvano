@@ -14,11 +14,11 @@ import {
 } from '@/components/ui/sidebar';
 import Logo from '@/components/icons/Logo';
 import { formDefinitions } from '@/config/forms';
-import { Home, Settings } from 'lucide-react'; // Adicionado Settings
+import { Home } from 'lucide-react';
 import { getFormIcon } from '@/components/icons/icon-resolver';
 
 interface AppSidebarProps {
-  isAdminArea?: boolean;
+  isAdminArea?: boolean; // Embora não usado agora, pode ser útil no futuro
 }
 
 export function AppSidebar({ isAdminArea = false }: AppSidebarProps) {
@@ -37,8 +37,8 @@ export function AppSidebar({ isAdminArea = false }: AppSidebarProps) {
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton 
-              asChild 
+            <SidebarMenuButton
+              asChild
               isActive={pathname === '/dashboard' && !isAdminArea}
               tooltip={{children: "Painel", side:"right"}}
             >
@@ -66,21 +66,6 @@ export function AppSidebar({ isAdminArea = false }: AppSidebarProps) {
               </SidebarMenuItem>
             );
           })}
-
-          {/* Link para a área de administração */}
-           <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname.startsWith('/admin') || isAdminArea}
-                  tooltip={{children: "Admin Formulários", side:"right"}}
-                >
-                  <Link href="/admin/form-builder">
-                    <Settings />
-                    <span>Admin Formulários</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-2 text-center text-xs text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
