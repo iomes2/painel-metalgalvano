@@ -45,7 +45,7 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
 
-          {formDefinitions.map((form) => {
+          {/* {formDefinitions.map((form) => {
             const IconComponent = getFormIcon(form.iconName);
             return (
               <SidebarMenuItem key={form.id}>
@@ -61,7 +61,7 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             );
-          })}
+          })} */}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-2 text-center text-xs text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
