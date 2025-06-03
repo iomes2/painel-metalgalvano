@@ -49,7 +49,11 @@ export function AppSidebar({ isAdminArea = false }: AppSidebarProps) {
             </SidebarMenuButton>
           </SidebarMenuItem>
 
+<<<<<<< HEAD
           {!isAdminArea && formDefinitions.map((form) => {
+=======
+          {/* {formDefinitions.map((form) => {
+>>>>>>> 28147418e33eec215934e26d131443985c816088
             const IconComponent = getFormIcon(form.iconName);
             return (
               <SidebarMenuItem key={form.id}>
@@ -65,7 +69,7 @@ export function AppSidebar({ isAdminArea = false }: AppSidebarProps) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             );
-          })}
+          })} */}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-2 text-center text-xs text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">

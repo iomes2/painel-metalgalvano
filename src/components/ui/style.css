@@ -1,0 +1,34 @@
+.my-select-content {
+  background: #f8fafc;
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  padding: 8px 0;
+}
+
+.my-select-item {
+  font-size: 1.1rem;
+  padding: 12px 24px 12px 40px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+.my-select-item[aria-selected="true"],
+.my-select-item:focus,
+.my-select-item:hover {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+.teste{
+    max-width:min-content !important;
+}
+.teste2{
+    padding-left: 8px !important;
+}
+.teste3{
+    padding: 25px 8px 25px 8px !important;
+}
+.title-form{
+    font-size: 1.2rem;
+    font-weight: 600;
+    line-height: 25px;
+    margin-bottom: 10px;
+}

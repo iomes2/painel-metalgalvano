@@ -376,7 +376,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
         <CardHeader>
           <div className="flex items-center gap-3">
             <IconComponent className="h-8 w-8 text-primary" />
-            <CardTitle className="text-2xl">{formDefinition.name}</CardTitle>
+            <CardTitle className="title-form">{formDefinition.name}</CardTitle>
           </div>
           <CardDescription>{formDefinition.description}</CardDescription>
           {mainOriginatingFormId && <p className="text-sm text-muted-foreground">Vinculado ao Relatório Principal ID: {mainOriginatingFormId}</p>}

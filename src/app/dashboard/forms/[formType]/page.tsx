@@ -32,7 +32,7 @@ export default function FormPage({ params }: FormPageProps) {
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto ">
       <DynamicFormRenderer formDefinition={formDefinition} />
     </div>
   );

@@ -45,12 +45,12 @@ export default function DashboardPage() {
         <CardHeader>
           <CardTitle className="text-3xl font-bold">Bem-vindo(a), {userName}!</CardTitle>
           <CardDescription className="text-lg text-muted-foreground">
-            Selecione um formulário abaixo para começar. Você pode preencher, gerar PDFs e salvar seus relatórios.
+            Selecione um formulário abaixo para começar.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        {/* <CardContent>
           <p>Este painel permite gerenciar diversos formulários relacionados aos processos de construção da Metalgalvano. Certifique-se de que todos os dados inseridos sejam precisos e completos.</p>
-        </CardContent>
+        </CardContent> */}
       </Card>
 
       <Card className="shadow-md">
@@ -61,10 +61,10 @@ export default function DashboardPage() {
         <CardContent className="space-y-6">
           <div className="space-y-2">
             <Select onValueChange={setSelectedFormId} value={selectedFormId || undefined}>
-              <SelectTrigger className="w-full py-3 text-base md:text-sm">
+              <SelectTrigger className="w-full py-3 text-base md:text-sm teste3">
                 <div className="flex items-center gap-2">
-                  <IconComponent className={`h-5 w-5 ${selectedFormId ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <SelectValue placeholder="Clique para escolher um formulário..." />
+                  {/* <IconComponent className={`h-5 w-5 ${selectedFormId ? 'text-primary' : 'text-muted-foreground'}`} /> */}
+                  <SelectValue placeholder="Clique e escolha um formulário..." className='btn-form '/>
                 </div>
               </SelectTrigger>
               <SelectContent>
@@ -82,7 +82,7 @@ export default function DashboardPage() {
               </SelectContent>
             </Select>
           </div>
-          {selectedFormDefinition && (
+          {/* {selectedFormDefinition && (
             <div className="p-4 border rounded-md bg-muted/20">
               <div className="flex items-center gap-3 mb-2">
                 <IconComponent className="h-7 w-7 text-primary" />
@@ -90,7 +90,7 @@ export default function DashboardPage() {
               </div>
               <p className="text-sm text-muted-foreground">{selectedFormDefinition.description}</p>
             </div>
-          )}
+          )} */}
           <Button 
             onClick={handleOpenForm} 
             disabled={!selectedFormId} 
