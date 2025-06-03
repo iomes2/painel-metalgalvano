@@ -13,12 +13,12 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import Logo from '@/components/icons/Logo';
-import { formDefinitions } from '@/config/forms';
-import { Home } from 'lucide-react';
+// import { formDefinitions } from '@/config/forms'; // This line was part of the conflict, keeping it commented
+import { Home, Search } from 'lucide-react';
 import { getFormIcon } from '@/components/icons/icon-resolver';
 
 interface AppSidebarProps {
-  isAdminArea?: boolean; // Embora não usado agora, pode ser útil no futuro
+  isAdminArea?: boolean;
 }
 
 export function AppSidebar({ isAdminArea = false }: AppSidebarProps) {
@@ -49,11 +49,21 @@ export function AppSidebar({ isAdminArea = false }: AppSidebarProps) {
             </SidebarMenuButton>
           </SidebarMenuItem>
 
-<<<<<<< HEAD
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === '/dashboard/search'}
+              tooltip={{ children: "Consultar Formulários", side: "right" }}
+            >
+              <Link href="/dashboard/search">
+                <Search />
+                <span>Consultar Formulários</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
+          {/* Resolved conflict: The section for mapping formDefinitions is kept commented out.
           {!isAdminArea && formDefinitions.map((form) => {
-=======
-          {/* {formDefinitions.map((form) => {
->>>>>>> 28147418e33eec215934e26d131443985c816088
             const IconComponent = getFormIcon(form.iconName);
             return (
               <SidebarMenuItem key={form.id}>
@@ -69,7 +79,8 @@ export function AppSidebar({ isAdminArea = false }: AppSidebarProps) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             );
-          })} */}
+          })}
+          */}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-2 text-center text-xs text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
