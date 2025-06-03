@@ -14,6 +14,11 @@ export interface FormField {
   required?: boolean;
   defaultValue?: string | number | boolean | Date | null;
   validation?: any; // Zod schema para validação
+  linkedForm?: { // Propriedade para acionar modal de visualização de relatório vinculado
+    conditionValue: string; // Valor do campo atual que aciona o link
+    targetFormType: string; // ID do tipo de formulário a ser aberto no modal
+    linkButtonLabel: string; // Texto para o botão
+  };
 }
 
 /**
@@ -198,7 +203,12 @@ export const formDefinitions: FormDefinition[] = [
         type: 'select',
         options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
         defaultValue: 'nao',
-        required: true
+        required: true,
+        linkedForm: { // Para visualização em modal
+          conditionValue: 'sim',
+          targetFormType: 'relatorio-inspecao-site',
+          linkButtonLabel: 'Visualizar Relatório de Inspeção'
+        }
       },
       {
         id: 'emissaoRNCDia',
@@ -206,7 +216,12 @@ export const formDefinitions: FormDefinition[] = [
         type: 'select',
         options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
         defaultValue: 'nao',
-        required: true
+        required: true,
+        linkedForm: { // Para visualização em modal
+          conditionValue: 'sim',
+          targetFormType: 'rnc-report',
+          linkButtonLabel: 'Visualizar RNC Associado'
+        }
       },
       { id: 'equipeTrabalhoDia', label: 'Equipe de Trabalho Presente', type: 'textarea', placeholder: 'Nomes ou quantidade por função' },
       {
@@ -215,6 +230,7 @@ export const formDefinitions: FormDefinition[] = [
         type: 'select',
         options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
         defaultValue: 'nao'
+        // Poderia ter um linkedForm para um futuro formulário de PTE aqui também
       },
       { id: 'tempoTotalTrabalhoDia', label: 'Tempo Total de Trabalho (Ex: 07:30-17:30 +2h extra)', type: 'text', placeholder: 'HH:MM-HH:MM ou Total de Horas' },
       { id: 'horasRetrabalhoParadasDia', label: 'Horas de Retrabalho/Paradas', type: 'text', placeholder: 'Ex: 1.5h' },
