@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { ClipboardList, Wrench, Truck, FileText, CalendarClock, FileWarning, SearchCheck } from 'lucide-react';
+import { ClipboardList, Wrench, Truck, FileText, CalendarClock, FileWarning, SearchCheck, Info } from 'lucide-react';
 
 interface IconMap {
   [key: string]: LucideIcon;
@@ -14,7 +14,8 @@ const iconMap: IconMap = {
   FileText,
   CalendarClock,
   FileWarning, 
-  SearchCheck, // Adicionado novo ícone para Inspeção
+  SearchCheck,
+  Info,
 };
 
 export const getFormIcon = (name?: string): LucideIcon => {
@@ -23,5 +24,3 @@ export const getFormIcon = (name?: string): LucideIcon => {
   }
   return FileText; // Ícone padrão
 };
-
-    

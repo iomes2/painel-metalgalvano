@@ -147,7 +147,6 @@ export const formDefinitions: FormDefinition[] = [
         type: 'select',
         options: [{ value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }],
         defaultValue: 'nao'
-        // Poderia ter um linkedForm para um futuro formulário de PTE aqui também
       },
       { id: 'tempoTotalTrabalhoDia', label: 'Tempo Total de Trabalho (Ex: 07:30-17:30 +2h extra)', type: 'text', placeholder: 'HH:MM-HH:MM ou Total de Horas' },
       { id: 'horasRetrabalhoParadasDia', label: 'Horas de Retrabalho/Paradas', type: 'text', placeholder: 'Ex: 1.5h' },
@@ -159,36 +158,78 @@ export const formDefinitions: FormDefinition[] = [
       { id: 'horarioEfetivoSaidaObra', label: 'Horário Efetivo Saída da Obra', type: 'text', placeholder: 'HH:MM' },
       { id: 'motivoNaoCumprimentoHorarioSaida', label: 'Motivo Não Cumprimento Horário Saída', type: 'textarea' },
     ],
-    /**
-     * Exemplo de configuração de formulários encadeados (fila):
-     * A ordem no array 'linkedFormTriggers' determina a prioridade. O primeiro gatilho
-     * na lista que tiver sua condição (triggerFieldId/triggerFieldValue) satisfeita será acionado.
-     */
     linkedFormTriggers: [
       {
-        // GATILHO 1: Para Relatório de Inspeção
-        // Se 'relatorioInspecaoEmitidoDia' for 'sim', navega para 'relatorio-inspecao-site'.
         triggerFieldId: 'relatorioInspecaoEmitidoDia',
         triggerFieldValue: 'sim',
         linkedFormId: 'relatorio-inspecao-site',
-        passOsFieldId: 'ordemServico', // Passa a OS para o formulário de inspeção.
+        passOsFieldId: 'ordemServico',
         carryOverParams: [
-          // Passa o valor do campo 'emissaoRNCDia' deste formulário de acompanhamento
-          // como um parâmetro de URL chamado 'rncTriggerValue' para o formulário de inspeção.
-          // Isso permite que o formulário de inspeção saiba se deve, posteriormente, acionar um RNC.
-          { fieldIdFromCurrentForm: 'emissaoRNCDia', queryParamName: 'rncTriggerValue' }
+          { fieldIdFromCurrentForm: 'emissaoRNCDia', queryParamName: 'rncTriggerValueFromAcompanhamento' }
         ]
       },
       {
-        // GATILHO 2: Para Relatório de Não Conformidade (RNC)
-        // Este gatilho só será avaliado se o GATILHO 1 (para inspeção) não for satisfeito.
-        // Se 'emissaoRNCDia' for 'sim', navega para 'rnc-report'.
         triggerFieldId: 'emissaoRNCDia',
         triggerFieldValue: 'sim',
         linkedFormId: 'rnc-report',
-        passOsFieldId: 'ordemServico', // Passa a OS para o formulário RNC.
+        passOsFieldId: 'ordemServico',
       }
     ],
+  },
+  {
+    id: 'relatorio-inspecao-site',
+    name: 'Relatório de Inspeção de Site',
+    description: 'Detalha a inspeção de segurança e conformidade realizada no local.',
+    iconName: 'SearchCheck',
+    fields: [
+      { id: 'dataRelatorioInspecao', label: 'Data da Inspeção', type: 'date', required: true, defaultValue: new Date() },
+      { id: 'ordemServico', label: 'OS (Ordem de Serviço)', type: 'text', placeholder: 'Número da OS (pré-preenchido)', required: true },
+      { id: 'inspetorNome', label: 'Nome do Inspetor', type: 'text', placeholder: 'Quem realizou a inspeção', required: true },
+      { id: 'areaInspecionada', label: 'Área/Local Inspecionado', type: 'text', placeholder: 'Ex: Canteiro de obras, Torre A', required: true },
+      {
+        id: 'conformidadeSeguranca',
+        label: 'Conformidade com Normas de Segurança',
+        type: 'select',
+        options: [
+          { value: 'sim', label: 'Sim, conforme' },
+          { value: 'nao', label: 'Não, com pendências' },
+        ],
+        required: true,
+        defaultValue: 'sim'
+      },
+      { id: 'itensNaoConformes', label: 'Itens Não Conformes (se houver)', type: 'textarea', placeholder: 'Liste os itens em não conformidade' },
+      { id: 'acoesCorretivasSugeridas', label: 'Ações Corretivas Sugeridas', type: 'textarea', placeholder: 'Sugestões para corrigir as não conformidades' },
+      {
+        id: 'fotosInspecao',
+        label: 'Fotos da Inspeção Foram Tiradas?',
+        type: 'select',
+        options: [{value: 'sim', label: 'Sim'}, {value: 'nao', label: 'Não'}],
+        defaultValue: 'nao'
+      },
+      {
+        id: 'uploadFotosInspecao',
+        label: 'Enviar Fotos da Inspeção',
+        type: 'file',
+      },
+      { id: 'observacoesGeraisInspecao', label: 'Observações Gerais', type: 'textarea', placeholder: 'Outras observações relevantes' },
+    ],
+    linkedFormTriggers: [
+      {
+        // Se a inspeção NÃO está conforme E o formulário de acompanhamento original indicou que um RNC deveria ser emitido
+        triggerFieldId: '_queryParam_rncTriggerValueFromAcompanhamento', // Verifica o valor do query param passado do form de Acompanhamento
+        triggerFieldValue: 'sim',
+        linkedFormId: 'rnc-report',
+        passOsFieldId: 'ordemServico',
+        // Pré-condição adicional: este gatilho só deve ser considerado se 'conformidadeSeguranca' for 'nao'.
+        // Esta pré-condição mais complexa (AND de um campo do form atual + query param)
+        // precisaria ser implementada na lógica de avaliação de gatilhos no DynamicFormRenderer.
+        // Por agora, o DynamicFormRenderer só checa triggerFieldId e triggerFieldValue.
+        // Para um AND: o ideal seria o `triggerFieldId` ser `conformidadeSeguranca` com valor `nao`
+        // E o `_queryParam_rncTriggerValueFromAcompanhamento` com valor `sim` seria avaliado DENTRO dessa condição.
+        // Simplificando por agora: se `rncTriggerValueFromAcompanhamento` for 'sim', vai para RNC.
+        // Se `conformidadeSeguranca` for `nao` E `rncTriggerValueFromAcompanhamento` for 'nao', não vai para RNC automaticamente por este trigger.
+      }
+    ]
   },
   {
     id: 'rnc-report',
@@ -231,12 +272,9 @@ export const formDefinitions: FormDefinition[] = [
       },
       { id: 'observacoesAdicionaisRnc', label: 'Observações Adicionais', type: 'textarea', placeholder: 'Qualquer informação relevante adicional' },
     ],
-    // Este formulário é o último na sequência RNC, então não tem 'linkedFormTriggers' por padrão.
   }
 ];
 
 export const getFormDefinition = (formId: string): FormDefinition | undefined => {
   return formDefinitions.find(form => form.id === formId);
 };
-
-    

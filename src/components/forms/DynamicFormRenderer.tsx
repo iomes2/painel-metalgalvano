@@ -15,7 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Info } from 'lucide-react';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -98,7 +98,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const [mainOriginatingFormId, setMainOriginatingFormId] = useState<string | null>(null); // ID of the primary form in a chain (e.g., Acompanhamento)
+  const [mainOriginatingFormId, setMainOriginatingFormId] = useState<string | null>(null);
   const [carryOverQueryParams, setCarryOverQueryParams] = useState<Record<string, string>>({});
 
 
@@ -131,6 +131,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
   const horarioTerminoJornadaPrevisto = watch('horarioTerminoJornadaPrevisto' as any);
   const fotosNaoConformidade = watch('fotosNaoConformidade' as any);
   const fotosInspecao = watch('fotosInspecao' as any); // For new inspection form
+  const conformidadeSeguranca = watch('conformidadeSeguranca' as any); // For inspection form to trigger RNC
 
   const stableSetValue = useCallback(setValue, []);
   const stableGetValues = useCallback(getValues, []);
@@ -138,10 +139,9 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
 
   useEffect(() => {
     const osFromQuery = searchParams.get('os');
-    const originatingIdFromQuery = searchParams.get('originatingFormId'); // Main form ID
+    const originatingIdFromQuery = searchParams.get('originatingFormId'); 
     
     const tempCarryOverParams: Record<string, string> = {};
-    // Extract all other query params as potential carry-over params
     searchParams.forEach((value, key) => {
       if (key !== 'os' && key !== 'originatingFormId') {
         tempCarryOverParams[key] = value;
@@ -191,13 +191,17 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
       if (fotosInspecao !== 'sim' && stableGetValues('uploadFotosInspecao' as any) !== null) {
         stableSetValue('uploadFotosInspecao' as any, null, { shouldValidate: false });
       }
+      if (conformidadeSeguranca === 'sim' && (stableGetValues('itensNaoConformes' as any) !== '' || stableGetValues('acoesCorretivasSugeridas' as any) !== '')) {
+        stableSetValue('itensNaoConformes' as any, '', { shouldValidate: false });
+        stableSetValue('acoesCorretivasSugeridas' as any, '', { shouldValidate: false });
+      }
     }
   }, [
     formDefinition.id,
     situacaoEtapaDia, fotosEtapaDia, horasRetrabalhoParadasDia,
     horarioEfetivoInicioAtividades, horarioInicioJornadaPrevisto,
     horarioEfetivoSaidaObra, horarioTerminoJornadaPrevisto,
-    fotosNaoConformidade, fotosInspecao,
+    fotosNaoConformidade, fotosInspecao, conformidadeSeguranca,
     stableSetValue, stableGetValues
   ]);
 
@@ -281,8 +285,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
         gerenteId: currentUser.email?.split('@')[0] || 'desconhecido',
       };
       
-      // If this form was triggered by another, mainOriginatingFormId will be set
-      if (mainOriginatingFormId && formDefinition.id !== 'cronograma-diario-obra') { // Don't set for the main form itself
+      if (mainOriginatingFormId && formDefinition.id !== 'cronograma-diario-obra') { 
         reportPayload.originatingFormId = mainOriginatingFormId;
       }
 
@@ -302,34 +305,42 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
         toast({ title: "Sucesso!", description: `Formulário "${formDefinition.name}" salvo com sucesso e arquivos enviados!` });
       }
 
-      reset(defaultValues);
-      // setMainOriginatingFormId(null); // Don't reset here, needed for subsequent triggers if any
+      const currentFormIsMainOriginator = formDefinition.id === 'cronograma-diario-obra';
+      const nextMainOriginatingFormId = currentFormIsMainOriginator ? savedDocRef?.id : mainOriginatingFormId;
+
+      reset(defaultValues); // Reset form fields for current form
 
       const triggers = formDefinition.linkedFormTriggers;
       if (triggers && savedDocRef) {
         for (const trigger of triggers) {
           let conditionMet = false;
-          if (trigger.triggerFieldId.startsWith('_queryParam_')) {
-            const paramName = trigger.triggerFieldId.substring('_queryParam_'.length);
-            conditionMet = carryOverQueryParams[paramName] === trigger.triggerFieldValue;
+          
+          if (formDefinition.id === 'relatorio-inspecao-site' && trigger.linkedFormId === 'rnc-report') {
+            const rncTriggerFromAcompanhamento = carryOverQueryParams['rncTriggerValueFromAcompanhamento'];
+            const currentConformidade = (data as any)['conformidadeSeguranca'];
+            if (currentConformidade === 'nao' && rncTriggerFromAcompanhamento === 'sim') {
+              conditionMet = true;
+            }
           } else {
-            conditionMet = (data as any)[trigger.triggerFieldId] === trigger.triggerFieldValue;
+            if (trigger.triggerFieldId.startsWith('_queryParam_')) {
+              const paramName = trigger.triggerFieldId.substring('_queryParam_'.length);
+              conditionMet = carryOverQueryParams[paramName] === trigger.triggerFieldValue;
+            } else {
+              conditionMet = (data as any)[trigger.triggerFieldId] === trigger.triggerFieldValue;
+            }
           }
+
 
           if (conditionMet) {
             const nextQueryParams = new URLSearchParams();
             const osToPass = trigger.passOsFieldId && (data as any)[trigger.passOsFieldId] ? 
                              String((data as any)[trigger.passOsFieldId]).trim() :
-                             osValue?.trim(); // Fallback to current form's OS if passOsFieldId not specified or empty
+                             osValue?.trim();
 
             if (osToPass) {
               nextQueryParams.append('os', osToPass);
             }
             
-            // Determine the main originating form ID for the next step
-            // If current form is 'cronograma-diario-obra', it's the main originator for the next step
-            // Otherwise, pass along the mainOriginatingFormId that this form received
-            const nextMainOriginatingFormId = formDefinition.id === 'cronograma-diario-obra' ? savedDocRef.id : mainOriginatingFormId;
             if (nextMainOriginatingFormId) {
                 nextQueryParams.append('originatingFormId', nextMainOriginatingFormId);
             }
@@ -340,13 +351,17 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
               }
             });
             
-            toast({ title: "Próximo Passo", description: `Por favor, preencha o próximo formulário.`, duration: 4000 });
+            toast({ title: "Próximo Passo", description: `Por favor, preencha o formulário: ${trigger.linkedFormId}.`, duration: 4000 });
+
+            if (!currentFormIsMainOriginator && mainOriginatingFormId) {
+                // Keep existing mainOriginatingFormId
+            }
+            
             router.push(`/dashboard/forms/${trigger.linkedFormId}?${nextQueryParams.toString()}`);
-            return; // Exit after the first matching trigger
+            return; 
           }
         }
       }
-      // If no triggers matched or no triggers defined, show dialog
       setIsShareDialogOpen(true);
 
     } catch (error) {
@@ -362,11 +377,15 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
   const handleShareDialogAction = () => {
     toast({ title: "Compartilhar/Baixar PDF", description: "Funcionalidade de compartilhamento/download de PDF ainda não implementada." });
     setIsShareDialogOpen(false);
+    setMainOriginatingFormId(null); 
+    setCarryOverQueryParams({});
     router.push('/dashboard');
   };
 
   const handleShareDialogCancel = () => {
     setIsShareDialogOpen(false);
+    setMainOriginatingFormId(null); 
+    setCarryOverQueryParams({});
     router.push('/dashboard');
   };
 
@@ -379,14 +398,28 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
             <CardTitle className="title-form">{formDefinition.name}</CardTitle>
           </div>
           <CardDescription>{formDefinition.description}</CardDescription>
-          {mainOriginatingFormId && <p className="text-sm text-muted-foreground">Vinculado ao Relatório Principal ID: {mainOriginatingFormId}</p>}
+          {mainOriginatingFormId && (
+            <div className="mt-2 p-2 bg-accent/10 border border-accent/30 rounded-md text-sm text-accent-foreground/80 flex items-center gap-2">
+              <Info className="h-4 w-4"/>
+              <span>Este formulário faz parte de uma sequência iniciada pelo Relatório ID: {mainOriginatingFormId}.</span>
+            </div>
+          )}
+           {Object.keys(carryOverQueryParams).length > 0 && (
+            <div className="mt-1 p-2 bg-muted/50 border border-border rounded-md text-xs text-muted-foreground">
+              <p className="font-medium mb-1">Dados recebidos do formulário anterior:</p>
+              <ul className="list-disc list-inside pl-2">
+                {Object.entries(carryOverQueryParams).map(([key, value]) => (
+                  <li key={key}><strong>{key}:</strong> {String(value)}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-6">
               {formDefinition.fields.map((field) => {
                 let shouldRenderField = true;
-                // Conditional rendering logic based on field values
                 if (formDefinition.id === 'cronograma-diario-obra') {
                   if (field.id === 'motivoAtrasoDia') shouldRenderField = situacaoEtapaDia === 'em_atraso';
                   else if (field.id === 'uploadFotosEtapaDia') shouldRenderField = fotosEtapaDia === 'sim';
@@ -405,8 +438,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                 } else if (formDefinition.id === 'relatorio-inspecao-site') {
                   if (field.id === 'uploadFotosInspecao') shouldRenderField = fotosInspecao === 'sim';
                   if (field.id === 'itensNaoConformes' || field.id === 'acoesCorretivasSugeridas') {
-                     const conformidade = getValues('conformidadeSeguranca' as any); // Need to get value directly if not watched
-                     shouldRenderField = conformidade === 'nao';
+                     shouldRenderField = conformidadeSeguranca === 'nao';
                   }
                 }
 
@@ -419,10 +451,13 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
                     name={field.id as keyof FormValues}
                     render={({ field: controllerField }) => (
                       <FormItem>
-                        <FormLabel className="font-semibold">{field.label}{field.required && <span className="text-destructive ml-1">*</span>}</FormLabel>
+                        <FormLabel className="font-semibold">
+                          <span>{field.label}</span> 
+                          {field.required && <span className="text-destructive ml-1">*</span>}
+                        </FormLabel>
                         <FormControl>
                           <div>
-                            {field.type === 'text' && <Input placeholder={field.placeholder} {...controllerField} value={controllerField.value as string || ''} disabled={isSubmitting} />}
+                            {field.type === 'text' && <Input placeholder={field.placeholder} {...controllerField} value={controllerField.value as string || ''} disabled={isSubmitting || (field.id === 'ordemServico' && !!searchParams.get('os'))} />}
                             {field.type === 'email' && <Input type="email" placeholder={field.placeholder} {...controllerField} value={controllerField.value as string || ''} disabled={isSubmitting} />}
                             {field.type === 'number' && <Input type="number" placeholder={field.placeholder} {...controllerField} value={controllerField.value === null || controllerField.value === undefined ? '' : String(controllerField.value)} onChange={e => controllerField.onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={isSubmitting} />}
                             {field.type === 'textarea' && <Textarea placeholder={field.placeholder} {...controllerField} value={controllerField.value as string || ''} disabled={isSubmitting} />}
@@ -512,7 +547,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
             <AlertDialogTitle>Formulário Enviado e "PDF Gerado"!</AlertDialogTitle>
             <AlertDialogDescription>
               Seu formulário "{formDefinition.name}" foi salvo com sucesso. O PDF foi "gerado" (simulação).
-              Deseja compartilhá-lo ou baixá-lo agora?
+              Deseja compartilhá-lo ou baixá-lo agora? (Esta funcionalidade ainda não está implementada).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -520,7 +555,7 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
               Não, Voltar ao Início
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleShareDialogAction}>
-              Sim, Compartilhar/Baixar
+              Sim (Ação Indisponível)
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -528,5 +563,3 @@ export function DynamicFormRenderer({ formDefinition }: DynamicFormRendererProps
     </>
   );
 }
-
-    
