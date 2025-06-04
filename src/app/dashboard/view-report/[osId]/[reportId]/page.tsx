@@ -134,7 +134,8 @@ export default function ViewReportPage() {
       return <span className="italic text-muted-foreground">Não preenchido</span>;
     }
 
-    const FieldIcon = fieldTypeIcons[field.type] || FileText;
+    // A remoção do FieldIcon daqui, pois ele agora está no cabeçalho do "mini-card"
+    // const FieldIcon = fieldTypeIcons[field.type] || FileText; 
 
     switch (field.type) {
       case 'date':
@@ -217,7 +218,7 @@ export default function ViewReportPage() {
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <div className="space-y-4">
+          <div> {/* Removido space-y-4 daqui, pois cada campo terá seu próprio espaçamento inferior (mb-4) */}
             {formDefinition.fields.map((field) => {
               const fieldValue = report.formData[field.id];
               
@@ -251,26 +252,30 @@ export default function ViewReportPage() {
               const FieldIcon = fieldTypeIcons[field.type] || FileText;
 
               return (
-                <div key={field.id} className="py-3 border-b border-border last:border-b-0 last:pb-0">
-                  <div className="flex items-center mb-1.5">
-                    <FieldIcon className="h-5 w-5 mr-2 text-primary" />
-                    <h3 className="text-sm font-semibold text-foreground">{field.label}</h3>
+                <div key={field.id} className="border border-border rounded-lg overflow-hidden mb-4 shadow-sm">
+                  {/* Área da Pergunta/Título */}
+                  <div className="bg-accent/20 p-3 flex items-center border-b border-border">
+                    <FieldIcon className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
+                    <h3 className="text-sm font-black text-foreground">{field.label}</h3>
                   </div>
-                  <div className="text-base text-foreground pl-7 break-words">
-                    {renderFieldValue(field, fieldValue)}
-                  </div>
-                  {field.linkedForm && fieldValue === field.linkedForm.conditionValue && (
-                    <div className="mt-3 pl-7">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openLinkedReportModal(field.linkedForm!.targetFormType)}
-                      >
-                        <FileText className="mr-2 h-4 w-4" />
-                        {field.linkedForm.linkButtonLabel}
-                      </Button>
+                  {/* Área da Resposta */}
+                  <div className="bg-card p-3">
+                    <div className="text-base text-foreground break-words min-h-[2.5rem] flex items-center">
+                      {renderFieldValue(field, fieldValue)}
                     </div>
-                  )}
+                    {field.linkedForm && fieldValue === field.linkedForm.conditionValue && (
+                      <div className="mt-4 pt-3 border-t border-border">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openLinkedReportModal(field.linkedForm!.targetFormType)}
+                        >
+                          <FileText className="mr-2 h-4 w-4" />
+                          {field.linkedForm.linkButtonLabel}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -309,3 +314,4 @@ export default function ViewReportPage() {
     </div>
   );
 }
+
