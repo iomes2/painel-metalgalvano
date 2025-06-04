@@ -9,7 +9,7 @@ import { useAuth } from '@/components/auth/AuthInitializer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, AlertTriangle, ArrowLeft, FileText, CalendarIcon as CalendarLucideIcon, CheckSquare, Edit3, List, Hash, Image as ImageIcon, Clock } from 'lucide-react';
+import { Loader2, AlertTriangle, ArrowLeft, FileText, CalendarIcon as CalendarLucideIcon, CheckSquare, Edit3, List, Hash, Image as ImageIcon, Clock, X } from 'lucide-react';
 import { getFormDefinition, type FormField, type FormFieldOption, type FormDefinition as FormDefinitionType } from '@/config/forms';
 import { getFormIcon } from '@/components/icons/icon-resolver';
 import { format } from "date-fns";
@@ -217,9 +217,13 @@ export default function ViewReportPage() {
               </div>
             </div>
             <div>
-              <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/search')}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar para Pesquisa
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => router.push('/dashboard/search')}
+                aria-label="Voltar para Pesquisa"
+              >
+                <ArrowLeft className="h-5 w-5" />
               </Button>
             </div>
           </div>
@@ -271,7 +275,7 @@ export default function ViewReportPage() {
                       {renderFieldValue(field, fieldValue)}
                     </div>
                     {field.linkedForm && fieldValue === field.linkedForm.conditionValue && (
-                      <div className="mt-4 pt-3 border-t border-border">
+                      <div className="mt-2 py-2 border-t border-border">
                         <Button
                           variant="outline"
                           size="sm"
@@ -288,7 +292,7 @@ export default function ViewReportPage() {
             })}
           </div>
         </CardContent>
-        <CardFooter className="pt-6">
+        <CardFooter className="pt-6 border-t border-border">
           <Button variant="outline" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Pesquisa
           </Button>
@@ -321,3 +325,6 @@ export default function ViewReportPage() {
     </div>
   );
 }
+
+
+    
