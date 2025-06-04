@@ -134,9 +134,6 @@ export default function ViewReportPage() {
       return <span className="italic text-muted-foreground">Não preenchido</span>;
     }
 
-    // A remoção do FieldIcon daqui, pois ele agora está no cabeçalho do "mini-card"
-    // const FieldIcon = fieldTypeIcons[field.type] || FileText; 
-
     switch (field.type) {
       case 'date':
         return value instanceof Timestamp ? format(value.toDate(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : String(value);
@@ -218,7 +215,7 @@ export default function ViewReportPage() {
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <div> {/* Removido space-y-4 daqui, pois cada campo terá seu próprio espaçamento inferior (mb-4) */}
+          <div> 
             {formDefinition.fields.map((field) => {
               const fieldValue = report.formData[field.id];
               
@@ -254,13 +251,13 @@ export default function ViewReportPage() {
               return (
                 <div key={field.id} className="border border-border rounded-lg overflow-hidden mb-4 shadow-sm">
                   {/* Área da Pergunta/Título */}
-                  <div className="bg-accent/20 p-3 flex items-center border-b border-border">
+                  <div className="bg-accent/20 px-2.5 py-0 flex items-center border-b border-border">
                     <FieldIcon className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
-                    <h3 className="text-sm font-black text-foreground">{field.label}</h3>
+                    <h3 className="text-sm font-black text-foreground leading-7">{field.label}</h3>
                   </div>
                   {/* Área da Resposta */}
-                  <div className="bg-card p-3">
-                    <div className="text-base text-foreground break-words min-h-[2.5rem] flex items-center">
+                  <div className="bg-card px-2.5 py-0">
+                    <div className="text-base text-foreground break-words min-h-[2.5rem] flex items-center py-2"> {/* Adicionado py-2 para dar algum respiro interno à resposta */}
                       {renderFieldValue(field, fieldValue)}
                     </div>
                     {field.linkedForm && fieldValue === field.linkedForm.conditionValue && (
