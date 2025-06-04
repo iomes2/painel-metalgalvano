@@ -201,17 +201,27 @@ export default function ViewReportPage() {
     <div className="container mx-auto py-8 px-4 space-y-8">
       <Card className="shadow-xl">
         <CardHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <FormSpecificIcon className="h-8 w-8 text-primary" />
-            <CardTitle className="text-2xl md:text-3xl">{formDefinition.name}</CardTitle>
-          </div>
-          <CardDescription className="text-base">
-            Visualizando detalhes do relatório para a Ordem de Serviço: <strong className="text-foreground">{osId}</strong>
-          </CardDescription>
-          <div className="text-sm text-muted-foreground pt-1">
-            <p>ID do Relatório: {report.id}</p>
-            <p>Submetido em: {report.submittedAt ? format(report.submittedAt.toDate(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : 'Data inválida'}</p>
-            {report.gerenteId && <p>ID Gerente: {report.gerenteId}</p>}
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <FormSpecificIcon className="h-8 w-8 text-primary" />
+                <CardTitle className="text-2xl md:text-3xl">{formDefinition.name}</CardTitle>
+              </div>
+              <CardDescription className="text-base">
+                Visualizando detalhes do relatório para a Ordem de Serviço: <strong className="text-foreground">{osId}</strong>
+              </CardDescription>
+              <div className="text-sm text-muted-foreground pt-1">
+                <p>ID do Relatório: {report.id}</p>
+                <p>Submetido em: {report.submittedAt ? format(report.submittedAt.toDate(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : 'Data inválida'}</p>
+                {report.gerenteId && <p>ID Gerente: {report.gerenteId}</p>}
+              </div>
+            </div>
+            <div>
+              <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/search')}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar para Pesquisa
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="pt-6">
@@ -257,7 +267,7 @@ export default function ViewReportPage() {
                   </div>
                   {/* Área da Resposta */}
                   <div className="bg-card px-2.5 py-0">
-                    <div className="text-base text-foreground break-words min-h-[2.5rem] flex items-center py-2"> {/* Adicionado py-2 para dar algum respiro interno à resposta */}
+                    <div className="text-base text-foreground break-words min-h-[2.5rem] flex items-center py-2">
                       {renderFieldValue(field, fieldValue)}
                     </div>
                     {field.linkedForm && fieldValue === field.linkedForm.conditionValue && (
@@ -311,4 +321,3 @@ export default function ViewReportPage() {
     </div>
   );
 }
-
