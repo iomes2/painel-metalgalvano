@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, FormEvent, useCallback } from 'react';
+import { useState, useEffect, FormEvent, useCallback, useMemo } from 'react';
 import { collection, query, where, getDocs, orderBy, doc, getDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/auth/AuthInitializer';
@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Download, Eye, Loader2, AlertTriangle, Search as SearchIcon, FileSearch } from 'lucide-react';
+import { ArrowLeft, ArrowDown, ArrowUp, Download, Eye, Loader2, AlertTriangle, Search as SearchIcon, FileSearch } from 'lucide-react';
 import ImageModal from '@/components/search/ImageModal';
 
 interface ReportPhoto {
@@ -28,8 +28,10 @@ interface ReportData {
   formType: string; 
   submittedAt: Timestamp;
   formData: Record<string, any>; 
-  photoUrls?: ReportPhoto[]; // Made optional as it might not always be present directly
+  photoUrls?: ReportPhoto[];
 }
+
+type SortableColumn = 'formName' | 'submittedAt';
 
 export default function SearchPage() {
   const { user } = useAuth();
@@ -47,6 +49,9 @@ export default function SearchPage() {
   const [currentImage, setCurrentImage] = useState<ReportPhoto | null>(null);
   const [currentImageList, setCurrentImageList] = useState<ReportPhoto[]>([]);
   const [hasPerformedInitialSearch, setHasPerformedInitialSearch] = useState(false);
+
+  const [sortColumn, setSortColumn] = useState<SortableColumn>('submittedAt');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   const extractPhotos = (formData: Record<string, any>): ReportPhoto[] => {
     const photos: ReportPhoto[] = [];
@@ -79,13 +84,12 @@ export default function SearchPage() {
     const trimmedOsToSearch = osToSearch.trim();
 
     if (!trimmedOsToSearch) {
-      if (!isInitialLoadSearch) { // Only show toast if it's a user-initiated empty search
+      if (!isInitialLoadSearch) { 
         toast({ title: "Campo Obrigatório", description: "Por favor, insira uma Ordem de Serviço para pesquisar.", variant: "destructive" });
       }
       setResults([]);
       setSearchedOs(null);
       setError(null);
-      // Remove 'os' from URL if search is cleared
       if (searchParams.get('os')) {
         router.push('/dashboard/search', { scroll: false });
       }
@@ -96,14 +100,18 @@ export default function SearchPage() {
     setError(null);
     setResults([]);
     setSearchedOs(trimmedOsToSearch);
+    // Reset sort to default when new search is performed, matching Firestore's initial sort
+    setSortColumn('submittedAt');
+    setSortDirection('desc');
 
-    // Update URL if the new search term is different from the current URL param or if no param exists
+
     if (trimmedOsToSearch !== searchParams.get('os')) {
       router.push(`/dashboard/search?os=${trimmedOsToSearch}`, { scroll: false });
     }
 
     try {
       const reportsSubCollectionRef = collection(db, "ordens_servico", trimmedOsToSearch, "relatorios");
+      // Firestore query already orders by submittedAt desc initially
       const q = query(reportsSubCollectionRef, orderBy('submittedAt', 'desc'));
       const querySnapshot = await getDocs(q);
 
@@ -114,16 +122,14 @@ export default function SearchPage() {
         const fetchedResults = querySnapshot.docs.map(docSnap => {
           const data = docSnap.data();
           const formData = data.formData || {};
-          // Ensure submittedAt is a Timestamp, convert if it's a Date object from a direct state set or similar
           let submittedAtTimestamp = data.submittedAt;
           if (data.submittedAt && typeof data.submittedAt.toDate === 'function') {
             submittedAtTimestamp = data.submittedAt as Timestamp;
           } else if (data.submittedAt instanceof Date) {
             submittedAtTimestamp = Timestamp.fromDate(data.submittedAt);
           } else {
-            // Fallback or default if somehow not a valid type, or log an error
             console.warn("submittedAt was not a Firestore Timestamp or JS Date:", data.submittedAt);
-            submittedAtTimestamp = Timestamp.now(); // Or handle as an error
+            submittedAtTimestamp = Timestamp.now(); 
           }
 
           return {
@@ -153,8 +159,6 @@ export default function SearchPage() {
       performSearch(osFromUrl, true);
       setHasPerformedInitialSearch(true); 
     } else if (!osFromUrl && !hasPerformedInitialSearch) {
-      // Ensure we mark initial phase as done even if there's no OS in URL
-      // to prevent re-triggering if searchParams change for other reasons.
       setHasPerformedInitialSearch(true);
     }
   }, [searchParams, performSearch, hasPerformedInitialSearch]);
@@ -164,6 +168,34 @@ export default function SearchPage() {
     e.preventDefault();
     performSearch(osInput);
   };
+
+  const handleSort = (column: SortableColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(prevDirection => (prevDirection === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc'); // Default to ascending for new column
+    }
+  };
+
+  const sortedResults = useMemo(() => {
+    if (!sortColumn || results.length === 0) return results;
+
+    const sorted = [...results].sort((a, b) => {
+        let comparison = 0;
+        if (sortColumn === 'formName') {
+            comparison = a.formName.localeCompare(b.formName);
+        } else if (sortColumn === 'submittedAt') {
+            const dateA = a.submittedAt.toMillis();
+            const dateB = b.submittedAt.toMillis();
+            comparison = dateA - dateB;
+        }
+
+        return sortDirection === 'asc' ? comparison : -comparison;
+    });
+    return sorted;
+  }, [results, sortColumn, sortDirection]);
+
 
   const openImageModal = (image: ReportPhoto, imageList: ReportPhoto[]) => {
     setCurrentImage(image);
@@ -179,6 +211,11 @@ export default function SearchPage() {
     link.click();
     document.body.removeChild(link);
     toast({ title: "Download Iniciado", description: `Baixando ${name}` });
+  };
+  
+  const SortIndicator = ({ column }: { column: SortableColumn }) => {
+    if (sortColumn !== column) return null;
+    return sortDirection === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />;
   };
 
   return (
@@ -255,14 +292,30 @@ export default function SearchPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nome do Formulário</TableHead>
-                    <TableHead>Data de Envio</TableHead>
+                    <TableHead 
+                      onClick={() => handleSort('formName')} 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center">
+                        Nome do Formulário
+                        <SortIndicator column="formName" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      onClick={() => handleSort('submittedAt')} 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center">
+                        Data de Envio
+                        <SortIndicator column="submittedAt" />
+                      </div>
+                    </TableHead>
                     <TableHead className="text-center">Fotos Anexadas</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {results.map((report) => (
+                  {sortedResults.map((report) => (
                     <TableRow key={report.id}>
                       <TableCell className="font-medium">{report.formName}</TableCell>
                       <TableCell>{report.submittedAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
@@ -310,3 +363,5 @@ export default function SearchPage() {
     </div>
   );
 }
+
+    
