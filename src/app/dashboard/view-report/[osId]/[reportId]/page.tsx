@@ -216,67 +216,67 @@ export default function ViewReportPage() {
             {report.gerenteId && <p>ID Gerente: {report.gerenteId}</p>}
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {formDefinition.fields.map((field) => {
-            const fieldValue = report.formData[field.id];
-            
-            // Lógica para não renderizar campos que dependem de outros e não foram ativados
-            // (Ex: motivoAtrasoDia só se situacaoEtapaDia for 'em_atraso')
-            let shouldRenderField = true;
-            if (formDefinition.id === 'cronograma-diario-obra') {
-                if (field.id === 'motivoAtrasoDia') shouldRenderField = report.formData['situacaoEtapaDia'] === 'em_atraso';
-                else if (field.id === 'uploadFotosEtapaDia') shouldRenderField = report.formData['fotosEtapaDia'] === 'sim';
-                else if (field.id === 'motivoRetrabalhoParadaDia') shouldRenderField = !!report.formData['horasRetrabalhoParadasDia'] && String(report.formData['horasRetrabalhoParadasDia']).trim() !== '';
-                else if (field.id === 'motivoNaoCumprimentoHorarioInicio') {
-                    const efetivo = String(report.formData['horarioEfetivoInicioAtividades'] || '').trim();
-                    const previsto = String(report.formData['horarioInicioJornadaPrevisto'] || '').trim();
-                    shouldRenderField = efetivo !== '' && efetivo !== previsto;
-                } else if (field.id === 'motivoNaoCumprimentoHorarioSaida') {
-                    const efetivo = String(report.formData['horarioEfetivoSaidaObra'] || '').trim();
-                    const previsto = String(report.formData['horarioTerminoJornadaPrevisto'] || '').trim();
-                    shouldRenderField = efetivo !== '' && efetivo !== previsto;
-                }
-            } else if (formDefinition.id === 'rnc-report') {
-                if (field.id === 'uploadFotosNaoConformidade') shouldRenderField = report.formData['fotosNaoConformidade'] === 'sim';
-            } else if (formDefinition.id === 'relatorio-inspecao-site') {
-                if (field.id === 'uploadFotosInspecao') shouldRenderField = report.formData['fotosInspecao'] === 'sim';
-                if (field.id === 'itensNaoConformes' || field.id === 'acoesCorretivasSugeridas') {
-                    shouldRenderField = report.formData['conformidadeSeguranca'] === 'nao';
-                }
-            }
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            {formDefinition.fields.map((field) => {
+              const fieldValue = report.formData[field.id];
+              
+              let shouldRenderField = true;
+              if (formDefinition.id === 'cronograma-diario-obra') {
+                  if (field.id === 'motivoAtrasoDia') shouldRenderField = report.formData['situacaoEtapaDia'] === 'em_atraso';
+                  else if (field.id === 'uploadFotosEtapaDia') shouldRenderField = report.formData['fotosEtapaDia'] === 'sim';
+                  else if (field.id === 'motivoRetrabalhoParadaDia') shouldRenderField = !!report.formData['horasRetrabalhoParadasDia'] && String(report.formData['horasRetrabalhoParadasDia']).trim() !== '';
+                  else if (field.id === 'motivoNaoCumprimentoHorarioInicio') {
+                      const efetivo = String(report.formData['horarioEfetivoInicioAtividades'] || '').trim();
+                      const previsto = String(report.formData['horarioInicioJornadaPrevisto'] || '').trim();
+                      shouldRenderField = efetivo !== '' && efetivo !== previsto;
+                  } else if (field.id === 'motivoNaoCumprimentoHorarioSaida') {
+                      const efetivo = String(report.formData['horarioEfetivoSaidaObra'] || '').trim();
+                      const previsto = String(report.formData['horarioTerminoJornadaPrevisto'] || '').trim();
+                      shouldRenderField = efetivo !== '' && efetivo !== previsto;
+                  }
+              } else if (formDefinition.id === 'rnc-report') {
+                  if (field.id === 'uploadFotosNaoConformidade') shouldRenderField = report.formData['fotosNaoConformidade'] === 'sim';
+              } else if (formDefinition.id === 'relatorio-inspecao-site') {
+                  if (field.id === 'uploadFotosInspecao') shouldRenderField = report.formData['fotosInspecao'] === 'sim';
+                  if (field.id === 'itensNaoConformes' || field.id === 'acoesCorretivasSugeridas') {
+                      shouldRenderField = report.formData['conformidadeSeguranca'] === 'nao';
+                  }
+              }
 
-            if (!shouldRenderField && (fieldValue === undefined || fieldValue === null || fieldValue === '' || (Array.isArray(fieldValue) && fieldValue.length === 0) )) {
-                return null; // Não renderiza o campo se a condição não for atendida E ele estiver vazio
-            }
+              if (!shouldRenderField && (fieldValue === undefined || fieldValue === null || fieldValue === '' || (Array.isArray(fieldValue) && fieldValue.length === 0) )) {
+                  return null; 
+              }
 
-            const FieldIcon = fieldTypeIcons[field.type] || FileText;
+              const FieldIcon = fieldTypeIcons[field.type] || FileText;
 
-            return (
-              <div key={field.id} className="p-4 border rounded-md bg-card/50 shadow-sm">
-                <div className="flex items-center mb-1">
-                  <FieldIcon className="h-5 w-5 mr-2 text-primary" />
-                  <h3 className="text-sm font-semibold text-foreground">{field.label}</h3>
-                </div>
-                <div className="text-base text-foreground pl-7">
-                  {renderFieldValue(field, fieldValue)}
-                </div>
-                {field.linkedForm && fieldValue === field.linkedForm.conditionValue && (
-                  <div className="mt-2 pl-7">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openLinkedReportModal(field.linkedForm!.targetFormType)}
-                    >
-                      <FileText className="mr-2 h-4 w-4" />
-                      {field.linkedForm.linkButtonLabel}
-                    </Button>
+              return (
+                <div key={field.id} className="py-3 border-b border-border last:border-b-0 last:pb-0">
+                  <div className="flex items-center mb-1.5">
+                    <FieldIcon className="h-5 w-5 mr-2 text-primary" />
+                    <h3 className="text-sm font-semibold text-foreground">{field.label}</h3>
                   </div>
-                )}
-              </div>
-            );
-          })}
+                  <div className="text-base text-foreground pl-7 break-words">
+                    {renderFieldValue(field, fieldValue)}
+                  </div>
+                  {field.linkedForm && fieldValue === field.linkedForm.conditionValue && (
+                    <div className="mt-3 pl-7">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openLinkedReportModal(field.linkedForm!.targetFormType)}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        {field.linkedForm.linkButtonLabel}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="pt-6">
           <Button variant="outline" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Pesquisa
           </Button>
@@ -309,11 +309,3 @@ export default function ViewReportPage() {
     </div>
   );
 }
-
-// Helper function to generate static params if needed (optional, for SSG)
-// export async function generateStaticParams() {
-//   // You would need a way to fetch all possible osId and reportId combinations
-//   // This is complex for dynamic data, so typically not used for such pages.
-//   return [];
-// }
-    

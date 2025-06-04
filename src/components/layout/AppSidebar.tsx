@@ -12,6 +12,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
+import { DialogDescription } from '@/components/ui/dialog'; // Import DialogDescription
 import Logo from '@/components/icons/Logo';
 // import { formDefinitions } from '@/config/forms'; // This line was part of the conflict, keeping it commented
 import { Home, Search } from 'lucide-react';
