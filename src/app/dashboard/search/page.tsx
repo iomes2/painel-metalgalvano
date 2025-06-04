@@ -101,8 +101,9 @@ export default function SearchPage() {
     setError(null);
     setResults([]);
     setSearchedOs(trimmedOsToSearch);
-    setSortColumn('submittedAt');
-    setSortDirection('desc');
+    // Mantém a ordenação atual ou reseta para padrão se for uma nova busca
+    // setSortColumn('submittedAt'); 
+    // setSortDirection('desc');
 
 
     if (trimmedOsToSearch !== searchParams.get('os')) {
@@ -111,6 +112,7 @@ export default function SearchPage() {
 
     try {
       const reportsSubCollectionRef = collection(db, "ordens_servico", trimmedOsToSearch, "relatorios");
+      // A ordenação inicial é feita pelo Firestore. A ordenação por clique será no cliente.
       const q = query(reportsSubCollectionRef, orderBy('submittedAt', 'desc'));
       const querySnapshot = await getDocs(q);
 
@@ -141,6 +143,11 @@ export default function SearchPage() {
           } as ReportData;
         });
         setResults(fetchedResults);
+        // Aplicar ordenação padrão após buscar
+        if (!sortColumn) { // Ou se quiser resetar a cada nova busca completa
+           setSortColumn('submittedAt');
+           setSortDirection('desc');
+        }
       }
     } catch (e: any) {
       console.error("Erro ao buscar relatórios: ", e);
@@ -149,7 +156,7 @@ export default function SearchPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, toast, router, searchParams]);
+  }, [user, toast, router, searchParams, sortColumn]); // Adicionado sortColumn para manter a ordenação entre buscas parciais se necessário
 
   useEffect(() => {
     const osFromUrl = searchParams.get('os');
@@ -287,68 +294,70 @@ export default function SearchPage() {
             <CardDescription>{results.length} relatório(s) encontrado(s).</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead 
-                      onClick={() => handleSort('formName')} 
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center">
-                        Nome do Formulário
-                        <SortIndicator column="formName" />
-                      </div>
-                    </TableHead>
-                    <TableHead 
-                      onClick={() => handleSort('submittedAt')} 
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center">
-                        Data de Envio
-                        <SortIndicator column="submittedAt" />
-                      </div>
-                    </TableHead>
-                    <TableHead className="text-center">Fotos Anexadas</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedResults.map((report, index) => (
-                    <TableRow 
-                      key={report.id}
-                      className={cn(
-                        "transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
-                        index % 2 !== 0 ? 'bg-[#80808021]' : '' 
-                      )}
-                    >
-                      <TableCell className="font-medium">{report.formName}</TableCell>
-                      <TableCell>{report.submittedAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
-                      <TableCell className="text-center">
-                        {report.photoUrls && report.photoUrls.length > 0 ? (
-                          <Button variant="outline" size="sm" onClick={() => openImageModal(report.photoUrls![0], report.photoUrls!)}>
-                            <Eye className="mr-2 h-4 w-4" /> Ver ({report.photoUrls.length})
-                          </Button>
-                        ) : (
-                          <span className="text-muted-foreground">Nenhuma</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          asChild 
-                          size="sm"
-                          className="bg-accent text-accent-foreground hover:bg-primary hover:text-primary-foreground"
-                        >
-                          <Link href={`/dashboard/view-report/${searchedOs}/${report.id}?formType=${report.formType}`}>
-                            <FileSearch className="mr-2 h-4 w-4" />
-                            Visualizar
-                          </Link>
-                        </Button>
-                      </TableCell>
+            <div className="max-h-[24rem] overflow-y-auto border border-border rounded-md">
+              <div className="overflow-x-auto relative">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead 
+                        onClick={() => handleSort('formName')} 
+                        className="cursor-pointer hover:bg-muted/50 transition-colors sticky top-0 bg-card z-10"
+                      >
+                        <div className="flex items-center">
+                          Nome do Formulário
+                          <SortIndicator column="formName" />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        onClick={() => handleSort('submittedAt')} 
+                        className="cursor-pointer hover:bg-muted/50 transition-colors sticky top-0 bg-card z-10"
+                      >
+                        <div className="flex items-center">
+                          Data de Envio
+                          <SortIndicator column="submittedAt" />
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center sticky top-0 bg-card z-10">Fotos Anexadas</TableHead>
+                      <TableHead className="text-right sticky top-0 bg-card z-10">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedResults.map((report, index) => (
+                      <TableRow 
+                        key={report.id}
+                        className={cn(
+                          "transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+                          index % 2 !== 0 ? 'bg-[#80808021]' : '' 
+                        )}
+                      >
+                        <TableCell className="font-medium">{report.formName}</TableCell>
+                        <TableCell>{report.submittedAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
+                        <TableCell className="text-center">
+                          {report.photoUrls && report.photoUrls.length > 0 ? (
+                            <Button variant="outline" size="sm" onClick={() => openImageModal(report.photoUrls![0], report.photoUrls!)}>
+                              <Eye className="mr-2 h-4 w-4" /> Ver ({report.photoUrls.length})
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground">Nenhuma</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            asChild 
+                            size="sm"
+                            className="bg-accent text-accent-foreground hover:bg-primary hover:text-primary-foreground"
+                          >
+                            <Link href={`/dashboard/view-report/${searchedOs}/${report.id}?formType=${report.formType}`}>
+                              <FileSearch className="mr-2 h-4 w-4" />
+                              Visualizar
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </CardContent>
         </Card>
