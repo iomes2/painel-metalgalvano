@@ -38,7 +38,7 @@ interface ReportData {
 const fieldTypeIcons: Record<FormField['type'], React.ElementType> = {
   text: Edit3,
   email: Edit3,
-  password: Edit3, 
+  password: Edit3,
   number: Hash,
   textarea: List,
   select: List,
@@ -202,7 +202,7 @@ export default function ViewReportPage() {
       <Card className="shadow-xl">
         <CardHeader>
           <div className="flex justify-between items-start">
-            <div>
+            <div> {/* Left side with title and description */}
               <div className="flex items-center gap-3 mb-2">
                 <FormSpecificIcon className="h-8 w-8 text-primary" />
                 <CardTitle className="text-2xl md:text-3xl">{formDefinition.name}</CardTitle>
@@ -216,10 +216,10 @@ export default function ViewReportPage() {
                 {report.gerenteId && <p>ID Gerente: {report.gerenteId}</p>}
               </div>
             </div>
-            <div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
+            <div> {/* Right side with back button */}
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => router.push('/dashboard/search')}
                 aria-label="Voltar para Pesquisa"
               >
@@ -229,10 +229,10 @@ export default function ViewReportPage() {
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <div> 
+          <div>
             {formDefinition.fields.map((field) => {
               const fieldValue = report.formData[field.id];
-              
+
               let shouldRenderField = true;
               if (formDefinition.id === 'cronograma-diario-obra') {
                   if (field.id === 'motivoAtrasoDia') shouldRenderField = report.formData['situacaoEtapaDia'] === 'em_atraso';
@@ -257,7 +257,7 @@ export default function ViewReportPage() {
               }
 
               if (!shouldRenderField && (fieldValue === undefined || fieldValue === null || fieldValue === '' || (Array.isArray(fieldValue) && fieldValue.length === 0) )) {
-                  return null; 
+                  return null;
               }
 
               const FieldIcon = fieldTypeIcons[field.type] || FileText;
@@ -325,6 +325,3 @@ export default function ViewReportPage() {
     </div>
   );
 }
-
-
-    
