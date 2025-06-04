@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ArrowDown, ArrowUp, Download, Eye, Loader2, AlertTriangle, Search as SearchIcon, FileSearch } from 'lucide-react';
 import ImageModal from '@/components/search/ImageModal';
+import { cn } from '@/lib/utils';
 
 interface ReportPhoto {
   name: string;
@@ -315,8 +316,14 @@ export default function SearchPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedResults.map((report) => (
-                    <TableRow key={report.id}>
+                  {sortedResults.map((report, index) => (
+                    <TableRow 
+                      key={report.id}
+                      className={cn(
+                        "transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+                        index % 2 !== 0 ? 'bg-[#80808021]' : '' // Apply striping for odd rows (index 1, 3, 5...)
+                      )}
+                    >
                       <TableCell className="font-medium">{report.formName}</TableCell>
                       <TableCell>{report.submittedAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
                       <TableCell className="text-center">
