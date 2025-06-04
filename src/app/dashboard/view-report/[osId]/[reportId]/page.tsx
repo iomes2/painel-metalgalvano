@@ -220,7 +220,7 @@ export default function ViewReportPage() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => router.push('/dashboard/search')}
+                onClick={() => router.back()}
                 aria-label="Voltar para Pesquisa"
               >
                 <ArrowLeft className="h-5 w-5" />
