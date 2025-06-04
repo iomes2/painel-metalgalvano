@@ -101,7 +101,6 @@ export default function SearchPage() {
     setError(null);
     setResults([]);
     setSearchedOs(trimmedOsToSearch);
-    // Reset sort to default when new search is performed, matching Firestore's initial sort
     setSortColumn('submittedAt');
     setSortDirection('desc');
 
@@ -112,7 +111,6 @@ export default function SearchPage() {
 
     try {
       const reportsSubCollectionRef = collection(db, "ordens_servico", trimmedOsToSearch, "relatorios");
-      // Firestore query already orders by submittedAt desc initially
       const q = query(reportsSubCollectionRef, orderBy('submittedAt', 'desc'));
       const querySnapshot = await getDocs(q);
 
@@ -175,7 +173,7 @@ export default function SearchPage() {
       setSortDirection(prevDirection => (prevDirection === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortColumn(column);
-      setSortDirection('asc'); // Default to ascending for new column
+      setSortDirection('asc'); 
     }
   };
 
@@ -321,7 +319,7 @@ export default function SearchPage() {
                       key={report.id}
                       className={cn(
                         "transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
-                        index % 2 !== 0 ? 'bg-[#80808021]' : '' // Apply striping for odd rows (index 1, 3, 5...)
+                        index % 2 !== 0 ? 'bg-[#80808021]' : '' 
                       )}
                     >
                       <TableCell className="font-medium">{report.formName}</TableCell>
@@ -336,7 +334,11 @@ export default function SearchPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button asChild variant="ghost" size="sm">
+                        <Button 
+                          asChild 
+                          size="sm"
+                          className="bg-accent text-accent-foreground hover:bg-primary hover:text-primary-foreground"
+                        >
                           <Link href={`/dashboard/view-report/${searchedOs}/${report.id}?formType=${report.formType}`}>
                             <FileSearch className="mr-2 h-4 w-4" />
                             Visualizar
@@ -370,5 +372,6 @@ export default function SearchPage() {
     </div>
   );
 }
+    
 
     
