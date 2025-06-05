@@ -8,7 +8,7 @@ import { useAuth } from '@/components/auth/AuthInitializer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { TableHeader, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table"; // Removido Table, adicionado TableHeader, TableBody etc. individualmente
+import { TableHeader, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -220,7 +220,7 @@ export default function SearchPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-lg">
+      <Card className="shadow-lg overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-3">
             <SearchIcon className="h-8 w-8 text-primary" />
@@ -256,7 +256,7 @@ export default function SearchPage() {
       )}
 
       {error && !isLoading && (
-        <Card className="border-destructive bg-destructive/10 shadow-md">
+        <Card className="border-destructive bg-destructive/10 shadow-md overflow-hidden">
           <CardHeader className="flex flex-row items-center gap-3">
             <AlertTriangle className="h-6 w-6 text-destructive" />
             <CardTitle className="text-destructive">Erro na Pesquisa</CardTitle>
@@ -271,7 +271,7 @@ export default function SearchPage() {
       )}
 
       {!isLoading && !error && searchedOs && results.length === 0 && (
-         <Card className="shadow-md">
+         <Card className="shadow-md overflow-hidden">
           <CardHeader>
             <CardTitle>Nenhum Resultado</CardTitle>
           </CardHeader>
@@ -282,13 +282,13 @@ export default function SearchPage() {
       )}
 
       {results.length > 0 && !isLoading && !error && (
-        <Card className="shadow-md">
+        <Card className="shadow-md overflow-hidden">
           <CardHeader>
             <CardTitle>Resultados para OS: {searchedOs}</CardTitle>
             <CardDescription>{results.length} relatório(s) encontrado(s).</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="max-h-[24rem] overflow-y-auto overflow-x-auto relative border border-border rounded-md">
+          <CardContent className="overflow-hidden">
+            <div className="max-h-[24rem] overflow-y-auto overflow-x-auto relative border border-border rounded-md w-full max-w-full">
               <table className="w-full caption-bottom text-sm">
                 <TableHeader className="sticky top-0 bg-background z-10 [&_tr]:border-b">
                   <TableRow>
@@ -323,8 +323,8 @@ export default function SearchPage() {
                         index % 2 !== 0 ? 'bg-[#80808021]' : '' 
                       )}
                     >
-                      <TableCell className="font-medium">{report.formName}</TableCell>
-                      <TableCell>{report.submittedAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
+                      <TableCell className="font-medium break-words">{report.formName}</TableCell>
+                      <TableCell className="whitespace-nowrap">{report.submittedAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
                       <TableCell className="text-center">
                         {report.photoUrls && report.photoUrls.length > 0 ? (
                           <Button variant="outline" size="sm" onClick={() => openImageModal(report.photoUrls![0], report.photoUrls!)}>
@@ -338,7 +338,7 @@ export default function SearchPage() {
                         <Button 
                           asChild 
                           size="sm"
-                          className="bg-accent text-accent-foreground hover:bg-primary hover:text-primary-foreground"
+                          className="bg-accent text-accent-foreground hover:bg-primary hover:text-primary-foreground whitespace-nowrap"
                         >
                           <Link href={`/dashboard/view-report/${searchedOs}/${report.id}?formType=${report.formType}`}>
                             <FileSearch className="mr-2 h-4 w-4" />
@@ -377,3 +377,6 @@ export default function SearchPage() {
 
     
 
+
+
+    
