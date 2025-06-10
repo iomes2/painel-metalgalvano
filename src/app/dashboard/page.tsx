@@ -17,6 +17,12 @@ export default function DashboardPage() {
   const [selectedFormDefinition, setSelectedFormDefinition] = useState<(typeof formDefinitions[0]) | null>(null);
 
   useEffect(() => {
+    if (user) {
+      window.scrollTo(0, 0);
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (selectedFormId) {
       const definition = formDefinitions.find(form => form.id === selectedFormId);
       setSelectedFormDefinition(definition || null);
