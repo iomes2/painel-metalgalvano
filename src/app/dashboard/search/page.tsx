@@ -8,6 +8,7 @@ import { useAuth } from '@/components/auth/AuthInitializer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import "@/components/ui/style.css";
 import { TableHeader, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
@@ -219,7 +220,7 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 search-container">
       <Card className="shadow-lg overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -289,14 +290,14 @@ export default function SearchPage() {
           </CardHeader>
           <CardContent className="overflow-hidden">
             <div className="max-h-[24rem] overflow-y-auto overflow-x-auto relative border border-border rounded-md w-full max-w-full">
-              <table className="w-full caption-bottom text-sm">
+              <table className="w-full caption-bottom text-sm table-os">
                 <TableHeader className="sticky top-0 bg-background z-10 [&_tr]:border-b">
                   <TableRow>
                     <TableHead 
                       onClick={() => handleSort('formName')} 
                       className="cursor-pointer hover:bg-muted/50 transition-colors"
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center colunas-lista">
                         Nome do Formulário
                         <SortIndicator column="formName" />
                       </div>
@@ -305,13 +306,13 @@ export default function SearchPage() {
                       onClick={() => handleSort('submittedAt')} 
                       className="cursor-pointer hover:bg-muted/50 transition-colors"
                     >
-                      <div className="flex items-center">
+                      <div className="flex items-center colunas-lista">
                         Data de Envio
                         <SortIndicator column="submittedAt" />
                       </div>
                     </TableHead>
-                    <TableHead className="text-center">Fotos Anexadas</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead className="text-center colunas-lista">Fotos Anexadas</TableHead>
+                    <TableHead className="text-center colunas-lista">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -324,7 +325,11 @@ export default function SearchPage() {
                       )}
                     >
                       <TableCell className="font-medium break-words">{report.formName}</TableCell>
-                      <TableCell className="whitespace-nowrap">{report.submittedAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
+                      <TableCell className="date-time-cell whitespace-nowrap text-center">
+                        {report.submittedAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        <br />
+                        {report.submittedAt.toDate().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </TableCell>
                       <TableCell className="text-center">
                         {report.photoUrls && report.photoUrls.length > 0 ? (
                           <Button variant="outline" size="sm" onClick={() => openImageModal(report.photoUrls![0], report.photoUrls!)}>
@@ -334,7 +339,7 @@ export default function SearchPage() {
                           <span className="text-muted-foreground">Nenhuma</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-center coluna-acao-lista">
                         <Button 
                           asChild 
                           size="sm"

@@ -32,3 +32,36 @@
     line-height: 25px;
     margin-bottom: 10px;
 }
+
+
+@media (max-width: 768px) { 
+  .search-container{
+    position: absolute;
+    max-width: 100vw;
+    right: 0;
+  }
+  .colunas-lista{
+    text-align: start;
+  }
+  .colunas-lista:last-child{
+    text-align: start;
+  }
+  .coluna-acao-lista{
+    text-align: start !important;
+  }
+  .coluna-acao-lista a{
+    max-width: 15vw;
+    font-size: 0;
+  }
+  .coluna-acao-lista svg{
+    margin-right: -10px;
+  }
+    /* Hide the 3rd and 4th table header cells */
+    .table-os th:nth-child(3) {
+      display: none;
+    }
+    .table-os td:nth-child(3) {
+      display: none;
+    }
+    /* Hide the 3rd and 4th table data cells */
+ }
