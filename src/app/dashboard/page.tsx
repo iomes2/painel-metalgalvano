@@ -40,7 +40,7 @@ export default function DashboardPage() {
   const IconComponent = selectedFormDefinition ? getFormIcon(selectedFormDefinition.iconName) : FileText;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-4">
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-3xl font-bold">Bem-vindo(a), {userName}!</CardTitle>
