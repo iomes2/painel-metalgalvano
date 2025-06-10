@@ -221,7 +221,7 @@ export default function SearchPage() {
 
   return (
     <div className="space-y-8 search-container">
-      <Card className="shadow-lg overflow-hidden">
+      <Card className="shadow-lg overflow-hidden container-consulta">
         <CardHeader>
           <div className="flex items-center gap-3">
             <SearchIcon className="h-8 w-8 text-primary" />
@@ -234,7 +234,7 @@ export default function SearchPage() {
         <CardContent>
           <form onSubmit={handleFormSubmit} className="flex flex-col sm:flex-row gap-4">
             <Input
-              type="text"
+              type="number"
               value={osInput}
               onChange={(e) => setOsInput(e.target.value)}
               placeholder="Digite a OS (ex: 123)"
@@ -283,12 +283,12 @@ export default function SearchPage() {
       )}
 
       {results.length > 0 && !isLoading && !error && (
-        <Card className="shadow-md overflow-hidden">
+        <Card className="shadow-md overflow-hidden container-resultados-lista">
           <CardHeader>
             <CardTitle>Resultados para OS: {searchedOs}</CardTitle>
             <CardDescription>{results.length} relatório(s) encontrado(s).</CardDescription>
           </CardHeader>
-          <CardContent className="overflow-hidden">
+          <CardContent className="overflow-hidden card-resultados-lista">
             <div className="max-h-[24rem] overflow-y-auto overflow-x-auto relative border border-border rounded-md w-full max-w-full">
               <table className="w-full caption-bottom text-sm table-os">
                 <TableHeader className="sticky top-0 bg-background z-10 [&_tr]:border-b">
