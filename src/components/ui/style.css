@@ -1,3 +1,4 @@
+
 .my-select-content {
   background: #f8fafc;
   border-radius: 10px;
@@ -20,9 +21,9 @@
 .teste{
     max-width:min-content !important;
 }
-.teste2{
-    padding-left: 8px !important;
-}
+/* .teste2{
+    padding-left: 8px !important; 
+} */
 .teste3{
     padding: 25px 8px 25px 8px !important;
 }
