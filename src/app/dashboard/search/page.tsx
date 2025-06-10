@@ -38,19 +38,15 @@ interface OsData {
   id: string; // OS number
   os: string;
   lastReportAt: Timestamp;
-  // Add any other relevant OS-level data you might want to display
+}
+
+interface Gerente {
+  id: string;
+  nome: string;
 }
 
 type SortableColumn = 'formName' | 'submittedAt';
 type SortableOsColumn = 'os' | 'lastReportAt';
-
-// Lista estática de gerentes. No futuro, isso poderia vir de uma coleção no Firestore.
-const gerentesRegistrados = [
-  { id: 'MG001', nome: 'Renan Iomes' },
-  { id: 'MG002', nome: 'Gerente Silva' },
-  { id: 'MG003', nome: 'Gerente Oliveira' },
-  { id: 'MG004', nome: 'Gerente Souza' },
-];
 
 export default function SearchPage() {
   const { user } = useAuth();
@@ -66,6 +62,8 @@ export default function SearchPage() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // Estados para busca por Gerente
+  const [firestoreGerentes, setFirestoreGerentes] = useState<Gerente[]>([]);
+  const [isLoadingGerentes, setIsLoadingGerentes] = useState(true);
   const [selectedGerenteIdParaBusca, setSelectedGerenteIdParaBusca] = useState<string | undefined>(undefined);
   const [searchedGerenteId, setSearchedGerenteId] = useState<string | null>(null);
   const [osResultsByGerente, setOsResultsByGerente] = useState<OsData[]>([]);
@@ -75,11 +73,34 @@ export default function SearchPage() {
   // Estados gerais
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImageModalOpen, setIsModalOpen] = useState(false);
   const [currentImage, setCurrentImage] = useState<ReportPhoto | null>(null);
   const [currentImageList, setCurrentImageList] = useState<ReportPhoto[]>([]);
   const [hasPerformedInitialSearch, setHasPerformedInitialSearch] = useState(false);
   const [activeSearchType, setActiveSearchType] = useState<'os' | 'gerente' | null>(null);
+
+  useEffect(() => {
+    const fetchGerentes = async () => {
+      setIsLoadingGerentes(true);
+      try {
+        const gerentesCollectionRef = collection(db, "gerentes_cadastrados");
+        const q = query(gerentesCollectionRef, orderBy("nome", "asc"));
+        const querySnapshot = await getDocs(q);
+        const fetchedGerentes = querySnapshot.docs.map(docSnap => ({
+          id: docSnap.id,
+          nome: docSnap.data().nome as string,
+        }));
+        setFirestoreGerentes(fetchedGerentes);
+      } catch (e: any) {
+        console.error("Erro ao buscar gerentes: ", e);
+        toast({ title: "Erro ao Carregar Gerentes", description: "Não foi possível buscar a lista de gerentes do Firestore.", variant: "destructive" });
+        setFirestoreGerentes([]); // Define como vazio em caso de erro
+      } finally {
+        setIsLoadingGerentes(false);
+      }
+    };
+    fetchGerentes();
+  }, [toast]);
 
 
   const extractPhotos = (formData: Record<string, any>): ReportPhoto[] => {
@@ -118,8 +139,8 @@ export default function SearchPage() {
       setSearchedOs(null);
       setError(null);
       setActiveSearchType(null);
-      setOsResultsByGerente([]); // Limpa resultados da busca por gerente
-      setSearchedGerenteId(null); // Limpa ID do gerente pesquisado
+      setOsResultsByGerente([]); 
+      setSearchedGerenteId(null); 
       if (searchParams.get('os')) router.push('/dashboard/search', { scroll: false });
       return;
     }
@@ -178,8 +199,8 @@ export default function SearchPage() {
       setSearchedGerenteId(null);
       setError(null);
       setActiveSearchType(null);
-      setResults([]); // Limpa resultados da busca por OS
-      setSearchedOs(null); // Limpa OS pesquisada
+      setResults([]); 
+      setSearchedOs(null); 
       return;
     }
 
@@ -191,28 +212,26 @@ export default function SearchPage() {
     setResults([]); 
     setSearchedOs(null);
     
-    // Limpa o parâmetro 'os' da URL se houver, pois estamos buscando por gerente
     if (searchParams.get('os')) {
       router.push('/dashboard/search', { scroll: false });
     }
 
     try {
       const osCollectionRef = collection(db, "ordens_servico");
-      // Importante: Esta consulta requer um índice composto no Firestore:
-      // Coleção: ordens_servico, Campos: updatedByGerenteId (ASC), lastReportAt (DESC)
       const q = query(osCollectionRef,
                       where("updatedByGerenteId", "==", gerenteIdToSearch),
                       orderBy("lastReportAt", "desc"));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        setError(`Nenhuma Ordem de Serviço encontrada para o gerente ID: ${gerenteIdToSearch}`);
+        const gerenteNome = firestoreGerentes.find(g => g.id === gerenteIdToSearch)?.nome || gerenteIdToSearch;
+        setError(`Nenhuma Ordem de Serviço encontrada para o gerente: ${gerenteNome}`);
       } else {
         const fetchedOsResults = querySnapshot.docs.map(docSnap => {
           const data = docSnap.data();
           return {
-            id: docSnap.id, // O ID do documento é o número da OS
-            os: data.os || docSnap.id, // Garante que temos o número da OS
+            id: docSnap.id, 
+            os: data.os || docSnap.id, 
             lastReportAt: data.lastReportAt as Timestamp,
           } as OsData;
         });
@@ -225,7 +244,7 @@ export default function SearchPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, toast, router, searchParams]);
+  }, [user, toast, router, searchParams, firestoreGerentes]);
 
 
   useEffect(() => {
@@ -350,23 +369,37 @@ export default function SearchPage() {
           {/* Formulário de Busca por Gerente (apenas desktop) */}
           <div className="hidden md:block border-t border-border pt-6 mt-6">
             <form onSubmit={handleSearchByGerenteSubmit} className="flex flex-col sm:flex-row gap-4 items-center">
-                <Users className="h-6 w-6 text-muted-foreground sm:hidden" /> {/* Ícone para mobile, se fosse visível */}
-                <Select onValueChange={setSelectedGerenteIdParaBusca} value={selectedGerenteIdParaBusca}>
+                <Users className="h-6 w-6 text-muted-foreground sm:hidden" />
+                <Select 
+                  onValueChange={setSelectedGerenteIdParaBusca} 
+                  value={selectedGerenteIdParaBusca}
+                  disabled={isLoadingGerentes || firestoreGerentes.length === 0}
+                >
                   <SelectTrigger className="flex-grow text-base md:text-sm">
                     <div className="flex items-center gap-2">
                       <Users className="h-5 w-5 text-muted-foreground" />
-                      <SelectValue placeholder="Buscar OS por Gerente..." />
+                      <SelectValue 
+                        placeholder={
+                          isLoadingGerentes ? "Carregando gerentes..." : 
+                          firestoreGerentes.length === 0 ? "Nenhum gerente encontrado" : 
+                          "Buscar OS por Gerente..."
+                        } 
+                      />
                     </div>
                   </SelectTrigger>
                   <SelectContent>
-                    {gerentesRegistrados.map((gerente) => (
-                      <SelectItem key={gerente.id} value={gerente.id} className="py-2">
-                        {gerente.nome} ({gerente.id})
-                      </SelectItem>
-                    ))}
+                    {!isLoadingGerentes && firestoreGerentes.length > 0 ? (
+                      firestoreGerentes.map((gerente) => (
+                        <SelectItem key={gerente.id} value={gerente.id} className="py-2">
+                          {gerente.nome} ({gerente.id})
+                        </SelectItem>
+                      ))
+                    ) : !isLoadingGerentes && firestoreGerentes.length === 0 ? (
+                       <div className="p-2 text-sm text-muted-foreground">Nenhum gerente cadastrado.</div>
+                    ) : null }
                   </SelectContent>
                 </Select>
-              <Button type="submit" disabled={isLoading && activeSearchType === 'gerente' || !selectedGerenteIdParaBusca} className="bg-secondary hover:bg-secondary/80 text-secondary-foreground text-base md:text-sm">
+              <Button type="submit" disabled={isLoading && activeSearchType === 'gerente' || !selectedGerenteIdParaBusca || isLoadingGerentes} className="bg-secondary hover:bg-secondary/80 text-secondary-foreground text-base md:text-sm">
                 {isLoading && activeSearchType === 'gerente' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SearchIcon className="mr-2 h-4 w-4" />}
                 Buscar por Gerente
               </Button>
@@ -462,14 +495,14 @@ export default function SearchPage() {
       {activeSearchType === 'gerente' && !isLoading && !error && searchedGerenteId && osResultsByGerente.length === 0 && (
          <Card className="shadow-md overflow-hidden">
           <CardHeader><CardTitle>Nenhuma OS Encontrada</CardTitle></CardHeader>
-          <CardContent><p>Nenhuma Ordem de Serviço encontrada para o gerente ID: "{searchedGerenteId}".</p></CardContent>
+          <CardContent><p>Nenhuma Ordem de Serviço encontrada para o gerente: "{firestoreGerentes.find(g => g.id === searchedGerenteId)?.nome || searchedGerenteId}".</p></CardContent>
         </Card>
       )}
 
       {activeSearchType === 'gerente' && osResultsByGerente.length > 0 && !isLoading && !error && (
         <Card className="shadow-md overflow-hidden container-resultados-lista">
           <CardHeader>
-             <CardTitle>Ordens de Serviço para Gerente: {gerentesRegistrados.find(g => g.id === searchedGerenteId)?.nome || searchedGerenteId}</CardTitle>
+             <CardTitle>Ordens de Serviço para Gerente: {firestoreGerentes.find(g => g.id === searchedGerenteId)?.nome || searchedGerenteId}</CardTitle>
             <CardDescription>{osResultsByGerente.length} OS(s) encontrada(s).</CardDescription>
           </CardHeader>
           <CardContent className="overflow-hidden card-resultados-lista">
@@ -489,7 +522,7 @@ export default function SearchPage() {
                 <TableBody>
                   {sortedOsResultsByGerente.map((osItem, index) => (
                     <TableRow key={osItem.id} className={cn("transition-colors hover:bg-muted/50", index % 2 !== 0 ? 'bg-[#80808021]' : '')}>
-                      <TableCell className="font-medium">{osItem.os}</TableCell>
+                      <TableCell className="font-medium break-words">{osItem.os}</TableCell>
                       <TableCell className="date-time-cell whitespace-nowrap text-center">
                         {osItem.lastReportAt.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                         <br />
@@ -532,3 +565,6 @@ export default function SearchPage() {
     </div>
   );
 }
+
+
+    
