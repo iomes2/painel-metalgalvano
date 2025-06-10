@@ -41,7 +41,7 @@
     right: 0;
   }
   .container-consulta .tracking-tight{
-    font-size: 1.45rem;
+    font-size: 1.3rem;
   }
   .container-consulta .text-muted-foreground{
     display: none;
@@ -51,6 +51,9 @@
   }
   .container-resultados-lista .card-resultados-lista{
     padding: 0px 1rem 1rem 1rem;
+  }
+  .cardheader{
+    padding: 0.7rem 1.45rem !important;
   }
   .colunas-lista{
     text-align: start;
