@@ -66,8 +66,8 @@ Este documento apresenta o Request for Comments (RFC) para o desenvolvimento do 
 - **Prevenção de Ataques**: Regras do Firestore para evitar acesso não autorizado.
 
 ## 4. Próximos Passos
-- **Junho 2025**: Finalização do protótipo com login e formulários (até 15/06/2025).
-- **Julho 2025**: Implementação de upload de fotos e PDFs (até 31/07/2025).
+- **Junho 2025**: Finalização do protótipo com login, consulta e formulários com upload de fotos (até 15/06/2025).
+- **Julho 2025**: Implementação de PDFs (até 31/07/2025).
 - **Setembro 2025**: Entrega do Portfólio I (15/09/2025).
 - **Novembro 2025**: Ajustes finais e Portfólio II (30/11/2025).
 
