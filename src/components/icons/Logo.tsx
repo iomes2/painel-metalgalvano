@@ -20,7 +20,7 @@ const Logo: React.FC<LogoProps> = ({ width = 150, height = 30, textColor = "hsl(
       <path d="M5 10 L15 5 L15 25 L5 20 Z" fill={iconColor} />
       <path d="M18 10 L28 5 L28 25 L18 20 Z" fill={iconColor} opacity="0.7" />
       <text x="35" y="20" fontFamily="var(--font-geist-sans), Arial, sans-serif" fontSize="16" fontWeight="bold" fill={textColor}>
-        Metalgalvano Forms
+        Metalgalvano
       </text>
     </svg>
   );
