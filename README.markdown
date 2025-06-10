@@ -1,9 +1,9 @@
 # Capa
 
 - **Título do Projeto**: Sistema Painel Metalgalvano para Gerenciamento de Obras
-- **Nome do Estudante**: [Seu nome completo]
+- **Nome do Estudante**: Renan Iomes
 - **Curso**: Engenharia de Software
-- **Data de Entrega**: 10 de Junho de 2025, 16:13 (horário de Brasília)
+- **Data de Entrega**: 10 de Junho de 2025
 
 # Resumo
 
