@@ -234,7 +234,7 @@ export default function SearchPage() {
         <CardContent>
           <form onSubmit={handleFormSubmit} className="flex flex-col sm:flex-row gap-4">
             <Input
-              type="number"
+              type="tel"
               value={osInput}
               onChange={(e) => setOsInput(e.target.value)}
               placeholder="Digite a OS (ex: 123)"
