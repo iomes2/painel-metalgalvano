@@ -13,7 +13,8 @@ export interface FormField {
   options?: FormFieldOption[]; // Para select, radio-group
   required?: boolean;
   defaultValue?: string | number | boolean | Date | null;
-  validation?: any; // Zod schema para validação
+  // A propriedade 'validation' foi removida pois não estava sendo utilizada.
+  // A validação Zod é construída dinamicamente no DynamicFormRenderer.tsx.
   linkedForm?: { // Propriedade para acionar modal de visualização de relatório vinculado
     conditionValue: string; // Valor do campo atual que aciona o link
     targetFormType: string; // ID do tipo de formulário a ser aberto no modal
@@ -278,3 +279,4 @@ export const formDefinitions: FormDefinition[] = [
 export const getFormDefinition = (formId: string): FormDefinition | undefined => {
   return formDefinitions.find(form => form.id === formId);
 };
+
