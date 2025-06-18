@@ -185,3 +185,4 @@ O sistema permite que gerentes de obra autenticados preencham formulários dinâ
 
 ## **Contribuições**
 Este projeto é parte de um TCC e, no momento, não aceita contribuições externas. No entanto, sugestões e feedback são bem-vindos via GitHub Issues.
+
