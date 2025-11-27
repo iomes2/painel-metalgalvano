@@ -1,6 +1,6 @@
 
 import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { getFirestore } from "firebase/firestore"; // Adicionado para obter o Firestore
 
@@ -41,5 +41,12 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const storage = getStorage(app);
 const db = getFirestore(app); // Inicializando o Firestore
+
+// Configurar persistência do Firebase Auth para usar localStorage
+if (typeof window !== 'undefined') {
+  setPersistence(auth, browserLocalPersistence).catch((error) => {
+    console.error("Erro ao configurar persistência do Firebase Auth:", error);
+  });
+}
 
 export { app, auth, storage, db, firebaseConfig }; // Exporte db e firebaseConfig se precisar deles em outros lugares
