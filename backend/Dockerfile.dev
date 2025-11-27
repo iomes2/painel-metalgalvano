@@ -1,0 +1,25 @@
+# Dockerfile simplificado para desenvolvimento
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Instalar dependências do sistema necessárias para Prisma
+RUN apk add --no-cache bash openssl openssl-dev
+
+# Copiar tudo
+COPY . .
+
+# Remover node_modules e package-lock.json se existirem
+RUN rm -rf node_modules package-lock.json
+
+# Instalar dependências rapidamente
+RUN npm install --legacy-peer-deps --no-audit --no-fund --loglevel error
+
+# Gerar Prisma Client
+RUN npx prisma generate
+
+# Expor porta
+EXPOSE 3001
+
+# Comando padrão
+CMD ["npm", "run", "dev"]

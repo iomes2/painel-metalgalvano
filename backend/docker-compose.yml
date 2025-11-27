@@ -1,0 +1,80 @@
+version: "3.8"
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: metalgalvano-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: metalgalvano
+      POSTGRES_PASSWORD: metalgalvano123
+      POSTGRES_DB: metalgalvano
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - metalgalvano-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U metalgalvano"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: metalgalvano-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://metalgalvano:metalgalvano123@postgres:5432/metalgalvano?schema=public
+      # Adicione suas variáveis do Firebase aqui ou use .env
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+      FIREBASE_STORAGE_BUCKET: ${FIREBASE_STORAGE_BUCKET}
+      CORS_ORIGIN: http://localhost:3000
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - metalgalvano-network
+    command: npm run dev
+
+  # Prisma Studio (opcional - interface visual do banco)
+  prisma-studio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: metalgalvano-prisma-studio
+    restart: unless-stopped
+    ports:
+      - "5555:5555"
+    environment:
+      DATABASE_URL: postgresql://metalgalvano:metalgalvano123@postgres:5432/metalgalvano?schema=public
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - metalgalvano-network
+    command: npx prisma studio
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  metalgalvano-network:
+    driver: bridge

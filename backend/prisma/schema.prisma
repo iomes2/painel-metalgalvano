@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USUÁRIOS ====================
+model User {
+  id           String   @id @default(uuid())
+  firebaseUid  String   @unique
+  email        String   @unique
+  name         String?
+  role         UserRole @default(MANAGER)
+  isActive     Boolean  @default(true)
+
+  // Relações
+  forms        Form[]
+  auditLogs    AuditLog[]
+
+  // Timestamps
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastLoginAt  DateTime?
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  EDITOR
+  VIEWER
+}
+
+// ==================== FORMULÁRIOS ====================
+model Form {
+  id              String      @id @default(uuid())
+  formType        String      // Ex: 'cronograma-diario-obra'
+  osNumber        String      // Ordem de Serviço
+  status          FormStatus  @default(DRAFT)
+
+  // Dados do formulário (JSON)
+  data            Json
+
+  // Usuário responsável
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // PDF gerado
+  pdfUrl          String?
+  pdfGeneratedAt  DateTime?
+
+  // Relações
+  photos          Photo[]
+  linkedReports   LinkedReport[]
+
+  // Timestamps
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+
+  @@index([osNumber])
+  @@index([userId, formType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("forms")
+}
+
+enum FormStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+// ==================== FOTOS ====================
+model Photo {
+  id              String   @id @default(uuid())
+  formId          String
+  form            Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  // Dados do arquivo
+  firebaseUrl     String   // URL no Firebase Storage
+  firebasePath    String   // Caminho completo no Storage
+  filename        String
+  originalName    String
+  mimeType        String
+  size            Int      // Bytes
+
+  // Metadados
+  description     String?
+  fieldId         String?  // Campo do formulário relacionado
+
+  // Timestamps
+  uploadedAt      DateTime @default(now())
+
+  @@index([formId])
+  @@map("photos")
+}
+
+// ==================== RELATÓRIOS VINCULADOS ====================
+model LinkedReport {
+  id              String   @id @default(uuid())
+
+  // Formulário pai (ex: Acompanhamento)
+  parentFormId    String
+  parentForm      Form     @relation(fields: [parentFormId], references: [id], onDelete: Cascade)
+
+  // Formulário filho (ex: RNC, Inspeção)
+  childFormType   String
+  childFormId     String?
+
+  // Status
+  isCompleted     Boolean  @default(false)
+
+  // Timestamps
+  createdAt       DateTime @default(now())
+
+  @@index([parentFormId])
+  @@map("linked_reports")
+}
+
+// ==================== LOGS DE AUDITORIA ====================
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  action      String   // Ex: 'FORM_CREATED', 'FORM_UPDATED', 'PDF_GENERATED'
+  entity      String   // Ex: 'Form', 'Photo', 'User'
+  entityId    String
+
+  // Dados da ação
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+
+  // Timestamp
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ==================== CONFIGURAÇÕES ====================
+model SystemConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json
+  description String?
+
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_config")
+}

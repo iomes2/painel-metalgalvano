@@ -1,0 +1,483 @@
+/**
+ * Cliente API - Camada de abstração para Firebase e Backend
+ *
+ * Este módulo fornece uma interface unificada para operações de dados,
+ * permitindo alternar entre Firebase (atual) e Backend (migração) via feature flag.
+ */
+
+import { auth, db, storage } from "./firebase";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  getDoc,
+  doc,
+  addDoc,
+  setDoc,
+  orderBy,
+  Timestamp,
+} from "firebase/firestore";
+import {
+  ref as storageRef,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
+
+// Configuração
+const USE_BACKEND = process.env.NEXT_PUBLIC_USE_BACKEND === "true";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
+// ==================== TIPOS ====================
+
+export interface Gerente {
+  id: string;
+  nome: string;
+}
+
+export interface ReportPhoto {
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+}
+
+export interface ReportData {
+  id: string;
+  formName: string;
+  formType: string;
+  submittedAt: Date | Timestamp;
+  formData: Record<string, any>;
+  photoUrls?: ReportPhoto[];
+  submittedBy?: string;
+  gerenteId?: string;
+  originatingFormId?: string;
+}
+
+export interface OsData {
+  id: string;
+  os: string;
+  lastReportAt: Date | Timestamp;
+}
+
+// ==================== HELPERS ====================
+
+/**
+ * Obtém token JWT do Firebase
+ */
+async function getAuthToken(): Promise<string | null> {
+  const user = auth.currentUser;
+  if (!user) {
+    console.error("[api-client] Nenhum usuário autenticado no Firebase");
+    return null;
+  }
+
+  try {
+    const token = await user.getIdToken();
+    console.log(
+      "[api-client] Token obtido com sucesso:",
+      token.substring(0, 20) + "..."
+    );
+    return token;
+  } catch (error) {
+    console.error("[api-client] Erro ao obter token:", error);
+    return null;
+  }
+}
+
+/**
+ * Faz requisição ao backend com autenticação
+ */
+async function fetchBackend(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const token = await getAuthToken();
+
+  if (!token) {
+    throw new Error("Usuário não autenticado. Faça login para continuar.");
+  }
+
+  const headers = new Headers(options.headers);
+  headers.set("Authorization", `Bearer ${token}`);
+  headers.set("Content-Type", "application/json");
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: "Erro desconhecido" }));
+    throw new Error(errorData.message || `Erro ${response.status}`);
+  }
+
+  return response;
+}
+
+/**
+ * Converte Timestamp do Firebase para Date
+ */
+function timestampToDate(timestamp: any): Date {
+  if (timestamp instanceof Timestamp) {
+    return timestamp.toDate();
+  }
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+  if (typeof timestamp === "string") {
+    return new Date(timestamp);
+  }
+  return new Date();
+}
+
+/**
+ * Extrai fotos do formData
+ */
+function extractPhotos(formData: Record<string, any>): ReportPhoto[] {
+  const photos: ReportPhoto[] = [];
+  for (const key in formData) {
+    if (Array.isArray(formData[key])) {
+      const fieldData = formData[key] as any[];
+      if (
+        fieldData.every(
+          (item) => typeof item === "object" && item !== null && "url" in item
+        )
+      ) {
+        fieldData.forEach((photo) => {
+          if (photo.url && typeof photo.url === "string") {
+            photos.push({
+              name: photo.name || "Unnamed Photo",
+              url: photo.url,
+              type: photo.type || "image/unknown",
+              size: photo.size || 0,
+            });
+          }
+        });
+      }
+    }
+  }
+  return photos;
+}
+
+// ==================== API: GERENTES ====================
+
+/**
+ * Busca lista de gerentes cadastrados
+ */
+export async function fetchGerentes(): Promise<Gerente[]> {
+  if (USE_BACKEND) {
+    // Backend
+    const response = await fetchBackend("/api/v1/gerentes");
+    const data = await response.json();
+    return data.data || data;
+  } else {
+    // Firebase
+    const gerentesCollectionRef = collection(db, "gerentes_cadastrados");
+    const q = query(gerentesCollectionRef, orderBy("nome", "asc"));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      nome: docSnap.data().nome as string,
+    }));
+  }
+}
+
+// ==================== API: RELATÓRIOS ====================
+
+/**
+ * Busca relatórios por Ordem de Serviço
+ */
+export async function fetchRelatoriosByOs(
+  osNumber: string
+): Promise<ReportData[]> {
+  if (USE_BACKEND) {
+    // Backend
+    const response = await fetchBackend(`/api/v1/relatorios?os=${osNumber}`);
+    const data = await response.json();
+    const reports = data.data || data;
+
+    return reports.map((report: any) => ({
+      ...report,
+      submittedAt: Timestamp.fromDate(timestampToDate(report.submittedAt)),
+      photoUrls: report.photoUrls || extractPhotos(report.formData || {}),
+    }));
+  } else {
+    // Firebase
+    const reportsSubCollectionRef = collection(
+      db,
+      "ordens_servico",
+      osNumber,
+      "relatorios"
+    );
+    const q = query(reportsSubCollectionRef, orderBy("submittedAt", "desc"));
+    const querySnapshot = await getDocs(q);
+
+    return querySnapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        formName: data.formName || "Nome do Formulário Indisponível",
+        formType: data.formType || "unknown_form",
+        submittedAt: data.submittedAt as Timestamp,
+        formData: data.formData || {},
+        photoUrls: extractPhotos(data.formData || {}),
+      };
+    });
+  }
+}
+
+/**
+ * Busca Ordens de Serviço por gerente
+ */
+export async function fetchOsByGerente(gerenteId: string): Promise<OsData[]> {
+  if (USE_BACKEND) {
+    // Backend
+    const response = await fetchBackend(
+      `/api/v1/ordens-servico?gerenteId=${gerenteId}`
+    );
+    const data = await response.json();
+    const osList = data.data || data;
+
+    return osList.map((os: any) => ({
+      ...os,
+      lastReportAt: Timestamp.fromDate(timestampToDate(os.lastReportAt)),
+    }));
+  } else {
+    // Firebase
+    const osCollectionRef = collection(db, "ordens_servico");
+    const q = query(
+      osCollectionRef,
+      where("updatedByGerenteId", "==", gerenteId),
+      orderBy("lastReportAt", "desc")
+    );
+    const querySnapshot = await getDocs(q);
+
+    return querySnapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        os: data.os || docSnap.id,
+        lastReportAt: data.lastReportAt as Timestamp,
+      };
+    });
+  }
+}
+
+/**
+ * Busca relatório individual por ID
+ */
+export async function fetchRelatorioById(
+  osId: string,
+  reportId: string
+): Promise<ReportData | null> {
+  if (USE_BACKEND) {
+    // Backend
+    const response = await fetchBackend(
+      `/api/v1/relatorios/${reportId}?os=${osId}`
+    );
+    const data = await response.json();
+    const report = data.data || data;
+
+    return {
+      ...report,
+      submittedAt: timestampToDate(report.submittedAt),
+    };
+  } else {
+    // Firebase
+    const reportDocRef = doc(
+      db,
+      "ordens_servico",
+      osId,
+      "relatorios",
+      reportId
+    );
+    const docSnap = await getDoc(reportDocRef);
+
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as ReportData;
+    }
+    return null;
+  }
+}
+
+// ==================== API: UPLOAD ====================
+
+/**
+ * Faz upload de arquivos
+ */
+export async function uploadFiles(
+  files: FileList,
+  userId: string,
+  formType: string,
+  osNumber: string,
+  submissionTimestamp: number
+): Promise<ReportPhoto[]> {
+  if (USE_BACKEND) {
+    // Backend - Upload via API
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+      formData.append("files", files[i]);
+    }
+    formData.append("userId", userId);
+    formData.append("formType", formType);
+    formData.append("osNumber", osNumber);
+    formData.append("timestamp", submissionTimestamp.toString());
+
+    const token = await getAuthToken();
+    const response = await fetch(`${API_URL}/api/v1/upload`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error("Erro no upload de arquivos");
+    }
+
+    const data = await response.json();
+    return data.data || data;
+  } else {
+    // Firebase Storage
+    const uploadPromises: Promise<ReportPhoto>[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const filePath = `reports/${userId}/${formType}/${osNumber}/${submissionTimestamp}/${file.name}`;
+      const fileStorageRef = storageRef(storage, filePath);
+
+      const promise = new Promise<ReportPhoto>((resolve, reject) => {
+        const uploadTask = uploadBytesResumable(fileStorageRef, file);
+        uploadTask.on("state_changed", null, reject, async () => {
+          try {
+            const url = await getDownloadURL(fileStorageRef);
+            resolve({
+              name: file.name,
+              url,
+              type: file.type,
+              size: file.size,
+            });
+          } catch (error) {
+            reject(error);
+          }
+        });
+      });
+
+      uploadPromises.push(promise);
+    }
+
+    return await Promise.all(uploadPromises);
+  }
+}
+
+// ==================== API: SUBMISSÃO ====================
+
+/**
+ * Submete novo relatório
+ */
+export async function submitRelatorio(payload: {
+  formType: string;
+  formName: string;
+  formData: Record<string, any>;
+  submittedBy: string;
+  submittedAt: number;
+  gerenteId: string;
+  originatingFormId?: string;
+  osNumber?: string;
+}): Promise<{ reportId: string; osId: string }> {
+  if (USE_BACKEND) {
+    // Backend
+    const response = await fetchBackend("/api/v1/relatorios", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    return data.data || data;
+  } else {
+    // Firebase
+    const osNumber = payload.osNumber;
+
+    if (!osNumber) {
+      throw new Error("Ordem de Serviço é obrigatória");
+    }
+
+    // Atualizar documento da OS
+    const osDocRef = doc(db, "ordens_servico", osNumber);
+    await setDoc(
+      osDocRef,
+      {
+        lastReportAt: Timestamp.fromMillis(payload.submittedAt),
+        os: osNumber,
+        updatedBy: payload.submittedBy,
+        updatedByGerenteId: payload.gerenteId,
+      },
+      { merge: true }
+    );
+
+    // Adicionar relatório na subcoleção
+    const reportsSubCollectionRef = collection(
+      db,
+      "ordens_servico",
+      osNumber,
+      "relatorios"
+    );
+    const reportPayload = {
+      formType: payload.formType,
+      formName: payload.formName,
+      formData: payload.formData,
+      submittedBy: payload.submittedBy,
+      submittedAt: Timestamp.fromMillis(payload.submittedAt),
+      gerenteId: payload.gerenteId,
+      ...(payload.originatingFormId && {
+        originatingFormId: payload.originatingFormId,
+      }),
+    };
+
+    const savedDocRef = await addDoc(reportsSubCollectionRef, reportPayload);
+
+    return {
+      reportId: savedDocRef.id,
+      osId: osNumber,
+    };
+  }
+}
+
+// ==================== API: PDF ====================
+
+/**
+ * Gera e baixa PDF de um relatório
+ */
+export async function downloadRelatorioPdf(
+  reportId: string,
+  osNumber: string
+): Promise<void> {
+  if (!USE_BACKEND) {
+    throw new Error("Geração de PDF só está disponível com backend ativo");
+  }
+
+  const token = await getAuthToken();
+  const response = await fetch(`${API_URL}/api/v1/forms/${reportId}/pdf`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Erro ao gerar PDF");
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `relatorio-${osNumber}-${reportId}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
