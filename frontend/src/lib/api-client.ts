@@ -64,8 +64,29 @@ export interface OsData {
 
 /**
  * Obtém token JWT do Firebase
+ * Tenta obter do Firebase Auth e salva no localStorage como fallback
  */
 async function getAuthToken(): Promise<string | null> {
+  // Tentar obter do localStorage primeiro (fallback)
+  if (typeof window !== 'undefined') {
+    const storedToken = localStorage.getItem('firebase_token');
+    const tokenExpiry = localStorage.getItem('firebase_token_expiry');
+    
+    // Se há token salvo e ainda não expirou, usar ele
+    if (storedToken && tokenExpiry) {
+      const expiryTime = parseInt(tokenExpiry, 10);
+      if (Date.now() < expiryTime) {
+        console.log("[api-client] Token recuperado do localStorage");
+        return storedToken;
+      } else {
+        // Token expirado, remover do localStorage
+        localStorage.removeItem('firebase_token');
+        localStorage.removeItem('firebase_token_expiry');
+      }
+    }
+  }
+
+  // Obter token do Firebase Auth
   const user = auth.currentUser;
   if (!user) {
     console.error("[api-client] Nenhum usuário autenticado no Firebase");
@@ -73,7 +94,16 @@ async function getAuthToken(): Promise<string | null> {
   }
 
   try {
+    // Obter token do Firebase (sem forçar atualização, usa cache se válido)
     const token = await user.getIdToken();
+    
+    // Salvar token no localStorage como fallback (válido por 50 minutos)
+    if (typeof window !== 'undefined' && token) {
+      const expiryTime = Date.now() + (50 * 60 * 1000); // 50 minutos
+      localStorage.setItem('firebase_token', token);
+      localStorage.setItem('firebase_token_expiry', expiryTime.toString());
+    }
+    
     console.log(
       "[api-client] Token obtido com sucesso:",
       token.substring(0, 20) + "..."
@@ -81,6 +111,13 @@ async function getAuthToken(): Promise<string | null> {
     return token;
   } catch (error) {
     console.error("[api-client] Erro ao obter token:", error);
+    
+    // Limpar token inválido do localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('firebase_token');
+      localStorage.removeItem('firebase_token_expiry');
+    }
+    
     return null;
   }
 }
@@ -108,6 +145,46 @@ async function fetchBackend(
   });
 
   if (!response.ok) {
+    // Se o erro for 401 (não autorizado), limpar token e tentar novamente
+    if (response.status === 401) {
+      console.warn("[api-client] Token inválido ou expirado, limpando cache");
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('firebase_token');
+        localStorage.removeItem('firebase_token_expiry');
+      }
+      
+      // Tentar obter novo token (forçando atualização) e fazer requisição novamente
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const newToken = await user.getIdToken(true); // Forçar atualização
+          
+          // Atualizar token no localStorage
+          if (typeof window !== 'undefined' && newToken) {
+            const expiryTime = Date.now() + (50 * 60 * 1000);
+            localStorage.setItem('firebase_token', newToken);
+            localStorage.setItem('firebase_token_expiry', expiryTime.toString());
+          }
+          
+          const retryHeaders = new Headers(options.headers);
+          retryHeaders.set("Authorization", `Bearer ${newToken}`);
+          retryHeaders.set("Content-Type", "application/json");
+          
+          const retryResponse = await fetch(`${API_URL}${endpoint}`, {
+            ...options,
+            headers: retryHeaders,
+          });
+          
+          if (retryResponse.ok) {
+            console.log("[api-client] Requisição refeita com sucesso após atualizar token");
+            return retryResponse;
+          }
+        } catch (retryError) {
+          console.error("[api-client] Erro ao tentar obter novo token:", retryError);
+        }
+      }
+    }
+    
     const errorData = await response
       .json()
       .catch(() => ({ message: "Erro desconhecido" }));

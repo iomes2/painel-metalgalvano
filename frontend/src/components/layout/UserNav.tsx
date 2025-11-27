@@ -26,6 +26,12 @@ export function UserNav() {
 
   const handleLogout = async () => {
     try {
+      // Limpar token do localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('firebase_token');
+        localStorage.removeItem('firebase_token_expiry');
+      }
+      
       await signOut(auth);
       toast({ title: "Saída Efetuada", description: "Você foi desconectado com sucesso." });
       router.push('/login');

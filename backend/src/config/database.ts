@@ -1,4 +1,8 @@
 import { PrismaClient } from "@prisma/client";
+import dotenv from "dotenv";
+
+// Carregar variáveis de ambiente antes de inicializar o PrismaClient
+dotenv.config();
 
 const prisma = new PrismaClient({
   log:
