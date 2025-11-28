@@ -112,6 +112,7 @@ jobs:
           # Execute and wait for the job to finish
           gcloud run jobs execute painel-backend-migrate --project=${{ env.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} --wait
 
+
   migrate-runner:
     needs: build-and-deploy-backend
     runs-on: ubuntu-latest
