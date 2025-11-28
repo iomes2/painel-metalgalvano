@@ -59,7 +59,7 @@ jobs:
       - name: Docker login (Artifact Registry)
         uses: docker/login-action@v2
         with:
-          registry: ${{ env.REGISTRY }}               # ex.: us-central1-docker.pkg.dev
+          registry: ${{ env.REGISTRY }} # ex.: us-central1-docker.pkg.dev
           username: _json_key
           password: ${{ secrets.GCP_SA_KEY }}
 
@@ -172,13 +172,13 @@ jobs:
       - name: Setup Node.js (cache npm)
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Docker login (Artifact Registry)
         uses: docker/login-action@v2
         with:
-          registry: ${{ env.REGISTRY }}               # ex.: us-central1-docker.pkg.dev
+          registry: ${{ env.REGISTRY }} # ex.: us-central1-docker.pkg.dev
           username: _json_key
           password: ${{ secrets.GCP_SA_KEY }}
 

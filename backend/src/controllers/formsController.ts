@@ -152,6 +152,7 @@ export const getFormById = catchAsync(async (req: Request, res: Response) => {
     submittedAt: form.submittedAt || form.createdAt,
     formData: formDataConverted,
     photoUrls: formWithPhotos.photos.map((photo) => ({
+      id: photo.id,
       name: photo.originalName,
       url: photo.firebaseUrl,
       type: photo.mimeType,

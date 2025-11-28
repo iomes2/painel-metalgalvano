@@ -1,4 +1,8 @@
 import prisma from "../config/database";
+import {
+  extractPhotosFromFormData,
+  extractPathFromUrl,
+} from "../utils/formHelpers";
 import { FormStatus, Prisma } from "@prisma/client";
 import { AppError } from "../middleware/errorHandler";
 import logger from "../utils/logger";
@@ -65,6 +69,26 @@ export class FormService {
       });
 
       logger.info(`Formulário criado: ${form.id}`, { formType: data.formType });
+      // Se houver fotos no form.data, criar registros Photo vinculados
+      try {
+        const photos = extractPhotosFromFormData(data.data || {});
+        if (photos.length > 0) {
+          const photoCreates = photos.map((p) => ({
+            formId: form.id,
+            firebaseUrl: p.url,
+            firebasePath: extractPathFromUrl(p.url),
+            filename: p.name || p.originalName || "",
+            originalName: p.originalName || p.name || "",
+            mimeType: p.type || "image/unknown",
+            size: p.size || 0,
+            description: "",
+            fieldId: p.fieldId,
+          }));
+          await prisma.photo.createMany({ data: photoCreates });
+        }
+      } catch (err) {
+        logger.warn("Falha ao criar Photo records ao criar Form", err);
+      }
       return form;
     } catch (error) {
       logger.error("Erro ao criar formulário:", error);
@@ -211,6 +235,35 @@ export class FormService {
     });
 
     logger.info(`Formulário atualizado: ${id}`);
+    // Criar registros de Photo novos caso form.data possua imagens sem registro
+    try {
+      const photos = extractPhotosFromFormData(data.data || {});
+      if (photos.length > 0) {
+        // For each photo item, insert if not already in DB by firebaseUrl
+        for (const p of photos) {
+          const existing = await prisma.photo
+            .findFirst({ where: { firebaseUrl: p.url } as any })
+            .catch(() => null);
+          if (!existing) {
+            await prisma.photo.create({
+              data: {
+                formId: id,
+                firebaseUrl: p.url,
+                firebasePath: extractPathFromUrl(p.url),
+                filename: p.name || p.originalName || "",
+                originalName: p.originalName || p.name || "",
+                mimeType: p.type || "image/unknown",
+                size: p.size || 0,
+                description: "",
+                fieldId: p.fieldId,
+              },
+            });
+          }
+        }
+      }
+    } catch (err) {
+      logger.warn("Falha ao criar Photo records ao atualizar Form", err);
+    }
     return form;
   }
 

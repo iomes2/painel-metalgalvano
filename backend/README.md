@@ -34,6 +34,7 @@ chmod +x docker-start.sh
 ```
 
 ✅ Pronto! Acesse:
+
 - Backend: http://localhost:3001
 - Prisma Studio: http://localhost:5555
 
@@ -101,6 +102,7 @@ docker run --name postgres-metalgalvano \
 ```
 
 DATABASE_URL:
+
 ```
 postgresql://metalgalvano:metalgalvano123@localhost:5432/metalgalvano
 ```
@@ -254,6 +256,18 @@ O backend implementa:
 5. Railway fará deploy automático
 
 ### Render
+
+### Google Cloud (Cloud Run)
+
+1. Siga o guia rapido: `docs/GCP_SETUP_QUICKSTART.md` para criar as infra necessárias.
+2. Configure os secrets no GitHub: `GCP_SA_KEY`, `GCP_PROJECT`, `GCP_REGION`, `GCP_BACKEND_REPOSITORY`, `ARTIFACT_REGISTRY_HOST`, `DATABASE_URL`, `CLOUD_SQL_CONNECTION_NAME`, `FIREBASE_*`.
+3. O repositório já inclui um workflow em: `.github/workflows/gcp-deploy.yml` que constrói, publica no Artifact Registry e faz deploy para Cloud Run. Ele também inclui um job opcional para rodar migrations via Cloud Run Job.
+
+Se quiser que eu atualize o workflow para usar Workload Identity Federation (sem chaves JSON), me avise e eu gero um PR com as etapas e política de IAM.
+
+### Scripts de Ajuda
+
+O diretório `backend/scripts` inclui um exemplo `gcloud_create_resources.sh` que cria recursos básicos (Artifact Registry, service account, roles e Cloud SQL) — revise antes de executar.
 
 1. Criar Web Service no Render
 2. Adicionar PostgreSQL (ou usar externo)

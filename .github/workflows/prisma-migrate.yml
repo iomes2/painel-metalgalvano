@@ -1,0 +1,51 @@
+name: Prisma Migrations (deploy)
+
+on:
+    workflow_dispatch:
+    push:
+        branches: [main]
+
+jobs:
+    migrate-remote:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Run migrations on remote server via SSH
+              uses: appleboy/ssh-action@master
+              with:
+                  host: ${{ secrets.DEPLOY_HOST }}
+                  username: ${{ secrets.DEPLOY_USER }}
+                  key: ${{ secrets.SSH_PRIVATE_KEY }}
+                  port: ${{ secrets.SSH_PORT }}
+                  script: |
+                      cd /home/${{ secrets.DEPLOY_USER }}/deploy/painel-metalgalvano || true
+                      # Execute migrations using the backend container
+                      docker compose exec -T backend npx prisma migrate deploy
+
+    # If you prefer to run the migration in the workflow runner (not recommended for all cases):
+    migrate-runner:
+        runs-on: ubuntu-latest
+        needs: []
+        if: false # Toggle to `true` if you want to enable this option
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Use Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "18"
+
+            - name: Install Deps
+              run: |
+                  cd backend
+                  npm ci
+
+            - name: Run migrations (runner)
+              run: |
+                  cd backend
+                  npx prisma migrate deploy
+              env:
+                  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+# Notes:
+# - For remote migration (recommended if your deployed image is configured and the database is reachable from the server): add SSH secrets and ensure docker compose is set up
+# - For runner-based migration, set `DATABASE_URL` in repository secrets and enable the job by setting `if: true`

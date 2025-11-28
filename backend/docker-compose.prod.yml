@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database (if you want to run locally on the server)
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - metalgalvano-network
+
+  backend:
+    image: ghcr.io/${GITHUB_OWNER:?}/painel-metalgalvano-backend:latest
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: ${DATABASE_URL}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+      FIREBASE_STORAGE_BUCKET: ${FIREBASE_STORAGE_BUCKET}
+    ports:
+      - "3001:3001"
+    networks:
+      - metalgalvano-network
+
+volumes:
+  postgres_data:
+
+networks:
+  metalgalvano-network:
+    driver: bridge

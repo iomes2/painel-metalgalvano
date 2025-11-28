@@ -71,7 +71,7 @@ interface ReportData {
   id: string;
   formName: string;
   formType: string;
-  submittedAt: Timestamp;
+  submittedAt: Date | Timestamp;
   formData: Record<string, any>;
   photoUrls?: ReportPhoto[];
 }
@@ -79,7 +79,7 @@ interface ReportData {
 interface OsData {
   id: string; // OS number
   os: string;
-  lastReportAt: Timestamp;
+  lastReportAt: Date | Timestamp;
 }
 
 interface Gerente {
