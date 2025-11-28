@@ -1,0 +1,199 @@
+name: CI/CD - Deploy to Google Cloud (Cloud Run & Artifact Registry)
+
+on:
+    push:
+        branches: [main, dev]
+        paths:
+            - "frontend/**"
+            - "backend/**"
+            - ".github/workflows/**"
+
+jobs:
+    detect-changes:
+        runs-on: ubuntu-latest
+        outputs:
+            backend: ${{ steps.filter.outputs.backend }}
+            frontend: ${{ steps.filter.outputs.frontend }}
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 2
+
+            - name: Detect changes
+              id: filter
+              uses: dorny/paths-filter@v2
+              with:
+                  filters: |
+                      backend:
+                        - 'backend/**'
+                      frontend:
+                        - 'frontend/**'
+
+    build-and-deploy-backend:
+        needs: detect-changes
+        if: needs.detect-changes.outputs.backend == 'true'
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ./backend
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Configure GCP credentials
+              uses: google-github-actions/auth@v1
+              with:
+                  credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+            - name: Configure Docker for Google Artifact Registry
+              run: |
+                  gcloud auth configure-docker --quiet
+
+            - name: Build and push backend container
+              id: build-backend
+              uses: docker/build-push-action@v5
+              with:
+                  context: ./backend
+                  file: ./backend/Dockerfile
+                  platforms: linux/amd64,linux/arm64
+                  push: true
+                  tags: ${{ env.REGISTRY }}/$GCP_PROJECT_ID/$GCP_BACKEND_REPOSITORY/painel-backend:${{ github.sha }}
+              env:
+                  REGISTRY: "${{ secrets.ARTIFACT_REGISTRY_HOST }}"
+                  GCP_PROJECT_ID: "${{ secrets.GCP_PROJECT }}"
+                  GCP_BACKEND_REPOSITORY: "${{ secrets.GCP_BACKEND_REPOSITORY }}"
+
+            - name: Deploy to Cloud Run (backend)
+              uses: google-github-actions/deploy-cloudrun@v0
+              with:
+                  service: painel-backend
+                  image: ${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }}
+                  region: ${{ secrets.GCP_REGION }}
+                  project_id: ${{ secrets.GCP_PROJECT }}
+                  allow_unauthenticated: false
+                  env_vars: |-
+                      NODE_ENV=production
+                      PORT=3001
+                      DATABASE_URL=${{ secrets.DATABASE_URL }}
+                      FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
+                      FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
+                      FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
+                      FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}
+
+            - name: Run Prisma migrations on Cloud Run Job (optional)
+              if: ${{ secrets.RUN_PRISMA_MIGRATIONS == 'true' }}
+              run: |
+                  # Create and run a Cloud Run Job that executes `npx prisma migrate deploy` with the built image
+                  if gcloud run jobs describe painel-backend-migrate --project=${{ secrets.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} >/dev/null 2>&1; then
+                    echo 'Job exists, replacing';
+                    gcloud run jobs replace --image=${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }} painel-backend-migrate --project=${{ secrets.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} --set-env-vars DATABASE_URL=${{ secrets.DATABASE_URL }} --command "npx" --args "prisma,migrate,deploy"
+                  else
+                    echo 'Job not found, creating';
+                    gcloud run jobs create painel-backend-migrate --image=${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }} --project=${{ secrets.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} --set-env-vars DATABASE_URL=${{ secrets.DATABASE_URL }} --command "npx" --args "prisma,migrate,deploy"
+                  fi
+
+                  # Execute and wait for the job to finish
+                  gcloud run jobs execute painel-backend-migrate --project=${{ secrets.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} --wait
+
+    # Optional: Runner-based migrations (use when you prefer running migrations from Actions runner)
+    migrate-runner:
+        needs: build-and-deploy-backend
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Authenticate with GCP
+              uses: google-github-actions/auth@v1
+              with:
+                  credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+            - name: Start Cloud SQL Proxy
+              uses: google-github-actions/cloud-sql-proxy@v0
+              with:
+                  instance_connection_name: ${{ secrets.CLOUD_SQL_CONNECTION_NAME }}
+                  token: ${{ secrets.GCP_SA_KEY }}
+
+            - name: Install dependencies & run migrations on runner
+              run: |
+                  cd backend
+                  npm ci
+                  if [ "${{ secrets.RUN_MIGRATION_ON_RUNNER }}" != "true" ]; then
+                    echo "RUN_MIGRATION_ON_RUNNER is not 'true'; skipping runner-based migrations"; exit 0;
+                  fi
+                  npx prisma migrate deploy
+              env:
+                  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    build-and-deploy-frontend:
+        needs: detect-changes
+        if: needs.detect-changes.outputs.frontend == 'true'
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ./frontend
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Configure GCP credentials
+              uses: google-github-actions/auth@v1
+              with:
+                  credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+            - name: Configure Docker for Google Artifact Registry
+              run: |
+                  gcloud auth configure-docker --quiet
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build frontend
+              run: npm run build
+
+            # Option A: Deploy as container to Cloud Run
+            - name: Build & push frontend container (Cloud Run)
+              id: build-frontend
+              uses: docker/build-push-action@v5
+              with:
+                  context: ./frontend
+                  file: ./frontend/Dockerfile
+                  platforms: linux/amd64,linux/arm64
+                  push: true
+                  tags: ${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_FRONTEND_REPOSITORY }}/painel-frontend:${{ github.sha }}
+              env:
+                  REGISTRY: "${{ secrets.ARTIFACT_REGISTRY_HOST }}"
+
+            - name: Deploy to Cloud Run (frontend)
+              uses: google-github-actions/deploy-cloudrun@v0
+              with:
+                  service: painel-frontend
+                  image: ${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_FRONTEND_REPOSITORY }}/painel-frontend:${{ github.sha }}
+                  region: ${{ secrets.GCP_REGION }}
+                  project_id: ${{ secrets.GCP_PROJECT }}
+                  allow_unauthenticated: true
+                  env_vars: |-
+                      NODE_ENV=production
+                      NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+
+    summary:
+        needs: [build-and-deploy-backend, build-and-deploy-frontend]
+        if: always()
+        runs-on: ubuntu-latest
+        steps:
+            - name: Deployment summary
+              run: |
+                  echo "Backend pushed & deployed: ${{ needs.build-and-deploy-backend.result }}"
+                  echo "Frontend pushed & deployed: ${{ needs.build-and-deploy-frontend.result }}"
+
+# Notes & Required Repository secrets:
+# - `GCP_SA_KEY`: JSON content of a Service Account key with proper permissions (Cloud Run Admin, Artifact Registry Admin, Cloud SQL Client if using Cloud SQL)
+# - `GCP_PROJECT`: GCP Project ID
+# - `GCP_REGION`: GCP region (e.g., us-central1)
+# - `GCP_BACKEND_REPOSITORY` & `GCP_FRONTEND_REPOSITORY`: Artifact Registry repository name(s)
+# - `ARTIFACT_REGISTRY_HOST`: e.g. "us-docker.pkg.dev" or "europe-docker.pkg.dev" (the artifact registry host/region prefix)
+# - `DATABASE_URL`: Database connection string (Cloud SQL connection may differ; see docs)
+# - `NEXT_PUBLIC_API_URL`: public API url for frontend
+# - `RUN_PRISMA_MIGRATIONS`: 'true' to run a Cloud Run migration job
