@@ -99,6 +99,7 @@ app.use(
   require("./routes/ordensServico.routes").default
 );
 app.use(`${apiPrefix}/upload`, require("./routes/upload.routes").default);
+app.use(`${apiPrefix}/photos`, require("./routes/photos.routes").default);
 
 // ==================== ERROR HANDLING ====================
 
