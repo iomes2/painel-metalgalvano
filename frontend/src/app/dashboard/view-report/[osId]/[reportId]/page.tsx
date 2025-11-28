@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -29,6 +30,7 @@ import {
   Clock,
   X,
   Printer,
+  FileText as FileTextIcon,
 } from "lucide-react";
 import {
   getFormDefinition,
@@ -41,10 +43,12 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ImageModal from "@/components/search/ImageModal"; // Reutilizando o ImageModal
 import LinkedReportModal from "@/components/reports/LinkedReportModal"; // Importando o LinkedReportModal
+import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 
 interface ReportPhoto {
+  id?: string;
   name: string;
   url: string;
   type: string;
@@ -71,12 +75,38 @@ const fieldTypeIcons: Record<FormField["type"], React.ElementType> = {
   select: List,
   date: CalendarLucideIcon,
   file: ImageIcon,
+  checkbox: CheckSquare,
 };
 export default function ViewReportPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const { user } = useAuth();
+  const { toast } = useToast();
+
+  const handleGeneratePdf = async () => {
+    if (!report || !report.id) return;
+    try {
+      const { downloadFormPdf } = await import("@/lib/api-client");
+      const blob = await downloadFormPdf(report.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `relatorio-${report.formType}-${report.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "PDF gerado", description: "Download iniciado." });
+    } catch (err: any) {
+      console.error("Erro ao gerar PDF:", err);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: err.message || "Erro desconhecido",
+        variant: "destructive",
+      });
+    }
+  };
 
   const osId = params.osId as string;
   const reportId = params.reportId as string;
@@ -95,6 +125,7 @@ export default function ViewReportPage() {
   const [selectedLinkedFormType, setSelectedLinkedFormType] = useState<
     string | null
   >(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     if (!osId || !reportId || !formType) {
@@ -168,6 +199,37 @@ export default function ViewReportPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleDeletePhoto = async (photo: ReportPhoto) => {
+    if (!photo?.id) throw new Error("ID da foto não disponível");
+    try {
+      const { deletePhoto, deletePhotoByUrl, fetchRelatorioById } =
+        await import("@/lib/api-client");
+      if (photo.id) {
+        await deletePhoto(photo.id);
+      } else {
+        await deletePhotoByUrl(photo.url);
+      }
+      const updated = await fetchRelatorioById(osId, reportId);
+      if (updated) {
+        setReport({
+          ...(updated as any),
+          submittedAt: updated!.submittedAt as any,
+        });
+        toast({
+          title: "Foto excluída",
+          description: "A foto foi removida com sucesso.",
+        });
+      }
+    } catch (err: any) {
+      console.error("Erro ao deletar foto:", err);
+      toast({
+        title: "Erro ao excluir foto",
+        description: err.message || "Erro ao deletar foto",
+        variant: "destructive",
+      });
+    }
   };
 
   const openLinkedReportModal = (targetFormType: string) => {
@@ -423,6 +485,51 @@ export default function ViewReportPage() {
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
+              {user?.email?.split("@")[0] === report?.gerenteId && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setIsEditing((v) => !v)}
+                  aria-label={isEditing ? "Cancelar Edição" : "Editar"}
+                >
+                  <Edit3 className="h-5 w-5" />
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={async () => {
+                  if (!report) return;
+                  try {
+                    const { downloadFormPdf } = await import(
+                      "@/lib/api-client"
+                    );
+                    const blob = await downloadFormPdf(report.id);
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `relatorio-${report.formType}-${osId}-${report.id}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                    toast({
+                      title: "PDF baixado",
+                      description: "O PDF foi gerado e salvo",
+                    });
+                  } catch (err: any) {
+                    console.error(err);
+                    toast({
+                      title: "Erro",
+                      description: err.message || "Falha ao baixar PDF",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                aria-label="Gerar PDF"
+              >
+                <FileText className="h-4 w-4" />
+              </Button>
               <Button
                 variant="outline"
                 size="icon"
@@ -430,6 +537,14 @@ export default function ViewReportPage() {
                 aria-label="Imprimir"
               >
                 <Printer className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleGeneratePdf()}
+                aria-label="Gerar PDF"
+              >
+                <FileTextIcon className="h-5 w-5" />
               </Button>
             </div>
           </div>
@@ -502,118 +617,167 @@ export default function ViewReportPage() {
 
             {/* Conteúdo: Campos do formulário - rolável */}
             <section className="lg:col-span-8 xl:col-span-9 h-full overflow-y-auto overflow-x-hidden overscroll-contain pr-1 min-w-0 print:overflow-visible print:h-auto print-reset-overflow">
+              {isEditing && report && (
+                <div className="mb-4">
+                  <DynamicFormRenderer
+                    formDefinition={formDefinition}
+                    initialValues={report.formData}
+                    onSubmit={async (payload) => {
+                      // call updateForm
+                      try {
+                        const { updateForm } = await import("@/lib/api-client");
+                        await updateForm(report.id, {
+                          data: payload.formData,
+                          formType: payload.formType,
+                        });
+                        toast({
+                          title: "Formulário atualizado",
+                          description: "As alterações foram salvas.",
+                        });
+                        // Reload report
+                        const { fetchRelatorioById } = await import(
+                          "@/lib/api-client"
+                        );
+                        const updated = await fetchRelatorioById(
+                          osId,
+                          reportId
+                        );
+                        setReport({
+                          ...(updated as any),
+                          submittedAt: updated!.submittedAt as any,
+                        });
+                        setIsEditing(false);
+                      } catch (err: any) {
+                        toast({
+                          title: "Erro ao atualizar",
+                          description: err.message || "Falha",
+                          variant: "destructive",
+                        });
+                        console.error(err);
+                        throw err;
+                      }
+                    }}
+                  />
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 pb-3 min-w-0 w-full max-w-full">
-                {formDefinition.fields.map((field) => {
-                  const fieldValue = report.formData[field.id];
+                {!isEditing &&
+                  formDefinition.fields.map((field) => {
+                    const fieldValue = report.formData[field.id];
 
-                  let shouldRenderField = true;
-                  if (formDefinition.id === "cronograma-diario-obra") {
-                    if (field.id === "motivoAtrasoDia")
-                      shouldRenderField =
-                        report.formData["situacaoEtapaDia"] === "em_atraso";
-                    else if (field.id === "uploadFotosEtapaDia")
-                      shouldRenderField =
-                        report.formData["fotosEtapaDia"] === "sim";
-                    else if (field.id === "motivoRetrabalhoParadaDia")
-                      shouldRenderField =
-                        !!report.formData["horasRetrabalhoParadasDia"] &&
-                        String(
-                          report.formData["horasRetrabalhoParadasDia"]
-                        ).trim() !== "";
-                    else if (field.id === "motivoNaoCumprimentoHorarioInicio") {
-                      const efetivo = String(
-                        report.formData["horarioEfetivoInicioAtividades"] || ""
-                      ).trim();
-                      const previsto = String(
-                        report.formData["horarioInicioJornadaPrevisto"] || ""
-                      ).trim();
-                      shouldRenderField =
-                        efetivo !== "" && efetivo !== previsto;
+                    let shouldRenderField = true;
+                    if (formDefinition.id === "cronograma-diario-obra") {
+                      if (field.id === "motivoAtrasoDia")
+                        shouldRenderField =
+                          report.formData["situacaoEtapaDia"] === "em_atraso";
+                      else if (field.id === "uploadFotosEtapaDia")
+                        shouldRenderField =
+                          report.formData["fotosEtapaDia"] === "sim";
+                      else if (field.id === "motivoRetrabalhoParadaDia")
+                        shouldRenderField =
+                          !!report.formData["horasRetrabalhoParadasDia"] &&
+                          String(
+                            report.formData["horasRetrabalhoParadasDia"]
+                          ).trim() !== "";
+                      else if (
+                        field.id === "motivoNaoCumprimentoHorarioInicio"
+                      ) {
+                        const efetivo = String(
+                          report.formData["horarioEfetivoInicioAtividades"] ||
+                            ""
+                        ).trim();
+                        const previsto = String(
+                          report.formData["horarioInicioJornadaPrevisto"] || ""
+                        ).trim();
+                        shouldRenderField =
+                          efetivo !== "" && efetivo !== previsto;
+                      } else if (
+                        field.id === "motivoNaoCumprimentoHorarioSaida"
+                      ) {
+                        const efetivo = String(
+                          report.formData["horarioEfetivoSaidaObra"] || ""
+                        ).trim();
+                        const previsto = String(
+                          report.formData["horarioTerminoJornadaPrevisto"] || ""
+                        ).trim();
+                        shouldRenderField =
+                          efetivo !== "" && efetivo !== previsto;
+                      }
+                    } else if (formDefinition.id === "rnc-report") {
+                      if (field.id === "uploadFotosNaoConformidade")
+                        shouldRenderField =
+                          report.formData["fotosNaoConformidade"] === "sim";
                     } else if (
-                      field.id === "motivoNaoCumprimentoHorarioSaida"
+                      formDefinition.id === "relatorio-inspecao-site"
                     ) {
-                      const efetivo = String(
-                        report.formData["horarioEfetivoSaidaObra"] || ""
-                      ).trim();
-                      const previsto = String(
-                        report.formData["horarioTerminoJornadaPrevisto"] || ""
-                      ).trim();
-                      shouldRenderField =
-                        efetivo !== "" && efetivo !== previsto;
+                      if (field.id === "uploadFotosInspecao")
+                        shouldRenderField =
+                          report.formData["fotosInspecao"] === "sim";
+                      if (
+                        field.id === "itensNaoConformes" ||
+                        field.id === "acoesCorretivasSugeridas"
+                      ) {
+                        shouldRenderField =
+                          report.formData["conformidadeSeguranca"] === "nao";
+                      }
                     }
-                  } else if (formDefinition.id === "rnc-report") {
-                    if (field.id === "uploadFotosNaoConformidade")
-                      shouldRenderField =
-                        report.formData["fotosNaoConformidade"] === "sim";
-                  } else if (formDefinition.id === "relatorio-inspecao-site") {
-                    if (field.id === "uploadFotosInspecao")
-                      shouldRenderField =
-                        report.formData["fotosInspecao"] === "sim";
+
                     if (
-                      field.id === "itensNaoConformes" ||
-                      field.id === "acoesCorretivasSugeridas"
+                      !shouldRenderField &&
+                      (fieldValue === undefined ||
+                        fieldValue === null ||
+                        fieldValue === "" ||
+                        (Array.isArray(fieldValue) && fieldValue.length === 0))
                     ) {
-                      shouldRenderField =
-                        report.formData["conformidadeSeguranca"] === "nao";
+                      return null;
                     }
-                  }
 
-                  if (
-                    !shouldRenderField &&
-                    (fieldValue === undefined ||
-                      fieldValue === null ||
-                      fieldValue === "" ||
-                      (Array.isArray(fieldValue) && fieldValue.length === 0))
-                  ) {
-                    return null;
-                  }
+                    const FieldIcon = fieldTypeIcons[field.type] || FileText;
 
-                  const FieldIcon = fieldTypeIcons[field.type] || FileText;
-
-                  const isLargeField =
-                    field.type === "textarea" || field.type === "file";
-                  return (
-                    <div
-                      key={field.id}
-                      className={`rounded-md border bg-card shadow-sm hover:shadow transition-shadow overflow-hidden min-w-0 print-avoid-break-inside ${
-                        isLargeField ? "sm:col-span-2 xl:col-span-3" : ""
-                      }`}
-                    >
-                      {/* Título do campo */}
-                      <div className="flex items-center gap-1.5 border-b bg-muted/40 px-2.5 py-1">
-                        <FieldIcon className="h-3 w-3 text-primary" />
-                        <h3
-                          className="text-[11px] font-medium leading-5 truncate"
-                          title={field.label}
-                        >
-                          {field.label}
-                        </h3>
+                    const isLargeField =
+                      field.type === "textarea" || field.type === "file";
+                    return (
+                      <div
+                        key={field.id}
+                        className={`rounded-md border bg-card shadow-sm hover:shadow transition-shadow overflow-hidden min-w-0 print-avoid-break-inside ${
+                          isLargeField ? "sm:col-span-2 xl:col-span-3" : ""
+                        }`}
+                      >
+                        {/* Título do campo */}
+                        <div className="flex items-center gap-1.5 border-b bg-muted/40 px-2.5 py-1">
+                          <FieldIcon className="h-3 w-3 text-primary" />
+                          <h3
+                            className="text-[11px] font-medium leading-5 truncate"
+                            title={field.label}
+                          >
+                            {field.label}
+                          </h3>
+                        </div>
+                        {/* Valor */}
+                        <div className="px-2.5 py-1.5 text-[13px] leading-relaxed break-words break-all whitespace-pre-wrap min-w-0 max-w-full">
+                          {renderFieldValue(field, fieldValue)}
+                          {field.linkedForm &&
+                            fieldValue === field.linkedForm.conditionValue && (
+                              <div className="mt-2 pt-2 border-t">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full sm:w-auto whitespace-normal break-words text-[12px] leading-tight text-center max-w-full"
+                                  onClick={() =>
+                                    openLinkedReportModal(
+                                      field.linkedForm!.targetFormType
+                                    )
+                                  }
+                                >
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  {field.linkedForm.linkButtonLabel}
+                                </Button>
+                              </div>
+                            )}
+                        </div>
                       </div>
-                      {/* Valor */}
-                      <div className="px-2.5 py-1.5 text-[13px] leading-relaxed break-words break-all whitespace-pre-wrap min-w-0 max-w-full">
-                        {renderFieldValue(field, fieldValue)}
-                        {field.linkedForm &&
-                          fieldValue === field.linkedForm.conditionValue && (
-                            <div className="mt-2 pt-2 border-t">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full sm:w-auto whitespace-normal break-words text-[12px] leading-tight text-center max-w-full"
-                                onClick={() =>
-                                  openLinkedReportModal(
-                                    field.linkedForm!.targetFormType
-                                  )
-                                }
-                              >
-                                <FileText className="mr-2 h-4 w-4" />
-                                {field.linkedForm.linkButtonLabel}
-                              </Button>
-                            </div>
-                          )}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             </section>
           </div>
@@ -628,6 +792,8 @@ export default function ViewReportPage() {
           imageList={currentImageList}
           onDownload={handleDownloadPhoto}
           onNavigate={(nextImage) => setCurrentImage(nextImage)}
+          onDelete={handleDeletePhoto}
+          canDelete={user?.email?.split("@")[0] === report?.gerenteId}
         />
       )}
 

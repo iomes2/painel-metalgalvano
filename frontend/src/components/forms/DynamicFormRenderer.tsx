@@ -68,6 +68,8 @@ import { uploadFiles, submitRelatorio } from "@/lib/api-client";
 
 interface DynamicFormRendererProps {
   formDefinition: FormDefinition;
+  initialValues?: Record<string, any>;
+  onSubmit?: (payload: any) => Promise<void>;
 }
 
 // Helper to build Zod schema from form definition
@@ -81,7 +83,10 @@ const buildZodSchema = (fields: FormFieldType[]) => {
       case "textarea":
         fieldSchema = z.string();
         if (field.required)
-          fieldSchema = fieldSchema.min(1, `${field.label} é obrigatório(a).`);
+          fieldSchema = (fieldSchema as z.ZodString).min(
+            1,
+            `${field.label} é obrigatório(a).`
+          );
         else fieldSchema = fieldSchema.optional().or(z.literal(""));
         break;
       case "email":
@@ -89,13 +94,16 @@ const buildZodSchema = (fields: FormFieldType[]) => {
           .string()
           .email(`Formato de e-mail inválido para ${field.label}.`);
         if (field.required)
-          fieldSchema = fieldSchema.min(1, `${field.label} é obrigatório(a).`);
+          fieldSchema = (fieldSchema as z.ZodString).min(
+            1,
+            `${field.label} é obrigatório(a).`
+          );
         else fieldSchema = fieldSchema.optional().or(z.literal(""));
         break;
       case "number":
         fieldSchema = z.coerce.number();
         if (field.required)
-          fieldSchema = fieldSchema.min(
+          fieldSchema = (fieldSchema as z.ZodNumber).min(
             0.00001,
             `${field.label} é obrigatório(a) e deve ser diferente de zero, se aplicável.`
           );
@@ -116,7 +124,7 @@ const buildZodSchema = (fields: FormFieldType[]) => {
       case "select":
         fieldSchema = z.string();
         if (field.required)
-          fieldSchema = fieldSchema.min(
+          fieldSchema = (fieldSchema as z.ZodString).min(
             1,
             `Por favor, selecione uma opção para ${field.label}.`
           );
@@ -135,6 +143,8 @@ const buildZodSchema = (fields: FormFieldType[]) => {
 
 export function DynamicFormRenderer({
   formDefinition,
+  initialValues,
+  onSubmit,
 }: DynamicFormRendererProps) {
   const { toast } = useToast();
   const router = useRouter();
@@ -166,12 +176,18 @@ export function DynamicFormRenderer({
     return acc;
   }, {} as Record<string, any>);
 
+  const combinedDefaultValues = { ...defaultValues, ...(initialValues || {}) };
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: defaultValues,
+    defaultValues: combinedDefaultValues as any,
   });
 
   const { watch, setValue, reset, getValues, control } = form;
+
+  useEffect(() => {
+    if (initialValues) reset({ ...combinedDefaultValues } as any);
+  }, [initialValues, reset]);
 
   // Watch specific fields for conditional rendering & logic
   const situacaoEtapaDia = watch("situacaoEtapaDia" as any);
@@ -320,7 +336,7 @@ export function DynamicFormRenderer({
     stableGetValues,
   ]);
 
-  const onSubmit: SubmitHandler<FormValues> = async (data) => {
+  const handleLocalSubmit: SubmitHandler<FormValues> = async (data) => {
     setIsSubmitting(true);
     const currentUser = auth.currentUser;
 
@@ -400,6 +416,19 @@ export function DynamicFormRenderer({
           }),
         ...(osValue && { osNumber: osValue.trim() }),
       };
+
+      // Se onSubmit personalizado foi fornecido, o componente pai (edit) lida com isso
+      if (onSubmit) {
+        await onSubmit(payload);
+        toast({
+          title: "Sucesso!",
+          description: `Formulário "${formDefinition.name}" atualizado com sucesso!`,
+        });
+        reset(defaultValues);
+        setIsShareDialogOpen(true);
+        setIsSubmitting(false);
+        return;
+      }
 
       const result = await submitRelatorio(payload);
 
@@ -570,7 +599,7 @@ export function DynamicFormRenderer({
           )}
         </CardHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={form.handleSubmit(handleLocalSubmit)}>
             <CardContent className="space-y-6">
               {formDefinition.fields.map((field) => {
                 let shouldRenderField = true;

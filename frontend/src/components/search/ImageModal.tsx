@@ -1,13 +1,25 @@
-
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { useState, useEffect, useCallback } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Download as DownloadIcon, X } from 'lucide-react';
-import Image from 'next/image';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download as DownloadIcon,
+  X,
+} from "lucide-react";
+import Image from "next/image";
 
 interface ReportPhoto {
+  id?: string;
   name: string;
   url: string;
   type: string;
@@ -21,14 +33,25 @@ interface ImageModalProps {
   imageList: ReportPhoto[];
   onDownload: (url: string, name: string) => void;
   onNavigate: (nextImage: ReportPhoto) => void;
+  onDelete?: (photo: ReportPhoto) => Promise<void>;
+  canDelete?: boolean;
 }
 
-export default function ImageModal({ isOpen, onClose, image, imageList, onDownload, onNavigate }: ImageModalProps) {
+export default function ImageModal({
+  isOpen,
+  onClose,
+  image,
+  imageList,
+  onDownload,
+  onNavigate,
+  onDelete,
+  canDelete,
+}: ImageModalProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     if (image && imageList.length > 0) {
-      const index = imageList.findIndex(img => img.url === image.url);
+      const index = imageList.findIndex((img) => img.url === image.url);
       setCurrentIndex(index !== -1 ? index : 0);
     }
   }, [image, imageList]);
@@ -52,18 +75,18 @@ export default function ImageModal({ isOpen, onClose, image, imageList, onDownlo
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isOpen) return;
-      if (event.key === 'ArrowLeft') {
+      if (event.key === "ArrowLeft") {
         handlePrevious();
-      } else if (event.key === 'ArrowRight') {
+      } else if (event.key === "ArrowRight") {
         handleNext();
-      } else if (event.key === 'Escape') {
+      } else if (event.key === "Escape") {
         onClose();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, handlePrevious, handleNext, onClose]);
 
@@ -75,7 +98,10 @@ export default function ImageModal({ isOpen, onClose, image, imageList, onDownlo
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl w-full p-0 overflow-hidden">
         <DialogHeader className="p-4 border-b flex flex-row justify-between items-center sticky top-0 bg-background z-10">
-          <DialogTitle className="text-lg truncate" title={currentDisplayImage.name}>
+          <DialogTitle
+            className="text-lg truncate"
+            title={currentDisplayImage.name}
+          >
             {currentDisplayImage.name}
           </DialogTitle>
           <DialogClose asChild>
@@ -84,7 +110,7 @@ export default function ImageModal({ isOpen, onClose, image, imageList, onDownlo
             </Button>
           </DialogClose>
         </DialogHeader>
-        
+
         <div className="relative aspect-video flex items-center justify-center bg-muted/20 max-h-[calc(100vh-200px)] overflow-auto">
           {imageList.length > 1 && (
             <Button
@@ -97,7 +123,7 @@ export default function ImageModal({ isOpen, onClose, image, imageList, onDownlo
               <ChevronLeft className="h-6 w-6" />
             </Button>
           )}
-          
+
           <Image
             src={currentDisplayImage.url}
             alt={currentDisplayImage.name}
@@ -122,20 +148,46 @@ export default function ImageModal({ isOpen, onClose, image, imageList, onDownlo
 
         <DialogFooter className="p-4 border-t flex flex-col sm:flex-row justify-between items-center bg-background">
           <div className="text-sm text-muted-foreground mb-2 sm:mb-0">
-            {currentDisplayImage.type} - {(currentDisplayImage.size / 1024 / 1024).toFixed(2)} MB
-            {imageList.length > 1 && ` (Imagem ${currentIndex + 1} de ${imageList.length})`}
+            {currentDisplayImage.type} -{" "}
+            {(currentDisplayImage.size / 1024 / 1024).toFixed(2)} MB
+            {imageList.length > 1 &&
+              ` (Imagem ${currentIndex + 1} de ${imageList.length})`}
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => onDownload(currentDisplayImage.url, currentDisplayImage.name)}
+            <Button
+              variant="outline"
+              onClick={() =>
+                onDownload(currentDisplayImage.url, currentDisplayImage.name)
+              }
               aria-label={`Baixar imagem ${currentDisplayImage.name}`}
             >
               <DownloadIcon className="mr-2 h-4 w-4" />
               Baixar
             </Button>
-             <DialogClose asChild>
-                <Button variant="secondary">Fechar</Button>
+            {onDelete && currentDisplayImage.id && canDelete && (
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  const ok = confirm(
+                    "Deseja excluir esta foto? Esta ação é irreversível."
+                  );
+                  if (!ok) return;
+                  try {
+                    await onDelete(currentDisplayImage);
+                    onClose();
+                  } catch (err) {
+                    // TODO: toast de erro
+                    console.error("Erro ao deletar foto:", err);
+                    alert((err as any)?.message || "Erro ao deletar foto");
+                  }
+                }}
+                aria-label={`Excluir imagem ${currentDisplayImage.name}`}
+              >
+                Excluir
+              </Button>
+            )}
+            <DialogClose asChild>
+              <Button variant="secondary">Fechar</Button>
             </DialogClose>
           </div>
         </DialogFooter>

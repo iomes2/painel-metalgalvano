@@ -36,6 +36,7 @@ export interface Gerente {
 }
 
 export interface ReportPhoto {
+  id?: string; // opcional para compatibilidade com Firebase fallback
   name: string;
   url: string;
   type: string;
@@ -68,10 +69,10 @@ export interface OsData {
  */
 async function getAuthToken(): Promise<string | null> {
   // Tentar obter do localStorage primeiro (fallback)
-  if (typeof window !== 'undefined') {
-    const storedToken = localStorage.getItem('firebase_token');
-    const tokenExpiry = localStorage.getItem('firebase_token_expiry');
-    
+  if (typeof window !== "undefined") {
+    const storedToken = localStorage.getItem("firebase_token");
+    const tokenExpiry = localStorage.getItem("firebase_token_expiry");
+
     // Se há token salvo e ainda não expirou, usar ele
     if (storedToken && tokenExpiry) {
       const expiryTime = parseInt(tokenExpiry, 10);
@@ -80,8 +81,8 @@ async function getAuthToken(): Promise<string | null> {
         return storedToken;
       } else {
         // Token expirado, remover do localStorage
-        localStorage.removeItem('firebase_token');
-        localStorage.removeItem('firebase_token_expiry');
+        localStorage.removeItem("firebase_token");
+        localStorage.removeItem("firebase_token_expiry");
       }
     }
   }
@@ -96,14 +97,14 @@ async function getAuthToken(): Promise<string | null> {
   try {
     // Obter token do Firebase (sem forçar atualização, usa cache se válido)
     const token = await user.getIdToken();
-    
+
     // Salvar token no localStorage como fallback (válido por 50 minutos)
-    if (typeof window !== 'undefined' && token) {
-      const expiryTime = Date.now() + (50 * 60 * 1000); // 50 minutos
-      localStorage.setItem('firebase_token', token);
-      localStorage.setItem('firebase_token_expiry', expiryTime.toString());
+    if (typeof window !== "undefined" && token) {
+      const expiryTime = Date.now() + 50 * 60 * 1000; // 50 minutos
+      localStorage.setItem("firebase_token", token);
+      localStorage.setItem("firebase_token_expiry", expiryTime.toString());
     }
-    
+
     console.log(
       "[api-client] Token obtido com sucesso:",
       token.substring(0, 20) + "..."
@@ -111,13 +112,13 @@ async function getAuthToken(): Promise<string | null> {
     return token;
   } catch (error) {
     console.error("[api-client] Erro ao obter token:", error);
-    
+
     // Limpar token inválido do localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('firebase_token');
-      localStorage.removeItem('firebase_token_expiry');
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("firebase_token");
+      localStorage.removeItem("firebase_token_expiry");
     }
-    
+
     return null;
   }
 }
@@ -148,43 +149,51 @@ async function fetchBackend(
     // Se o erro for 401 (não autorizado), limpar token e tentar novamente
     if (response.status === 401) {
       console.warn("[api-client] Token inválido ou expirado, limpando cache");
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('firebase_token');
-        localStorage.removeItem('firebase_token_expiry');
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("firebase_token");
+        localStorage.removeItem("firebase_token_expiry");
       }
-      
+
       // Tentar obter novo token (forçando atualização) e fazer requisição novamente
       const user = auth.currentUser;
       if (user) {
         try {
           const newToken = await user.getIdToken(true); // Forçar atualização
-          
+
           // Atualizar token no localStorage
-          if (typeof window !== 'undefined' && newToken) {
-            const expiryTime = Date.now() + (50 * 60 * 1000);
-            localStorage.setItem('firebase_token', newToken);
-            localStorage.setItem('firebase_token_expiry', expiryTime.toString());
+          if (typeof window !== "undefined" && newToken) {
+            const expiryTime = Date.now() + 50 * 60 * 1000;
+            localStorage.setItem("firebase_token", newToken);
+            localStorage.setItem(
+              "firebase_token_expiry",
+              expiryTime.toString()
+            );
           }
-          
+
           const retryHeaders = new Headers(options.headers);
           retryHeaders.set("Authorization", `Bearer ${newToken}`);
           retryHeaders.set("Content-Type", "application/json");
-          
+
           const retryResponse = await fetch(`${API_URL}${endpoint}`, {
             ...options,
             headers: retryHeaders,
           });
-          
+
           if (retryResponse.ok) {
-            console.log("[api-client] Requisição refeita com sucesso após atualizar token");
+            console.log(
+              "[api-client] Requisição refeita com sucesso após atualizar token"
+            );
             return retryResponse;
           }
         } catch (retryError) {
-          console.error("[api-client] Erro ao tentar obter novo token:", retryError);
+          console.error(
+            "[api-client] Erro ao tentar obter novo token:",
+            retryError
+          );
         }
       }
     }
-    
+
     const errorData = await response
       .json()
       .catch(() => ({ message: "Erro desconhecido" }));
@@ -378,6 +387,67 @@ export async function fetchRelatorioById(
     }
     return null;
   }
+}
+
+/**
+ * Deleta uma foto por ID
+ */
+export async function deletePhoto(photoId: string): Promise<void> {
+  if (!photoId) throw new Error("photoId is required");
+  const response = await fetchBackend(`/api/v1/photos/${photoId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ message: "Erro" }));
+    throw new Error(err.message || "Erro ao deletar foto");
+  }
+}
+
+/**
+ * Deleta arquivo por URL caso não exista ID de photo
+ */
+export async function deletePhotoByUrl(url: string): Promise<void> {
+  if (!url) throw new Error("url is required");
+  const encoded = encodeURIComponent(url);
+  const response = await fetchBackend(`/api/v1/photos?url=${encoded}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ message: "Erro" }));
+    throw new Error(err.message || "Erro ao deletar foto por URL");
+  }
+}
+
+/**
+ * Baixar PDF do formulário
+ */
+export async function downloadFormPdf(formId: string): Promise<Blob> {
+  if (!formId) throw new Error("formId is required");
+  const response = await fetchBackend(`/api/v1/forms/${formId}/pdf`, {
+    method: "GET",
+    headers: {
+      Accept: "application/pdf",
+    },
+  });
+  const blob = await response.blob();
+  return blob;
+}
+
+/**
+ * Atualiza formulário por ID
+ */
+export async function updateForm(formId: string, updates: any): Promise<any> {
+  if (!formId) throw new Error("formId is required");
+  const response = await fetchBackend(`/api/v1/forms/${formId}`, {
+    method: "PUT",
+    body: JSON.stringify(updates),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ message: "Erro" }));
+    throw new Error(err.message || "Erro ao atualizar formulário");
+  }
+  const data = await response.json();
+  return data.data || data;
 }
 
 // ==================== API: UPLOAD ====================
