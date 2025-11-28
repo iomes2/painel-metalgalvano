@@ -2,7 +2,7 @@ name: CI/CD - Deploy to Google Cloud (Cloud Run & Artifact Registry)
 
 on:
   push:
-    branches: [main, dev]
+    branches: [master]
     paths:
       - "frontend/**"
       - "backend/**"
@@ -46,6 +46,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Debug - Branch
+        run: echo "Triggered by ${GITHUB_REF} / ${GITHUB_SHA}"
 
       - name: Configure GCP credentials
         uses: google-github-actions/auth@v1
@@ -116,7 +119,8 @@ jobs:
             FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}
 
       - name: Run Prisma migrations on Cloud Run Job (optional)
-        if: ${{ env.RUN_PRISMA_MIGRATIONS == 'true' }}
+        # Only run migrations automatically on the production branch
+        if: ${{ github.ref == 'refs/heads/master' && env.RUN_PRISMA_MIGRATIONS == 'true' }}
         run: |
           # Create and run a Cloud Run Job that executes `npx prisma migrate deploy` with the built image
           if gcloud run jobs describe painel-backend-migrate --project=${{ env.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} >/dev/null 2>&1; then
@@ -136,6 +140,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Debug - Branch
+        run: echo "Triggered by ${GITHUB_REF} / ${GITHUB_SHA}"
 
       - name: Authenticate with GCP
         uses: google-github-actions/auth@v1

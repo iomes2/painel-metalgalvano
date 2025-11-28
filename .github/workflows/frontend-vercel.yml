@@ -1,10 +1,9 @@
 name: Deploy Frontend to Vercel
 
 on:
-    push:
-        branches:
-            - main
-            - dev
+  push:
+    branches:
+      - master
 
 jobs:
     build-and-deploy:
@@ -21,6 +20,9 @@ jobs:
             - name: Install dependencies
               run: npm ci
               working-directory: ./frontend
+
+            - name: Debug - Branch
+              run: echo "Triggered by ${GITHUB_REF} / ${GITHUB_SHA}"
 
             - name: Build
               run: npm run build

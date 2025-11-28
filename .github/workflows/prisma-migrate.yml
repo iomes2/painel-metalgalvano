@@ -3,12 +3,15 @@ name: Prisma Migrations (deploy)
 on:
     workflow_dispatch:
     push:
-        branches: [main]
+        branches: [master]
 
 jobs:
     migrate-remote:
         runs-on: ubuntu-latest
         steps:
+            - name: Debug - Branch
+              run: echo "Triggered by ${GITHUB_REF} / ${GITHUB_SHA}"
+
             - name: Run migrations on remote server via SSH
               uses: appleboy/ssh-action@master
               with:
