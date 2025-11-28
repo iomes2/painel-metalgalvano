@@ -40,7 +40,7 @@ jobs:
     env:
       RUN_PRISMA_MIGRATIONS: ${{ secrets.RUN_PRISMA_MIGRATIONS }}
       REGISTRY: ${{ secrets.ARTIFACT_REGISTRY_HOST }}
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT }}
+      GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
       GCP_BACKEND_REPOSITORY: ${{ secrets.GCP_BACKEND_REPOSITORY }}
       GCP_REGION: ${{ secrets.GCP_REGION }}
     steps:
@@ -64,17 +64,17 @@ jobs:
           file: ./backend/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ env.REGISTRY }}/$GCP_PROJECT/$GCP_BACKEND_REPOSITORY/painel-backend:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.GCP_PROJECT }}/${{ env.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }}
         env:
           REGISTRY: "${{ secrets.ARTIFACT_REGISTRY_HOST }}"
-          GCP_PROJECT_ID: "${{ secrets.GCP_PROJECT }}"
+          GCP_PROJECT: "${{ secrets.GCP_PROJECT }}"
           GCP_BACKEND_REPOSITORY: "${{ secrets.GCP_BACKEND_REPOSITORY }}"
 
       - name: Deploy to Cloud Run (backend)
         uses: google-github-actions/deploy-cloudrun@v0
         with:
           service: painel-backend
-          image: ${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }}
+          image: ${{ env.REGISTRY }}/${{ env.GCP_PROJECT }}/${{ env.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }}
           region: ${{ secrets.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT }}
           # allow-unauthenticated intentionally omitted; set access via IAM or Cloud Run settings
@@ -91,16 +91,16 @@ jobs:
         if: ${{ env.RUN_PRISMA_MIGRATIONS == 'true' }}
         run: |
           # Create and run a Cloud Run Job that executes `npx prisma migrate deploy` with the built image
-          if gcloud run jobs describe painel-backend-migrate --project=${{ secrets.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} >/dev/null 2>&1; then
+          if gcloud run jobs describe painel-backend-migrate --project=${{ env.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} >/dev/null 2>&1; then
             echo 'Job exists, replacing';
-            gcloud run jobs replace --image=${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }} painel-backend-migrate --project=${{ secrets.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} --set-env-vars DATABASE_URL=${{ secrets.DATABASE_URL }} --command "npx" --args "prisma,migrate,deploy"
+            gcloud run jobs replace --image=${{ env.REGISTRY }}/${{ env.GCP_PROJECT }}/${{ env.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }} painel-backend-migrate --project=${{ env.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} --set-env-vars DATABASE_URL=${{ secrets.DATABASE_URL }} --command "npx" --args "prisma,migrate,deploy"
           else
             echo 'Job not found, creating';
-            gcloud run jobs create painel-backend-migrate --image=${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }} --project=${{ secrets.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} --set-env-vars DATABASE_URL=${{ secrets.DATABASE_URL }} --command "npx" --args "prisma,migrate,deploy"
+            gcloud run jobs create painel-backend-migrate --image=${{ env.REGISTRY }}/${{ env.GCP_PROJECT }}/${{ env.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }} --project=${{ env.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} --set-env-vars DATABASE_URL=${{ secrets.DATABASE_URL }} --command "npx" --args "prisma,migrate,deploy"
           fi
 
           # Execute and wait for the job to finish
-          gcloud run jobs execute painel-backend-migrate --project=${{ secrets.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} --wait
+          gcloud run jobs execute painel-backend-migrate --project=${{ env.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} --wait
 
   # Optional: Runner-based migrations (use when you prefer running migrations from Actions runner)
   migrate-runner:
@@ -139,6 +139,11 @@ jobs:
     defaults:
       run:
         working-directory: ./frontend
+    env:
+      REGISTRY: ${{ secrets.ARTIFACT_REGISTRY_HOST }}
+      GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+      GCP_FRONTEND_REPOSITORY: ${{ secrets.GCP_FRONTEND_REPOSITORY }}
+      GCP_REGION: ${{ secrets.GCP_REGION }}
 
     steps:
       - name: Checkout code
@@ -168,7 +173,7 @@ jobs:
           file: ./frontend/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_FRONTEND_REPOSITORY }}/painel-frontend:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.GCP_PROJECT }}/${{ env.GCP_FRONTEND_REPOSITORY }}/painel-frontend:${{ github.sha }}
         env:
           REGISTRY: "${{ secrets.ARTIFACT_REGISTRY_HOST }}"
 
@@ -176,7 +181,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v0
         with:
           service: painel-frontend
-          image: ${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_FRONTEND_REPOSITORY }}/painel-frontend:${{ github.sha }}
+          image: ${{ env.REGISTRY }}/${{ env.GCP_PROJECT }}/${{ env.GCP_FRONTEND_REPOSITORY }}/painel-frontend:${{ github.sha }}
           region: ${{ secrets.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT }}
           # allow-unauthenticated intentionally omitted; set access via IAM or Cloud Run settings
