@@ -64,7 +64,7 @@ jobs:
           file: ./backend/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ env.REGISTRY }}/$GCP_PROJECT_ID/$GCP_BACKEND_REPOSITORY/painel-backend:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/$GCP_PROJECT/$GCP_BACKEND_REPOSITORY/painel-backend:${{ github.sha }}
         env:
           REGISTRY: "${{ secrets.ARTIFACT_REGISTRY_HOST }}"
           GCP_PROJECT_ID: "${{ secrets.GCP_PROJECT }}"
