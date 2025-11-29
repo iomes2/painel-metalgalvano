@@ -14,7 +14,17 @@ const initializeFirebaseAdmin = () => {
   }
 
   const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
-  const privateKey = privateKeyRaw?.replace(/\\n/g, "\n");
+  
+  // Tratamento robusto para a chave privada
+  let privateKey = privateKeyRaw;
+  if (privateKey) {
+    // Se estiver entre aspas duplas (comum em env vars), remove
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+      privateKey = privateKey.slice(1, -1);
+    }
+    // Substitui \n literais por quebras de linha reais
+    privateKey = privateKey.replace(/\\n/g, "\n");
+  }
 
   // Se todas as variáveis de env estiverem presentes, inicializamos com o JSON do service account
   if (
