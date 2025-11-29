@@ -84,19 +84,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: SUPER DEBUG - Verificar Configurações (Backend)
-        run: |
-          echo "=== Variaveis de Ambiente ==="
-          echo "GCP_PROJECT: ${{ secrets.GCP_PROJECT }}"
-          echo "GCP_REGION: ${{ secrets.GCP_REGION }}"
-          echo "REGISTRY: ${{ secrets.ARTIFACT_REGISTRY_HOST }}"
-          echo "REPO_BACKEND: ${{ secrets.GCP_BACKEND_REPOSITORY }}"
-          
-          echo "=== Teste de Acesso ao Registry ==="
-          gcloud artifacts docker images list ${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_BACKEND_REPOSITORY }} --include-tags || echo "FALHA AO LISTAR IMAGENS"
-          
-          echo "=== Teste de Autenticação Docker ==="
-          cat ~/.docker/config.json || echo "Arquivo config.json do docker não encontrado"
 
       - name: Build and push backend container
         id: build-backend
@@ -119,6 +106,7 @@ jobs:
           image: ${{ env.REGISTRY }}/${{ env.GCP_PROJECT }}/${{ env.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }}
           region: ${{ secrets.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT }}
+          flags: '--add-cloudsql-instances=${{ secrets.CLOUD_SQL_CONNECTION_NAME }}'
           # allow-unauthenticated intentionally omitted; set access via IAM or Cloud Run settings
           env_vars: |-
             NODE_ENV=production
@@ -251,16 +239,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: SUPER DEBUG - Verificar Configurações (Frontend)
-        run: |
-          echo "=== Variaveis de Ambiente ==="
-          echo "GCP_PROJECT: ${{ secrets.GCP_PROJECT }}"
-          echo "GCP_REGION: ${{ secrets.GCP_REGION }}"
-          echo "REGISTRY: ${{ secrets.ARTIFACT_REGISTRY_HOST }}"
-          echo "REPO_FRONTEND: ${{ secrets.GCP_FRONTEND_REPOSITORY }}"
-          
-          echo "=== Teste de Acesso ao Registry ==="
-          gcloud artifacts docker images list ${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_FRONTEND_REPOSITORY }} --include-tags || echo "FALHA AO LISTAR IMAGENS"
 
       - name: Install dependencies
         run: npm ci
