@@ -17,45 +17,29 @@ const initializeFirebaseAdmin = () => {
   
   // Tratamento robusto para a chave privada
   let privateKey = privateKeyRaw;
-  
-  console.log("DEBUG: Iniciando processamento da chave privada");
-  console.log(`DEBUG: Chave original recebida? ${!!privateKeyRaw}`);
-  if (privateKeyRaw) console.log(`DEBUG: Tamanho original: ${privateKeyRaw.length}`);
 
   if (privateKey) {
     // Se estiver entre aspas duplas (comum em env vars), remove
     if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-      console.log("DEBUG: Removendo aspas duplas externas");
       privateKey = privateKey.slice(1, -1);
     }
 
     // Tenta decodificar Base64 se não parecer uma chave PEM padrão
     if (!privateKey.includes("-----BEGIN PRIVATE KEY-----")) {
-        console.log("DEBUG: Chave não parece PEM, tentando decodificar Base64...");
         try {
             const decoded = Buffer.from(privateKey, 'base64').toString('utf-8');
             if (decoded.includes("-----BEGIN PRIVATE KEY-----")) {
-                console.log("DEBUG: Sucesso! Base64 decodificado para PEM válido.");
                 privateKey = decoded;
-            } else {
-                console.log("DEBUG: Falha. Decodificação Base64 não resultou em PEM válido.");
-                console.log(`DEBUG: Início do conteúdo decodificado: ${decoded.substring(0, 20)}...`);
             }
         } catch (e) {
-            console.log("DEBUG: Erro ao tentar decodificar Base64:", e);
+            // Falha silenciosa
         }
-    } else {
-        console.log("DEBUG: Chave já parece estar em formato PEM (contém header).");
     }
 
     // Substitui \n literais por quebras de linha reais
     if (privateKey.includes("\\n")) {
-        console.log("DEBUG: Substituindo \\n literais por quebras de linha reais.");
         privateKey = privateKey.replace(/\\n/g, "\n");
     }
-    
-    console.log(`DEBUG: Tamanho final da chave: ${privateKey.length}`);
-    console.log(`DEBUG: Início da chave final: ${privateKey.substring(0, 30)}...`);
   }
 
   // Se todas as variáveis de env estiverem presentes, inicializamos com o JSON do service account
