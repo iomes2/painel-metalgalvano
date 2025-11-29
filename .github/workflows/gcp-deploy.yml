@@ -105,7 +105,9 @@ jobs:
             FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}
 
       - name: Run Prisma migrations on Cloud Run Job (optional)
-        if: ${{ secrets.RUN_PRISMA_MIGRATIONS == 'true' }}
+        env:
+          RUN_PRISMA_MIGRATIONS: ${{ secrets.RUN_PRISMA_MIGRATIONS }}
+        if: ${{ env.RUN_PRISMA_MIGRATIONS == 'true' }}
         run: |
           # Create and run a Cloud Run Job that executes `npx prisma migrate deploy` with the built image
           if gcloud run jobs describe painel-backend-migrate --project=${{ secrets.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} >/dev/null 2>&1; then
