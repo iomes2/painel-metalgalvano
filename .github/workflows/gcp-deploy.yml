@@ -94,6 +94,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.GCP_PROJECT }}/${{ env.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
         env:
           REGISTRY: "${{ secrets.ARTIFACT_REGISTRY_HOST }}"
           GCP_PROJECT: "${{ secrets.GCP_PROJECT }}"
@@ -225,12 +227,6 @@ jobs:
         run: |
           gcloud auth configure-docker --quiet $REGISTRY
 
-      - name: Setup Node.js (cache npm)
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-
       - name: Docker login (Artifact Registry)
         run: |
           gcloud auth configure-docker --quiet $REGISTRY
@@ -238,15 +234,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build frontend
-        run: npm run build
-        env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
 
       # Option A: Deploy as container to Cloud Run
       - name: Build & push frontend container (Cloud Run)
