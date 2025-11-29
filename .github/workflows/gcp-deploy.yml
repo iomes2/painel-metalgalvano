@@ -112,10 +112,10 @@ jobs:
           # Create and run a Cloud Run Job that executes `npx prisma migrate deploy` with the built image
           if gcloud run jobs describe painel-backend-migrate --project=${{ secrets.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} >/dev/null 2>&1; then
             echo 'Job exists, replacing';
-            gcloud run jobs replace --image=${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }} painel-backend-migrate --project=${{ secrets.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} --set-env-vars DATABASE_URL=${{ secrets.DATABASE_URL }} --command "npx" --args "prisma,migrate,deploy"
+            gcloud run jobs replace --image=${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }} painel-backend-migrate --project=${{ secrets.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} --set-env-vars DATABASE_URL=${{ secrets.DATABASE_URL }} --add-cloudsql-instances=${{ secrets.CLOUD_SQL_CONNECTION_NAME }} --command "npx" --args "prisma,migrate,deploy"
           else
             echo 'Job not found, creating';
-            gcloud run jobs create painel-backend-migrate --image=${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }} --project=${{ secrets.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} --set-env-vars DATABASE_URL=${{ secrets.DATABASE_URL }} --command "npx" --args "prisma,migrate,deploy"
+            gcloud run jobs create painel-backend-migrate --image=${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }} --project=${{ secrets.GCP_PROJECT }} --region=${{ secrets.GCP_REGION }} --set-env-vars DATABASE_URL=${{ secrets.DATABASE_URL }} --add-cloudsql-instances=${{ secrets.CLOUD_SQL_CONNECTION_NAME }} --command "npx" --args "prisma,migrate,deploy"
           fi
 
           # Execute and wait for the job to finish
