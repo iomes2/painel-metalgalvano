@@ -47,6 +47,6 @@ RUN npm install --omit=dev --legacy-peer-deps --no-audit --no-fund
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 
-EXPOSE 3001
+EXPOSE 8080
 
 CMD ["npm", "start"]
