@@ -113,7 +113,7 @@ jobs:
           GCP_BACKEND_REPOSITORY: "${{ secrets.GCP_BACKEND_REPOSITORY }}"
 
       - name: Deploy to Cloud Run (backend)
-        uses: google-github-actions/deploy-cloudrun@v0
+        uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: painel-backend
           image: ${{ env.REGISTRY }}/${{ env.GCP_PROJECT }}/${{ env.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }}
@@ -122,7 +122,6 @@ jobs:
           # allow-unauthenticated intentionally omitted; set access via IAM or Cloud Run settings
           env_vars: |-
             NODE_ENV=production
-            PORT=3001
             DATABASE_URL=${{ secrets.DATABASE_URL }}
             FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
             FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
@@ -291,7 +290,7 @@ jobs:
           REGISTRY: "${{ secrets.ARTIFACT_REGISTRY_HOST }}"
 
       - name: Deploy to Cloud Run (frontend)
-        uses: google-github-actions/deploy-cloudrun@v0
+        uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: painel-frontend
           image: ${{ env.REGISTRY }}/${{ env.GCP_PROJECT }}/${{ env.GCP_FRONTEND_REPOSITORY }}/painel-frontend:${{ github.sha }}
