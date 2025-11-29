@@ -22,6 +22,19 @@ const initializeFirebaseAdmin = () => {
     if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
       privateKey = privateKey.slice(1, -1);
     }
+
+    // Tenta decodificar Base64 se não parecer uma chave PEM padrão
+    if (!privateKey.includes("-----BEGIN PRIVATE KEY-----")) {
+        try {
+            const decoded = Buffer.from(privateKey, 'base64').toString('utf-8');
+            if (decoded.includes("-----BEGIN PRIVATE KEY-----")) {
+                privateKey = decoded;
+            }
+        } catch (e) {
+            // Falha silenciosa, tenta processar como string normal
+        }
+    }
+
     // Substitui \n literais por quebras de linha reais
     privateKey = privateKey.replace(/\\n/g, "\n");
   }
