@@ -97,8 +97,50 @@ export const authenticateFirebase = async (
         }
       }
 
+      // Se não encontrou para migração, CRIA um novo usuário (Auto-cadastro)
+      if (decodedToken.email) {
+        logger.info(`Usuário novo detectado: ${decodedToken.email}. Criando cadastro automático...`);
+
+        try {
+          const newUser = await prisma.user.create({
+            data: {
+              firebaseUid: decodedToken.uid,
+              email: decodedToken.email,
+              name: decodedToken.email.split('@')[0], // Usa a parte antes do @ como nome inicial
+              role: 'MANAGER', // Define como Gerente por padrão
+              isActive: true
+            }
+          });
+
+          logger.info(`Usuário criado com sucesso: ${newUser.id}`);
+
+          req.user = {
+            uid: newUser.firebaseUid,
+            email: newUser.email,
+            userId: newUser.id,
+            role: newUser.role,
+          };
+
+          // Atualizar último login
+          await prisma.user.update({
+            where: { id: newUser.id },
+            data: { lastLoginAt: new Date() },
+          });
+
+          next();
+          return;
+        } catch (createError: any) {
+          logger.error(`Erro ao criar usuário automático: ${createError.message}`);
+          res.status(500).json({
+            success: false,
+            message: "Erro ao criar cadastro do usuário",
+          });
+          return;
+        }
+      }
+
       logger.warn(
-        `Usuário não encontrado no banco: Firebase UID ${decodedToken.uid}`
+        `Usuário não encontrado no banco e sem email para cadastro: Firebase UID ${decodedToken.uid}`
       );
       res.status(403).json({
         success: false,
