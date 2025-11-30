@@ -114,6 +114,7 @@ jobs:
             || gcloud run jobs create painel-backend-migrate \
             --region ${{ secrets.GCP_REGION }} \
             --image ${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }} \
+            --set-cloudsql-instances ${{ secrets.CLOUD_SQL_CONNECTION_NAME }} \
             --set-env-vars CLOUD_SQL_CONNECTION_NAME=${{ secrets.CLOUD_SQL_CONNECTION_NAME }} \
             --set-env-vars DATABASE_URL="${{ secrets.DATABASE_URL }}" \
             --max-retries 0
