@@ -82,6 +82,49 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Deploy to Cloud Run (backend)
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: painel-backend
+          image: ${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }}
+          region: ${{ secrets.GCP_REGION }}
+          project_id: ${{ secrets.GCP_PROJECT }}
+          env_vars: |-
+            NODE_ENV=production
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
+            FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
+            FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
+            FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}
+
+      - name: Run Prisma migrations on Cloud Run Job
+        run: |
+          echo "Updating/Creating Cloud Run Job for migrations..."
+          gcloud run jobs update painel-backend-migrate \
+            --region ${{ secrets.GCP_REGION }} \
+            --image ${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }} \
+            --set-env-vars CLOUD_SQL_CONNECTION_NAME=${{ secrets.CLOUD_SQL_CONNECTION_NAME }} \
+            --set-env-vars DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            || gcloud run jobs create painel-backend-migrate \
+            --region ${{ secrets.GCP_REGION }} \
+            --image ${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }} \
+            --set-env-vars CLOUD_SQL_CONNECTION_NAME=${{ secrets.CLOUD_SQL_CONNECTION_NAME }} \
+            --set-env-vars DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            --max-retries 0
+
+          echo "Executing migration job..."
+          gcloud run jobs execute painel-backend-migrate --region ${{ secrets.GCP_REGION }} --wait
+
+  # =================================================================================================
+  # FRONTEND JOBS
+  # =================================================================================================
+
   build-frontend:
     needs: detect-changes
     if: needs.detect-changes.outputs.frontend == 'true'
