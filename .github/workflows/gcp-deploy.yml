@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Debug - Check lockfile & environment
         run: |
@@ -26,11 +28,14 @@ jobs:
           git status --porcelain
           echo "Node: $(node -v), npm: $(npm -v)"
           ls -la backend/package-lock.json || true
+          ls -la backend/package.json || true
           head -n 15 backend/package-lock.json || true
+          head -n 15 backend/package.json || true
           grep -n '"protobufjs"' backend/package-lock.json || true
           grep -n '"markdown-it"' backend/package-lock.json || true
-        with:
-          fetch-depth: 2
+          echo "Checking frontend package files"
+          ls -la frontend/package-lock.json || true
+          ls -la frontend/package.json || true
 
       - name: Detect changes
         id: filter
@@ -83,6 +88,12 @@ jobs:
           printf '%s' "${{ secrets.GCP_SA_KEY }}" | docker login -u _json_key --password-stdin $REGISTRY
           echo "Docker login OK"
           docker logout $REGISTRY || true
+          
+      - name: Debug - Check package files (backend)
+        run: |
+          ls -la backend/package.json || true
+          ls -la backend/package-lock.json || true
+          head -n 20 backend/package.json || true
 
       - name: Debug - detect-changes outputs
         run: |
@@ -248,6 +259,12 @@ jobs:
           echo "Docker login OK"
           docker logout $REGISTRY || true
 
+      - name: Debug - Check package files (frontend)
+        run: |
+          ls -la frontend/package.json || true
+          ls -la frontend/package-lock.json || true
+          head -n 20 frontend/package.json || true
+
       - name: Debug - detect-changes outputs
         run: |
           echo "detect-changes outputs: backend=${{ needs.detect-changes.outputs.backend }} frontend=${{ needs.detect-changes.outputs.frontend }}"
@@ -273,21 +290,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Install dependencies
-        run: |
-          set -e
-          echo "Installing frontend dependencies (preferring npm ci)..."
-          if npm ci --prefer-offline --no-audit --no-fund; then
-            echo "npm ci succeeded"
-          else
-            echo "npm ci failed; running npm install as fallback"
-            npm install --no-audit --no-fund
-          fi
 
-      - name: Build frontend
-        run: npm run build
-        env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
 
       # Option A: Deploy as container to Cloud Run
       - name: Build & push frontend container (Cloud Run)

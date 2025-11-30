@@ -24,7 +24,7 @@
     "prisma",
     "firebase"
   ],
-  "author": "Renan Iomes",
+  "author": "iomes2",
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^5.22.0",
