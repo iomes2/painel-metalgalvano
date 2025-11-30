@@ -19,34 +19,39 @@ const firebaseConfig: FirebaseOptions = {
 const requiredEnvVars: (keyof FirebaseOptions)[] = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
 const missingEnvVars = requiredEnvVars.filter(key => !firebaseConfig[key]);
 
+// Initialize Firebase variables
+let app: any;
+let auth: any;
+let storage: any;
+let db: any;
+
 if (missingEnvVars.length > 0) {
-  const message = `As seguintes variáveis de ambiente do Firebase não foram definidas no seu arquivo .env.local (ou similar):\n${missingEnvVars.map(key => `NEXT_PUBLIC_${key.toUpperCase().replace(/([A-Z])/g, '_$1')}`).join('\n')}\n\nPor favor, adicione-as para continuar. Veja src/lib/firebase.ts para mais detalhes.`;
-  if (typeof window !== 'undefined') {
-    // No cliente, podemos mostrar um alerta ou logar no console
-    console.error(message);
-    // Você pode querer lançar um erro aqui ou ter um UI de fallback
-    // throw new Error(message); // Descomente se quiser que o app quebre explicitamente
+  const message = `As seguintes variáveis de ambiente do Firebase não foram definidas:\n${missingEnvVars.map(key => `NEXT_PUBLIC_${key.toUpperCase().replace(/([A-Z])/g, '_$1')}`).join('\n')}`;
+  
+  if (typeof window === 'undefined') {
+    console.warn("Build time: Firebase config missing. Skipping initialization to allow build to proceed.");
+    // Mock objects for build time to prevent crashes
+    app = {} as any;
+    auth = {} as any;
+    storage = {} as any;
+    db = {} as any;
   } else {
-    // No servidor, logar e possivelmente lançar um erro é apropriado
     console.error(message);
-    // throw new Error(message); // Descomente se quiser que o build/server start falhe
+    throw new Error(message);
   }
-  // Se não lançarmos um erro, o app pode tentar inicializar com config incompleta.
-  // Dependendo da sua estratégia de erro, você pode querer um comportamento diferente aqui.
+} else {
+  // Initialize Firebase only if config is valid
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  auth = getAuth(app);
+  storage = getStorage(app);
+  db = getFirestore(app);
+
+  // Configurar persistência do Firebase Auth para usar localStorage
+  if (typeof window !== 'undefined') {
+    setPersistence(auth, browserLocalPersistence).catch((error) => {
+      console.error("Erro ao configurar persistência do Firebase Auth:", error);
+    });
+  }
 }
 
-
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const storage = getStorage(app);
-const db = getFirestore(app); // Inicializando o Firestore
-
-// Configurar persistência do Firebase Auth para usar localStorage
-if (typeof window !== 'undefined') {
-  setPersistence(auth, browserLocalPersistence).catch((error) => {
-    console.error("Erro ao configurar persistência do Firebase Auth:", error);
-  });
-}
-
-export { app, auth, storage, db, firebaseConfig }; // Exporte db e firebaseConfig se precisar deles em outros lugares
+export { app, auth, storage, db, firebaseConfig };
