@@ -101,9 +101,8 @@ jobs:
             DATABASE_URL=${{ secrets.DATABASE_URL }}
             FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
             FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
-            FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
+                        FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
             FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}
-            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
 
       - name: Run Prisma migrations on Cloud Run Job
         run: |
@@ -124,7 +123,6 @@ jobs:
           echo "Executing migration job..."
           gcloud run jobs execute painel-backend-migrate --region ${{ secrets.GCP_REGION }} --wait
 
-  # =================================================================================================
   # FRONTEND JOBS
   # =================================================================================================
 
