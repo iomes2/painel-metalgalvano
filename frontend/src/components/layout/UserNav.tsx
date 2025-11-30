@@ -60,7 +60,7 @@ export function UserNav() {
     const idPart = emailParts[0];
     const domainPart = emailParts.length > 1 ? emailParts[1] : "";
 
-    if (domainPart === 'metalgalvano.forms') {
+    if (domainPart === 'gmail.com') {
       // Use displayName if set, otherwise the id_gerente (idPart)
       primaryDisplayName = user.displayName || idPart; 
       secondaryInfoLine = `ID Gerente: ${idPart}`;

@@ -21,7 +21,7 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const constructEmail = (id: string) => `${id}@metalgalvano.forms`;
+  const constructEmail = (id: string) => `${id}@gmail.com`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

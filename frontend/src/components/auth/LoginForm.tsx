@@ -31,7 +31,7 @@ export function LoginForm() {
   // IMPORTANT: Ensure your Firebase project is configured to accept these kinds of emails,
   // or adjust your authentication strategy (e.g., custom claims, Firestore user lookup).
   // For this example, we assume id_gerente can be part of an email like id_gerente@metalgalvano.com
-  const constructEmail = (id: string) => `${id}@metalgalvano.forms`;
+  const constructEmail = (id: string) => `${id}@gmail.com`;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

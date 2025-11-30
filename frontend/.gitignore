@@ -50,7 +50,7 @@ dist/
 
 # Optional Gatsby files
 .cache/
-public/
+# public/
 
 # Optional Svelte files
 .svelte-kit/

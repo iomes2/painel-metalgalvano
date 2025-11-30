@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-package-lock.json
+
 yarn.lock
 pnpm-lock.yaml
 
@@ -37,5 +37,12 @@ coverage/
 .nyc_output/
 
 # Prisma
-prisma/migrations/*
-!prisma/migrations/.gitkeep
+
+
+# Service Account Keys
+metalgalvano-88706-0eb2189ad6f9.json
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+
