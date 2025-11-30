@@ -103,6 +103,7 @@ jobs:
             FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
             FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
             FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}
+            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
 
       - name: Run Prisma migrations on Cloud Run Job
         run: |
