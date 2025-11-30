@@ -92,6 +92,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: painel-backend
+          flags: '--allow-unauthenticated'
           image: ${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_BACKEND_REPOSITORY }}/painel-backend:${{ github.sha }}
           region: ${{ secrets.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT }}
@@ -193,7 +194,7 @@ jobs:
           image: ${{ secrets.ARTIFACT_REGISTRY_HOST }}/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_FRONTEND_REPOSITORY }}/painel-frontend:${{ github.sha }}
           region: ${{ secrets.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT }}
-          flags: '--memory 1Gi'
+          flags: '--memory 1Gi --allow-unauthenticated'
           env_vars: |-
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
             NEXT_PUBLIC_USE_BACKEND=${{ secrets.NEXT_PUBLIC_USE_BACKEND }}
