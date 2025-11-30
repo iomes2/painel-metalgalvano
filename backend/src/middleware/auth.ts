@@ -54,7 +54,49 @@ export const authenticateFirebase = async (
     });
 
     // Se o usuário não existe, retornar erro
+    // Se o usuário não existe pelo UID, tentar encontrar pelo email antigo (migração)
     if (!user) {
+      const email = decodedToken.email;
+      if (email && email.endsWith("@gmail.com")) {
+        const oldEmail = email.replace("@gmail.com", "@metalgalvano.forms");
+        logger.info(`Tentando encontrar usuário pelo email antigo: ${oldEmail}`);
+
+        const existingUser = await prisma.user.findUnique({
+          where: { email: oldEmail },
+        });
+
+        if (existingUser) {
+          logger.info(`Usuário encontrado para migração: ${existingUser.id}. Atualizando UID e Email...`);
+          
+          // Atualizar o usuário com o novo UID e novo Email
+          const updatedUser = await prisma.user.update({
+            where: { id: existingUser.id },
+            data: {
+              firebaseUid: decodedToken.uid,
+              email: email,
+            },
+          });
+          
+          // Usar o usuário atualizado
+          req.user = {
+            uid: updatedUser.firebaseUid,
+            email: updatedUser.email,
+            userId: updatedUser.id,
+            role: updatedUser.role,
+          };
+          
+          // Atualizar último login
+          await prisma.user.update({
+            where: { id: updatedUser.id },
+            data: { lastLoginAt: new Date() },
+          });
+
+          logger.info(`Migração concluída e autenticação bem-sucedida para: ${updatedUser.name}`);
+          next();
+          return;
+        }
+      }
+
       logger.warn(
         `Usuário não encontrado no banco: Firebase UID ${decodedToken.uid}`
       );
