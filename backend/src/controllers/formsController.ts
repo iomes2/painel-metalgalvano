@@ -27,7 +27,7 @@ export const createForm = catchAsync(async (req: Request, res: Response) => {
     userId,
   });
 
-  // Também gravar no Firestore (redundância)
+  // Também gravar no Firestore (redundância).
   try {
     const { submittedBy, submittedAt, gerenteId, originatingFormId } = req.body;
     const formDefinition = getFormDefinition(formType);
