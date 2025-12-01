@@ -7,15 +7,15 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-metalgalvano}
+      POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-metalgalvano}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - metalgalvano-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U metalgalvano"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,7 +32,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3001
-      DATABASE_URL: postgresql://${POSTGRES_USER:-metalgalvano}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-metalgalvano}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       # Adicione suas variáveis do Firebase aqui ou use .env
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
       FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
@@ -59,7 +59,7 @@ services:
     ports:
       - "5555:5555"
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-metalgalvano}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-metalgalvano}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     volumes:
       - .:/app
       - /app/node_modules
