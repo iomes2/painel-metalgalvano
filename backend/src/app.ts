@@ -1,4 +1,5 @@
 import express, { Application, Request, Response } from "express";
+import path from "path";
 import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
@@ -68,6 +69,9 @@ app.use((req: Request, _res: Response, next) => {
 });
 
 // ==================== ROTAS ====================
+
+// Rota de Cobertura de Testes (Apenas em Dev/Test ou protegida)
+app.use('/coverage', express.static(path.join(__dirname, '../coverage')));
 
 // Health check
 app.get("/health", (_req: Request, res: Response) => {

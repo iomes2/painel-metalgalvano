@@ -62,6 +62,19 @@ jobs:
       - name: Configure Docker
         run: gcloud auth configure-docker --quiet $REGISTRY
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Backend Tests
+        run: npm test -- --coverage
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -123,6 +136,7 @@ jobs:
           echo "Executing migration job..."
           gcloud run jobs execute painel-backend-migrate --region ${{ secrets.GCP_REGION }} --wait
 
+  # =================================================================================================
   # FRONTEND JOBS
   # =================================================================================================
 
@@ -149,6 +163,19 @@ jobs:
 
       - name: Configure Docker
         run: gcloud auth configure-docker --quiet $REGISTRY
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Frontend Tests
+        run: npm test -- --coverage
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
