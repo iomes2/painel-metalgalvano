@@ -1,0 +1,50 @@
+name: SonarQube Analysis
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  sonarcloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Backend Dependencies
+        run: npm install
+        working-directory: ./backend
+
+      - name: Test Backend & Coverage
+        run: npx jest --coverage
+        working-directory: ./backend
+
+      - name: Install Frontend Dependencies
+        run: npm install
+        working-directory: ./frontend
+
+      - name: Test Frontend & Coverage
+        run: npm test -- --coverage
+        working-directory: ./frontend
+
+      - name: Fix Coverage Paths
+        run: |
+          sed -i 's|SF:|SF:backend/|g' backend/coverage/lcov.info
+          sed -i 's|SF:|SF:frontend/|g' frontend/coverage/lcov.info
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

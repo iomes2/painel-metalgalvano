@@ -1,0 +1,59 @@
+
+> painel-metalgalvano-backend@1.0.0 test
+> jest src/tests/controllers/formsController.test.ts
+
+  console.log
+    createForm executing...
+
+      at src/controllers/formsController.ts:18:11
+
+FAIL src/tests/controllers/formsController.test.ts
+  FormsController
+    createForm
+      × should create a form and return 201 (28 ms)
+    listForms
+      √ should list forms (1 ms)
+    getFormById
+      × should return form details (1 ms)
+
+  ● FormsController › createForm › should create a form and return 201
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: 201
+
+    Number of calls: 0
+
+    [0m [90m 87 |[39m       expect(next)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 88 |[39m       expect([33mFormService[39m[33m.[39mprototype[33m.[39mcreateForm)[33m.[39mtoHaveBeenCalled()[33m;[39m
+    [31m[1m>[22m[39m[90m 89 |[39m       expect(mockStatus)[33m.[39mtoHaveBeenCalledWith([35m201[39m)[33m;[39m
+     [90m    |[39m                          [31m[1m^[22m[39m
+     [90m 90 |[39m       expect(mockJson)[33m.[39mtoHaveBeenCalledWith(expect[33m.[39mobjectContaining({ success[33m:[39m [36mtrue[39m }))[33m;[39m
+     [90m 91 |[39m     })[33m;[39m
+     [90m 92 |[39m   })[33m;[39m[0m
+
+      at Object.<anonymous> (src/tests/controllers/formsController.test.ts:89:26)
+
+  ● FormsController › getFormById › should return form details
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: ObjectContaining {"success": true}
+
+    Number of calls: 0
+
+    [0m [90m 122 |[39m
+     [90m 123 |[39m       expect(next)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+    [31m[1m>[22m[39m[90m 124 |[39m       expect(mockJson)[33m.[39mtoHaveBeenCalledWith(expect[33m.[39mobjectContaining({ success[33m:[39m [36mtrue[39m }))[33m;[39m
+     [90m     |[39m                        [31m[1m^[22m[39m
+     [90m 125 |[39m     })[33m;[39m
+     [90m 126 |[39m   })[33m;[39m
+     [90m 127 |[39m })[33m;[39m[0m
+
+      at Object.<anonymous> (src/tests/controllers/formsController.test.ts:124:24)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 1 passed, 3 total
+Snapshots:   0 total
+Time:        3.731 s
+Ran all test suites matching /src\\tests\\controllers\\formsController.test.ts/i.
