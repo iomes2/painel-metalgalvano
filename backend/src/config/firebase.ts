@@ -14,25 +14,65 @@ const initializeFirebaseAdmin = () => {
   }
 
   const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
-  const privateKey = privateKeyRaw?.replace(/\\n/g, "\n");
+  
+  // Tratamento robusto para a chave privada
+  let privateKey = privateKeyRaw;
 
-  // Se todas as variáveis de env estiverem presentes, inicializamos com o JSON do service account
+  if (privateKey) {
+    // Se estiver entre aspas duplas (comum em env vars), remove
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+      privateKey = privateKey.slice(1, -1);
+    }
+
+    // Tenta decodificar Base64 se não parecer uma chave PEM padrão
+    if (!privateKey.includes("-----BEGIN PRIVATE KEY-----")) {
+        try {
+            const decoded = Buffer.from(privateKey, 'base64').toString('utf-8');
+            if (decoded.includes("-----BEGIN PRIVATE KEY-----")) {
+                privateKey = decoded;
+            }
+        } catch (e) {
+            // Falha silenciosa
+        }
+    }
+
+    // Substitui \n literais por quebras de linha reais
+    if (privateKey.includes("\\n")) {
+        privateKey = privateKey.replace(/\\n/g, "\n");
+    }
+  }
+
+  // Se todas as variáveis de env estiverem presentes, tentamos inicializar com elas
   if (
     process.env.FIREBASE_PROJECT_ID &&
     privateKey &&
     process.env.FIREBASE_CLIENT_EMAIL
   ) {
-    return admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        privateKey: privateKey,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      }),
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-    });
+    try {
+        // Sanitização final: garante que a chave tenha o formato exato esperado
+        // Remove headers existentes para reconstruir limpo, se necessário, ou usa como está
+        let finalKey = privateKey.trim();
+        
+        // Se a chave não tiver os headers, adiciona (caso o decode do base64 tenha trazido só o corpo)
+        if (!finalKey.includes("-----BEGIN PRIVATE KEY-----")) {
+            finalKey = `-----BEGIN PRIVATE KEY-----\n${finalKey}\n-----END PRIVATE KEY-----`;
+        }
+
+        return admin.initializeApp({
+          credential: admin.credential.cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            privateKey: finalKey,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          }),
+          storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+        });
+    } catch (e) {
+        console.warn("Falha ao inicializar Firebase com credenciais explícitas (chave privada). Tentando ADC...", e);
+        // Não retorna aqui, deixa cair para o fallback de ADC abaixo
+    }
   }
 
-  // Caso contrário, tentamos inicializar com ADC (quando rodando no GCP todo o infra de credenciais é provido automaticamente)
+  // Caso contrário (ou se falhar acima), tentamos inicializar com ADC
   // Se não houver storageBucket, apenas inicializa sem atribuir o bucket
   const config = {} as any;
   if (process.env.FIREBASE_STORAGE_BUCKET) {
@@ -40,6 +80,7 @@ const initializeFirebaseAdmin = () => {
   }
 
   try {
+    console.log("Inicializando Firebase com Application Default Credentials (ADC)...");
     return admin.initializeApp(config);
   } catch (err) {
     // Mensagem amigável para ambientes locais sem credenciais

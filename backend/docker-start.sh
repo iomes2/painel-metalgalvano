@@ -23,7 +23,7 @@ echo ""
 # Verificar arquivo .env
 if [ ! -f .env ]; then
     echo "📝 Criando arquivo .env..."
-    cp .env.docker .env
+    cp .env.docker.example .env
     echo "⚠️  IMPORTANTE: Edite o arquivo .env com suas credenciais do Firebase!"
     echo ""
     read -p "Pressione Enter para continuar após editar o .env..."

@@ -432,6 +432,10 @@ export function DynamicFormRenderer({
 
       const result = await submitRelatorio(payload);
 
+      if (result.reportId) {
+        setSubmittedReportId(result.reportId);
+      }
+
       toast({
         title: "Sucesso!",
         description: osValue
@@ -546,22 +550,54 @@ export function DynamicFormRenderer({
 
   const IconComponent = getFormIcon(formDefinition.iconName);
 
+  const [submittedReportId, setSubmittedReportId] = useState<string | null>(null);
+
+  const handleDownloadPdf = async () => {
+    if (!submittedReportId) return;
+    
+    try {
+      toast({
+        title: "Gerando PDF...",
+        description: "O download iniciará em instantes.",
+      });
+
+      const { downloadFormPdf } = await import("@/lib/api-client");
+      const blob = await downloadFormPdf(submittedReportId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `relatorio-${formDefinition.id}-${submittedReportId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "PDF baixado",
+        description: "O arquivo foi salvo no seu dispositivo.",
+      });
+      
+      // Fechar modal e redirecionar após download
+      handleShareDialogCancel();
+    } catch (err: any) {
+      console.error("Erro ao baixar PDF:", err);
+      toast({
+        title: "Erro ao baixar PDF",
+        description: err.message || "Falha ao gerar o arquivo.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleShareDialogAction = () => {
-    toast({
-      title: "Compartilhar/Baixar PDF",
-      description:
-        "Funcionalidade de compartilhamento/download de PDF ainda não implementada.",
-    });
-    setIsShareDialogOpen(false);
-    setMainOriginatingFormId(null);
-    setCarryOverQueryParams({});
-    router.push("/dashboard");
+    handleDownloadPdf();
   };
 
   const handleShareDialogCancel = () => {
     setIsShareDialogOpen(false);
     setMainOriginatingFormId(null);
     setCarryOverQueryParams({});
+    setSubmittedReportId(null);
     router.push("/dashboard");
   };
 
@@ -846,12 +882,11 @@ export function DynamicFormRenderer({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Formulário Enviado e "PDF Gerado"!
+              Formulário Enviado com Sucesso!
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Seu formulário "{formDefinition.name}" foi salvo com sucesso. O
-              PDF foi "gerado" (simulação). Deseja compartilhá-lo ou baixá-lo
-              agora? (Esta funcionalidade ainda não está implementada).
+              Seu formulário "{formDefinition.name}" foi salvo.
+              Deseja baixar o PDF gerado agora?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -859,7 +894,7 @@ export function DynamicFormRenderer({
               Não, Voltar ao Início
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleShareDialogAction}>
-              Sim (Ação Indisponível)
+              Sim, Baixar PDF
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

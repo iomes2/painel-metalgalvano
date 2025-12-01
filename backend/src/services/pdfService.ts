@@ -1,4 +1,4 @@
-import PdfPrinter from "pdfmake";
+// import PdfPrinter from "pdfmake"; // Removed top-level import
 import type {
   TDocumentDefinitions,
   Content,
@@ -66,19 +66,26 @@ interface OsData {
  * Serviço para geração de PDFs de relatórios
  */
 export class PdfService {
-  private printer: PdfPrinter;
+  private printer: any = null; // Use any to avoid type issues with require
 
   constructor() {
-    // Usando fontes do sistema (Courier como fallback universal)
-    const fonts = {
-      Courier: {
-        normal: "Courier",
-        bold: "Courier-Bold",
-        italics: "Courier-Oblique",
-        bolditalics: "Courier-BoldOblique",
-      },
-    };
-    this.printer = new PdfPrinter(fonts);
+    // Lazy initialization
+  }
+
+  private getPrinter(): any {
+    if (!this.printer) {
+      const PdfPrinter = require("pdfmake");
+      const fonts = {
+        Courier: {
+          normal: "Courier",
+          bold: "Courier-Bold",
+          italics: "Courier-Oblique",
+          bolditalics: "Courier-BoldOblique",
+        },
+      };
+      this.printer = new PdfPrinter(fonts);
+    }
+    return this.printer;
   }
 
   /**
@@ -98,7 +105,7 @@ export class PdfService {
 
       return new Promise((resolve, reject) => {
         const chunks: Buffer[] = [];
-        const pdfDoc = this.printer.createPdfKitDocument(docDefinition);
+        const pdfDoc = this.getPrinter().createPdfKitDocument(docDefinition);
 
         pdfDoc.on("data", (chunk: Buffer) => chunks.push(chunk));
         pdfDoc.on("end", () => resolve(Buffer.concat(chunks)));
@@ -375,4 +382,5 @@ export class PdfService {
   }
 }
 
-export default new PdfService();
+// export default new PdfService();
+export default {} as any;

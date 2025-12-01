@@ -26,7 +26,7 @@ echo.
 REM Verificar arquivo .env
 if not exist .env (
     echo 📝 Criando arquivo .env...
-    copy .env.docker .env
+    copy .env.docker.example .env
     echo ⚠️  IMPORTANTE: Edite o arquivo .env com suas credenciais do Firebase!
     echo.
     pause

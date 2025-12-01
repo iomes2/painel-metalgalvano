@@ -1,21 +1,8 @@
 import { Request, Response } from "express";
 import { catchAsync } from "../middleware/errorHandler";
 import { AppError } from "../middleware/errorHandler";
-import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getStorage } from "firebase-admin/storage";
-import * as path from "path";
+import { storage } from "../config/firebase";
 
-// Inicializar Firebase Admin (se ainda não foi inicializado)
-if (getApps().length === 0) {
-  const serviceAccountPath = path.resolve(
-    __dirname,
-    "../../metalgalvano-88706-firebase-adminsdk-fbsvc-f3e15f9fbb.json"
-  );
-  initializeApp({
-    credential: cert(serviceAccountPath),
-    storageBucket: "metalgalvano-88706.firebasestorage.app",
-  });
-}
 
 /**
  * Controller para upload de arquivos
@@ -37,7 +24,7 @@ export const uploadFiles = catchAsync(async (req: Request, res: Response) => {
     );
   }
 
-  const bucket = getStorage().bucket();
+  const bucket = storage.bucket();
   const uploadedFiles: Array<{
     name: string;
     url: string;

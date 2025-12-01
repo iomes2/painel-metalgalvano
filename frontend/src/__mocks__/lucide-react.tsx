@@ -1,0 +1,26 @@
+import React from 'react';
+
+export const Eye = () => <div data-testid="icon-eye" />;
+export const EyeOff = () => <div data-testid="icon-eye-off" />;
+export const Building = () => <div data-testid="icon-building" />;
+export const Check = () => <div data-testid="icon-check" />;
+export const ChevronRight = () => <div data-testid="icon-chevron-right" />;
+export const ChevronLeft = () => <div data-testid="icon-chevron-left" />;
+export const Search = () => <div data-testid="icon-search" />;
+export const Filter = () => <div data-testid="icon-filter" />;
+export const Plus = () => <div data-testid="icon-plus" />;
+export const Trash = () => <div data-testid="icon-trash" />;
+export const Edit = () => <div data-testid="icon-edit" />;
+export const FileText = () => <div data-testid="icon-file-text" />;
+export const User = () => <div data-testid="icon-user" />;
+export const LogOut = () => <div data-testid="icon-log-out" />;
+export const Menu = () => <div data-testid="icon-menu" />;
+export const X = () => <div data-testid="icon-x" />;
+export const Upload = () => <div data-testid="icon-upload" />;
+export const Download = () => <div data-testid="icon-download" />;
+export const Calendar = () => <div data-testid="icon-calendar" />;
+export const Clock = () => <div data-testid="icon-clock" />;
+export const AlertTriangle = () => <div data-testid="icon-alert-triangle" />;
+export const CheckCircle = () => <div data-testid="icon-check-circle" />;
+export const XCircle = () => <div data-testid="icon-x-circle" />;
+export const Info = () => <div data-testid="icon-info" />;

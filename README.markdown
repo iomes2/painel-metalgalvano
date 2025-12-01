@@ -6,7 +6,7 @@
 - **Data de Entrega**: 30 de Novembro de 2025
 
 # Resumo
-Este documento apresenta o Request for Comments (RFC) para o desenvolvimento do sistema Painel Metalgalvano, uma aplicação web full-stack criada por Renan Iomes como Trabalho de Conclusão de Curso (TCC) do 7º semestre de Engenharia de Software. O sistema foi projetado para atender gerentes de obra da Metalgalvano, permitindo login seguro, preenchimento de múltiplos modelos de documentos (Cronograma, Diário de Obra, Checklists, etc.), upload de fotos, geração de relatórios em PDF, busca/filtro avançado e controle de acesso por níveis de usuário. A solução utiliza Next.js, TypeScript, Tailwind CSS no frontend; Node.js, Express.js, Prisma ORM e PostgreSQL no backend; e Firebase para autenticação e armazenamento de arquivos. Este RFC detalha os requisitos, design arquitetural (com diagramas C4), stack tecnológica, segurança, MVP e cronograma de execução.
+Este documento apresenta o Request for Comments (RFC) para o desenvolvimento do sistema Painel Metalgalvano, uma aplicação web full-stack criada por Renan Iomes como Trabalho de Conclusão de Curso (TCC) do 7º semestre de Engenharia de Software. O sistema foi projetado para atender gerentes de obra da Metalgalvano, permitindo login seguro, preenchimento de múltiplos modelos de documentos (Cronograma, Diário de Obra, Checklists, etc.), upload de fotos, geração de relatórios em PDF, busca/filtro avançado e controle de acesso por níveis de usuário. A solução utiliza **Next.js 15**, **TypeScript**, **Tailwind CSS** e **Shadcn/UI** no frontend; **Node.js**, **Express.js**, **Prisma ORM** e **PostgreSQL** no backend; e **Firebase** para autenticação e armazenamento de arquivos. Além disso, o projeto integra recursos de **Inteligência Artificial** (Google Gemini via Genkit) para otimização de processos. Este RFC detalha os requisitos, design arquitetural (com diagramas C4), stack tecnológica, segurança, MVP e cronograma de execução.
 
 ## 1. Introdução
 - **Contexto**: A Metalgalvano, empresa do setor de galvanização localizada em Araquari/Joinville, enfrenta desafios na gestão de documentos de obra devido a processos manuais e falta de centralização. O Painel Metalgalvano foi idealizado para digitalizar e agilizar essas tarefas, focando especificamente nos gerentes de obra.
@@ -53,6 +53,7 @@ Este documento apresenta o Request for Comments (RFC) para o desenvolvimento do 
     - RF17: O sistema deve oferecer tutorial interativo para novos usuários.
     - RF18: O sistema deve permitir personalização de modelos por administrador.
     - RF19: O sistema deve permitir agendamento de tarefas associadas às obras.
+    - RF20: O sistema deve utilizar Inteligência Artificial para auxiliar no preenchimento e correção de relatórios.
 
   - **Não-Funcionais (RNF)**:
     - RNF01: Carregamento de páginas em menos de 3 segundos.
@@ -88,8 +89,10 @@ Este documento apresenta o Request for Comments (RFC) para o desenvolvimento do 
   - **Código**: APIs RESTful + componentes React funcionais com hooks.
 
 ### 3.3. Stack Tecnológica
-- **Linguagens de Programação**: TypeScript (frontend), JavaScript ES6+ (backend).
-- **Frameworks e Bibliotecas**: Next.js, Tailwind CSS, Node.js, Express.js, Prisma ORM, Firebase SDK.
+- **Linguagens de Programação**: TypeScript (Frontend e Backend), JavaScript ES6+.
+- **Frontend**: Next.js 15 (App Router), React 18, Tailwind CSS, Shadcn/UI, TanStack Query, React Hook Form, Zod, Recharts, Lucide React.
+- **Backend**: Node.js, Express.js, Prisma ORM, Firebase Admin SDK, PDFMake, Puppeteer, Winston.
+- **Inteligência Artificial**: Google Genkit, Google Gemini 2.0 Flash.
 - **Ferramentas de Desenvolvimento e Gestão de Projeto**: Git, GitHub, VS Code, Draw.io/Structurizr (diagramas).
 
 ### 3.4. Considerações de Segurança
