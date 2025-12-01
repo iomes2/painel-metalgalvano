@@ -1,4 +1,4 @@
-import { PdfService } from '../../services/pdfService';
+
 
 // Mock pdfmake
 jest.mock('pdfmake', () => {
@@ -15,13 +15,13 @@ jest.mock('pdfmake', () => {
 });
 
 describe('PdfService', () => {
-  let pdfService: PdfService;
+
 
   beforeEach(() => {
     // Re-instantiate service to use the mock
     jest.isolateModules(() => {
-      const { PdfService } = require('../../services/pdfService');
-      pdfService = new PdfService();
+
+
     });
   });
 

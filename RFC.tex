@@ -1,0 +1,127 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{ragged2e}
+\usepackage{lmodern}
+\usepackage{float}
+\geometry{top=3cm, bottom=3cm, left=3cm, right=3cm}
+\setstretch{1.5}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+    \includegraphics[width=0.4\textwidth]{catolica.png}\\[2cm]
+    {\Large Centro Universitário Católica de Santa Catarina - Joinville}\\[0.5cm]
+    {\large Engenharia de Software}\\[3cm]
+    {\Large Renan Iomes}\\[3cm]
+    {\LARGE \textbf{Sistema Empresarial Painel Metalgalvano para Gerenciamento de Processos de Obras}}\\[0.3cm]
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% Adding the main content
+\section*{Resumo}
+Este documento apresenta o Request for Comments (RFC) para o desenvolvimento do sistema Painel Metalgalvano, uma aplicação web criada por Renan Iomes como Trabalho de Conclusão de Curso (TCC) do 7º semestre de Engenharia de Software. O sistema visa atender gerentes de obra da Metalgalvano, permitindo login seguro, seleção e preenchimento de até 20 modelos de documentos (ex.: Cronograma, Diário de Obra), upload de fotos e geração de PDFs. Utilizando \textbf{Next.js 15}, \textbf{TypeScript}, \textbf{Tailwind CSS}, \textbf{Shadcn/UI}, \textbf{Node.js}, \textbf{Express.js}, \textbf{PostgreSQL} (com Prisma ORM) e \textbf{Firebase} (para autenticação e armazenamento), o projeto otimiza a gestão de documentos e imagens das obras. Além disso, integra recursos de \textbf{Inteligência Artificial} (Google Gemini via Genkit) para otimização de processos. Este RFC detalha os requisitos, o design, a stack tecnológica, as considerações de segurança e o cronograma de execução.
+
+\section{Introdução}
+\textbf{Contexto}: A Metalgalvano, empresa do setor de galvanização em Araquari/Joinville, enfrenta desafios na gestão de documentos de obra devido a processos manuais e falta de centralização. O Painel Metalgalvano foi idealizado para digitalizar e agilizar essas tarefas, focando especificamente nos gerentes de obra. \\
+\textbf{Justificativa}: A automação de documentos e o uso de uma aplicação web com backend robusto são relevantes para a Engenharia de Software, pois promovem eficiência, escalabilidade e integração de dados em tempo real, atendendo às demandas do setor de construção. \\
+\textbf{Objetivos}: \\
+\begin{itemize}
+    \item \textbf{Principal}: Desenvolver um painel web para gerenciar documentos e imagens de obras da Metalgalvano.
+    \item \textbf{Secundários}:
+    \begin{itemize}
+        \item Criar uma interface intuitiva e responsiva com Next.js e Tailwind CSS.
+        \item Garantir segurança nos dados por meio de autenticação via Firebase Authentication e banco PostgreSQL.
+        \item Facilitar a geração de relatórios em PDF personalizados.
+        \item Permitir filtragem e organização de documentos por obra.
+        \item Estabelecer controle de acesso por nível de usuário (ex: editor, visualizador).
+    \end{itemize}
+\end{itemize}
+
+\section{Descrição do Projeto}
+\textbf{Tema do Projeto}: O Painel Metalgalvano é um sistema web que permite a gerentes de obra gerenciar documentos, fazer upload de fotos e gerar relatórios em PDF, utilizando Node.js/Express.js com PostgreSQL para backend e Firebase para autenticação e armazenamento de arquivos. \\
+\textbf{Problemas a Resolver}: 
+\begin{itemize}
+    \item Falta de centralização dos documentos de obra.
+    \item Processos manuais e lentos para geração de relatórios.
+    \item Dificuldade em acompanhar visualmente o progresso das obras.
+\end{itemize}
+\textbf{Limitações}: 
+\begin{itemize}
+    \item O sistema não incluirá o gerenciamento de processos de produção ou estoque.
+    \item Integrações com sistemas legados não fazem parte da fase inicial.
+\end{itemize}
+
+\section{Especificação Técnica}
+\subsection{Requisitos de Software}
+
+\textbf{Lista de Requisitos}: 
+
+\begin{itemize}
+    \item \textbf{Funcionais (RF)}:
+    \begin{itemize}
+        \item \textbf{RF01}: O sistema deve permitir que o usuário faça login com e-mail e senha.
+        \item \textbf{RF02}: O sistema deve disponibilizar, no mínimo, cinco modelos de documentos editáveis, como Cronograma, Diário de Obra, Checklists, Relatório Fotográfico e Medições.
+        \item \textbf{RF03}: O sistema deve permitir upload de fotos para anexar aos relatórios de obra.
+        \item \textbf{RF04}: O sistema deve gerar relatórios com os dados preenchidos pelos usuários.
+        \item \textbf{RF05}: O sistema deve permitir busca e filtro de documentos por nome da obra ou período.
+        \item \textbf{RF06}: O sistema deve suportar a edição de documentos preenchidos antes da submissão final.
+        \item \textbf{RF07}: O sistema deve permitir o download de relatórios gerados pelo usuário.
+        \item \textbf{RF08}: O sistema deve oferecer uma interface para visualizar o histórico de documentos por obra.
+        \item \textbf{RF09}: O sistema deve notificar o usuário quando houver atualizações em documentos.
+        \item \textbf{RF10}: O sistema deve permitir a exclusão de fotos enviadas pelo usuário.
+        \item \textbf{RF11}: O sistema deve suportar múltiplos usuários com níveis de acesso (ex.: editor, visualizador).
+        \item \textbf{RF12}: O sistema deve incluir uma funcionalidade de logout seguro.
+Fotos são armazenadas com URLs privadas no Firebase Storage, acessíveis via tokens temporários, e dados sensíveis no PostgreSQL são criptografados (ex.: AES-256) para garantir confidencialidade.
+
+\textbf{Prevenção de Ataques}: Validações no backend, proteção contra SQL Injection (Prisma), regras de acesso no Firebase. \
+Validações no backend com Express.js previnem ataques como XSS, Prisma protege contra SQL Injection com parametrização, e regras de acesso no Firebase restringem operações não autorizadas.
+
+\section{MVP Planejado}
+O MVP incluirá as seguintes funcionalidades:
+\begin{itemize}
+    \item Login autenticado via Firebase;
+    \item Preenchimento e submissão de 5 modelos de documentos;
+    \item Upload de fotos por obra;
+    \item Geração de relatório PDF;
+    \item Filtro por obra/data.
+\end{itemize}
+
+\section{Próximos Passos}
+\begin{itemize}
+    \item \textbf{Junho 2025}: Protótipo com login, consulta e upload (15/06/2025).
+    \item \textbf{Julho 2025}: PDF e backend funcional (31/07/2025).
+    \item \textbf{Setembro 2025}: Entrega do Portfólio I (15/09/2025).
+    \item \textbf{Novembro 2025}: Ajustes finais e Portfólio II (30/11/2025).
+\end{itemize}
+
+\section{Referências}
+\begin{itemize}
+    \item Documentação do Next.js
+    \item Documentação do Tailwind CSS
+    \item Documentação do Node.js
+    \item Documentação do Express.js
+    \item Documentação do Prisma ORM
+    \item Documentação do Firebase
+\end{itemize}
+
+\section{Apêndices (Opcionais)}
+Diagrama de Casos de Uso UML (ver figura na seção de Requisitos de Software).
+
+\section{Avaliações de Professores}
+\textbf{Considerações Professor/a}: \\
+\rule{\textwidth}{0.4pt} \\
+\rule{\textwidth}{0.4pt} \\
+\rule{\textwidth}{0.4pt} \\
+\rule{\textwidth}{0.4pt} \\
+\rule{\textwidth}{0.4pt}
+
+% Ending the document
+\end{document}
