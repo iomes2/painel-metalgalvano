@@ -26,10 +26,25 @@ export const listGerentes = catchAsync(async (_req: Request, res: Response) => {
     });
 
     // Formatar para o padrão esperado pelo frontend
-    const gerentes = users.map((user) => ({
-      id: user.email?.split("@")[0] || user.id,
-      nome: user.name || user.email || "Sem nome",
-    }));
+    // Garantir IDs únicos para evitar erro de chaves duplicadas no React
+    const seenIds = new Set<string>();
+
+    const gerentes = users.map((user) => {
+      let baseId = user.email?.split("@")[0] || user.id;
+      let finalId = baseId;
+      let counter = 1;
+
+      while (seenIds.has(finalId)) {
+        finalId = `${baseId}-${counter}`;
+        counter++;
+      }
+      seenIds.add(finalId);
+
+      return {
+        id: finalId,
+        nome: user.name || user.email || "Sem nome",
+      };
+    });
 
     res.json({
       success: true,

@@ -27,7 +27,7 @@ interface ListFormsParams {
   formType?: string;
   osNumber?: string;
   status?: FormStatus;
-  userId?: string;
+  userId?: string | string[];
   startDate?: Date;
   endDate?: Date;
 }
@@ -146,7 +146,15 @@ export class FormService {
     if (formType) where.formType = formType;
     if (osNumber) where.osNumber = { contains: osNumber, mode: "insensitive" };
     if (status) where.status = status;
-    if (userId) where.userId = userId;
+
+    if (userId) {
+      if (Array.isArray(userId)) {
+        where.userId = { in: userId };
+      } else {
+        where.userId = userId;
+      }
+    }
+
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = startDate;

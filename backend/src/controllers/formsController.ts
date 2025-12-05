@@ -7,6 +7,7 @@ import { getFormDefinition } from "../config/forms";
 import { AppError } from "../middleware/errorHandler";
 import { db } from "../config/firebase";
 import admin from "firebase-admin";
+import prisma from "../config/database";
 
 const formService = new FormService();
 
@@ -184,13 +185,45 @@ export const listForms = catchAsync(async (req: Request, res: Response) => {
     endDate,
   } = req.query;
 
+  // Resolver userId se não for UUID (busca por username/email prefix)
+  let userIds: string | string[] | undefined = userId as string | undefined;
+
+  if (userIds && typeof userIds === "string") {
+    // Regex para validar UUID
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+    if (!uuidRegex.test(userIds)) {
+      // Se não for UUID, assume que é username (email prefix)
+      // Ex: "mg01" busca users com email começando com "mg01@"
+      const users = await prisma.user.findMany({
+        where: {
+          OR: [
+            { email: { startsWith: `${userIds}@` } },
+            { email: userIds }, // Match exato caso passem email completo
+          ],
+        },
+        select: { id: true },
+      });
+
+      if (users.length > 0) {
+        userIds = users.map((u) => u.id);
+      } else {
+        // Se não encontrou usuário, define um UUID inválido ou array vazio para não retornar nada
+        // Ou deixa passar string original (que não vai achar forms)
+        // Optamos por garantir que não retorne nada se o usuário não existe
+        userIds = ["00000000-0000-0000-0000-000000000000"];
+      }
+    }
+  }
+
   const result = await formService.listForms({
     page: page ? parseInt(page as string) : undefined,
     limit: limit ? parseInt(limit as string) : undefined,
     formType: formType as string | undefined,
     osNumber: osNumber as string | undefined,
     status: status as FormStatus | undefined,
-    userId: userId as string | undefined,
+    userId: userIds,
     startDate: startDate ? new Date(startDate as string) : undefined,
     endDate: endDate ? new Date(endDate as string) : undefined,
   });
