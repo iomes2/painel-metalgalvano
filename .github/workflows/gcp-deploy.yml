@@ -2,7 +2,7 @@ name: CI/CD - Deploy to Google Cloud (Cloud Run & Artifact Registry)
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main, dev, master]
     paths:
       - "frontend/**"
       - "backend/**"
