@@ -301,68 +301,28 @@ export class PdfService {
   /**
    * Formata valor de campo baseado no tipo
    */
+  /*
+   * Formata valor de campo baseado no tipo
+   */
   private formatFieldValue(field: FormField, value: any): string {
     if (value === undefined || value === null || value === "") {
       return "Não preenchido";
     }
 
-    // Helper to convert various date formats
-    const parseDate = (val: any): Date | null => {
-      try {
-        // Firebase Timestamp with _seconds
-        if (val && typeof val === "object" && "_seconds" in val) {
-          return new Date(val._seconds * 1000);
-        }
-        // Firebase Timestamp with seconds (Firestore)
-        if (val && typeof val === "object" && "seconds" in val) {
-          return new Date(val.seconds * 1000);
-        }
-        // Firebase Timestamp toDate method
-        if (val && typeof val.toDate === "function") {
-          return val.toDate();
-        }
-        // ISO string or timestamp
-        if (typeof val === "string" || typeof val === "number") {
-          return new Date(val);
-        }
-        // Already a Date
-        if (val instanceof Date) {
-          return val;
-        }
-        return null;
-      } catch {
-        return null;
-      }
-    };
-
     switch (field.type) {
-      case "date": {
-        const date = parseDate(value);
-        if (date && !isNaN(date.getTime())) {
-          return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-        }
-        // If object, try to extract meaningful value
-        if (typeof value === "object") {
-          return "Data inválida";
-        }
-        return String(value);
-      }
+      case "date":
+        return this.formatDateValue(value);
 
       case "checkbox":
         return value ? "Sim" : "Não";
 
       case "select":
-        if (field.options) {
-          const option = field.options.find((opt) => opt.value === value);
-          return option ? option.label : String(value);
-        }
-        return String(value);
+        return this.formatSelectValue(field, value);
 
       case "file":
-        if (Array.isArray(value)) {
-          return `${value.length} arquivo(s)`;
-        }
-        return "Nenhum arquivo";
+        return Array.isArray(value)
+          ? `${value.length} arquivo(s)`
+          : "Nenhum arquivo";
 
       case "number":
         return typeof value === "number"
@@ -370,22 +330,61 @@ export class PdfService {
           : String(value);
 
       default:
-        // Handle objects that aren't handled elsewhere
-        if (typeof value === "object") {
-          // Try to parse as date first
-          const maybeDate = parseDate(value);
-          if (maybeDate && !isNaN(maybeDate.getTime())) {
-            return format(maybeDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-          }
-          // Otherwise try JSON
-          try {
-            return JSON.stringify(value);
-          } catch {
-            return "[Objeto]";
-          }
-        }
-        return String(value);
+        return this.formatDefaultValue(value);
     }
+  }
+
+  private parseDateHelper(val: any): Date | null {
+    try {
+      if (val && typeof val === "object") {
+        if ("_seconds" in val) return new Date(val._seconds * 1000);
+        if ("seconds" in val) return new Date(val.seconds * 1000);
+        if (typeof val.toDate === "function") return val.toDate();
+      }
+      if (typeof val === "string" || typeof val === "number") {
+        return new Date(val);
+      }
+      if (val instanceof Date) {
+        return val;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  private formatDateValue(value: any): string {
+    const date = this.parseDateHelper(value);
+    if (date && !isNaN(date.getTime())) {
+      return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+    }
+    if (typeof value === "object") {
+      return "Data inválida";
+    }
+    return String(value);
+  }
+
+  private formatSelectValue(field: FormField, value: any): string {
+    if (field.options) {
+      const option = field.options.find((opt) => opt.value === value);
+      return option ? option.label : String(value);
+    }
+    return String(value);
+  }
+
+  private formatDefaultValue(value: any): string {
+    if (typeof value === "object") {
+      const date = this.parseDateHelper(value);
+      if (date && !isNaN(date.getTime())) {
+        return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+      }
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return "[Objeto]";
+      }
+    }
+    return String(value);
   }
 
   /**

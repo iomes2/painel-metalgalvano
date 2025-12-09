@@ -272,83 +272,27 @@ export function DynamicFormRenderer({
   ]);
 
   useEffect(() => {
-    if (formDefinition.id === "cronograma-diario-obra") {
-      if (
-        situacaoEtapaDia !== "em_atraso" &&
-        stableGetValues("motivoAtrasoDia" as any) !== ""
-      ) {
-        stableSetValue("motivoAtrasoDia" as any, "", { shouldValidate: false });
-      }
-      if (
-        fotosEtapaDia !== "sim" &&
-        stableGetValues("uploadFotosEtapaDia" as any) !== null
-      ) {
-        stableSetValue("uploadFotosEtapaDia" as any, null, {
-          shouldValidate: false,
-        });
-      }
-      if (
-        (!horasRetrabalhoParadasDia ||
-          String(horasRetrabalhoParadasDia).trim() === "") &&
-        stableGetValues("motivoRetrabalhoParadaDia" as any) !== ""
-      ) {
-        stableSetValue("motivoRetrabalhoParadaDia" as any, "", {
-          shouldValidate: false,
-        });
-      }
-      const efetivoInicio = String(horarioEfetivoInicioAtividades || "").trim();
-      const previstoInicio = String(horarioInicioJornadaPrevisto || "").trim();
-      if (
-        (efetivoInicio === "" || efetivoInicio === previstoInicio) &&
-        stableGetValues("motivoNaoCumprimentoHorarioInicio" as any) !== ""
-      ) {
-        stableSetValue("motivoNaoCumprimentoHorarioInicio" as any, "", {
-          shouldValidate: false,
-        });
-      }
-      const efetivoSaida = String(horarioEfetivoSaidaObra || "").trim();
-      const previstoSaida = String(horarioTerminoJornadaPrevisto || "").trim();
-      if (
-        (efetivoSaida === "" || efetivoSaida === previstoSaida) &&
-        stableGetValues("motivoNaoCumprimentoHorarioSaida" as any) !== ""
-      ) {
-        stableSetValue("motivoNaoCumprimentoHorarioSaida" as any, "", {
-          shouldValidate: false,
-        });
-      }
-    } else if (formDefinition.id === "rnc-report") {
-      if (
-        fotosNaoConformidade !== "sim" &&
-        stableGetValues("uploadFotosNaoConformidade" as any) !== null
-      ) {
-        stableSetValue("uploadFotosNaoConformidade" as any, null, {
-          shouldValidate: false,
-        });
-      }
-    } else if (formDefinition.id === "relatorio-inspecao-site") {
-      if (
-        fotosInspecao !== "sim" &&
-        stableGetValues("uploadFotosInspecao" as any) !== null
-      ) {
-        stableSetValue("uploadFotosInspecao" as any, null, {
-          shouldValidate: false,
-        });
-      }
-      if (
-        conformidadeSeguranca === "sim" &&
-        (stableGetValues("itensNaoConformes" as any) !== "" ||
-          stableGetValues("acoesCorretivasSugeridas" as any) !== "")
-      ) {
-        stableSetValue("itensNaoConformes" as any, "", {
-          shouldValidate: false,
-        });
-        stableSetValue("acoesCorretivasSugeridas" as any, "", {
-          shouldValidate: false,
-        });
-      }
-    }
+    runFieldVisibilitySideEffects({
+      formDefinition,
+      stableGetValues,
+      stableSetValue,
+      watchedValues: {
+        situacaoEtapaDia,
+        fotosEtapaDia,
+        horasRetrabalhoParadasDia,
+        horarioEfetivoInicioAtividades,
+        horarioInicioJornadaPrevisto,
+        horarioEfetivoSaidaObra,
+        horarioTerminoJornadaPrevisto,
+        fotosNaoConformidade,
+        fotosInspecao,
+        conformidadeSeguranca,
+      },
+    });
   }, [
-    formDefinition.id,
+    formDefinition,
+    stableGetValues,
+    stableSetValue,
     situacaoEtapaDia,
     fotosEtapaDia,
     horasRetrabalhoParadasDia,
@@ -359,8 +303,6 @@ export function DynamicFormRenderer({
     fotosNaoConformidade,
     fotosInspecao,
     conformidadeSeguranca,
-    stableSetValue,
-    stableGetValues,
   ]);
 
   const handleLocalSubmit: SubmitHandler<FormValues> = async (data) => {
@@ -480,85 +422,20 @@ export function DynamicFormRenderer({
 
       reset(defaultValues); // Reset form fields for current form
 
-      const triggers = formDefinition.linkedFormTriggers;
-      if (triggers && result.reportId) {
-        for (const trigger of triggers) {
-          let conditionMet = false;
-
-          if (
-            formDefinition.id === "relatorio-inspecao-site" &&
-            trigger.linkedFormId === "rnc-report"
-          ) {
-            const rncTriggerFromAcompanhamento =
-              carryOverQueryParams["rncTriggerValueFromAcompanhamento"];
-            const currentConformidade = (data as any)["conformidadeSeguranca"];
-            if (
-              currentConformidade === "nao" &&
-              rncTriggerFromAcompanhamento === "sim"
-            ) {
-              conditionMet = true;
-            }
-          } else {
-            if (trigger.triggerFieldId.startsWith("_queryParam_")) {
-              const paramName = trigger.triggerFieldId.substring(
-                "_queryParam_".length
-              );
-              conditionMet =
-                carryOverQueryParams[paramName] === trigger.triggerFieldValue;
-            } else {
-              conditionMet =
-                (data as any)[trigger.triggerFieldId] ===
-                trigger.triggerFieldValue;
-            }
-          }
-
-          if (conditionMet) {
-            const nextQueryParams = new URLSearchParams();
-            const osToPass =
-              trigger.passOsFieldId && (data as any)[trigger.passOsFieldId]
-                ? String((data as any)[trigger.passOsFieldId]).trim()
-                : osValue?.trim();
-
-            if (osToPass) {
-              nextQueryParams.append("os", osToPass);
-            }
-
-            if (nextMainOriginatingFormId) {
-              nextQueryParams.append(
-                "originatingFormId",
-                nextMainOriginatingFormId
-              );
-            }
-
-            trigger.carryOverParams?.forEach((cop) => {
-              if ((data as any)[cop.fieldIdFromCurrentForm] !== undefined) {
-                nextQueryParams.append(
-                  cop.queryParamName,
-                  String((data as any)[cop.fieldIdFromCurrentForm])
-                );
-              }
-            });
-
-            toast({
-              title: "Próximo Passo",
-              description: `Por favor, preencha o formulário: ${trigger.linkedFormId}.`,
-              duration: 4000,
-            });
-
-            if (!currentFormIsMainOriginator && mainOriginatingFormId) {
-              // Keep existing mainOriginatingFormId
-            }
-
-            router.push(
-              `/dashboard/forms/${
-                trigger.linkedFormId
-              }?${nextQueryParams.toString()}`
-            );
-            return;
-          }
-        }
-      }
-      setIsShareDialogOpen(true);
+      const handled = handleLinkedFormTriggers(
+        formDefinition,
+        data,
+        result,
+        carryOverQueryParams,
+        osValue,
+        mainOriginatingFormId,
+        currentFormIsMainOriginator,
+        nextMainOriginatingFormId,
+        router,
+        setIsShareDialogOpen,
+        toast
+      );
+      if (handled) return;
     } catch (error) {
       console.error(
         "Erro durante o envio do formulário ou upload de arquivos:",
@@ -682,46 +559,22 @@ export function DynamicFormRenderer({
           <form onSubmit={form.handleSubmit(handleLocalSubmit)}>
             <CardContent className="space-y-6">
               {formDefinition.fields.map((field) => {
-                let shouldRenderField = true;
-                if (formDefinition.id === "cronograma-diario-obra") {
-                  if (field.id === "motivoAtrasoDia")
-                    shouldRenderField = situacaoEtapaDia === "em_atraso";
-                  else if (field.id === "uploadFotosEtapaDia")
-                    shouldRenderField = fotosEtapaDia === "sim";
-                  else if (field.id === "motivoRetrabalhoParadaDia")
-                    shouldRenderField =
-                      !!horasRetrabalhoParadasDia &&
-                      String(horasRetrabalhoParadasDia).trim() !== "";
-                  else if (field.id === "motivoNaoCumprimentoHorarioInicio") {
-                    const efetivo = String(
-                      horarioEfetivoInicioAtividades || ""
-                    ).trim();
-                    const previsto = String(
-                      horarioInicioJornadaPrevisto || ""
-                    ).trim();
-                    shouldRenderField = efetivo !== "" && efetivo !== previsto;
-                  } else if (field.id === "motivoNaoCumprimentoHorarioSaida") {
-                    const efetivo = String(
-                      horarioEfetivoSaidaObra || ""
-                    ).trim();
-                    const previsto = String(
-                      horarioTerminoJornadaPrevisto || ""
-                    ).trim();
-                    shouldRenderField = efetivo !== "" && efetivo !== previsto;
+                const shouldRenderField = shouldRenderFormItem(
+                  formDefinition,
+                  field,
+                  {
+                    situacaoEtapaDia,
+                    fotosEtapaDia,
+                    horasRetrabalhoParadasDia,
+                    horarioEfetivoInicioAtividades,
+                    horarioInicioJornadaPrevisto,
+                    horarioEfetivoSaidaObra,
+                    horarioTerminoJornadaPrevisto,
+                    fotosNaoConformidade,
+                    fotosInspecao,
+                    conformidadeSeguranca,
                   }
-                } else if (formDefinition.id === "rnc-report") {
-                  if (field.id === "uploadFotosNaoConformidade")
-                    shouldRenderField = fotosNaoConformidade === "sim";
-                } else if (formDefinition.id === "relatorio-inspecao-site") {
-                  if (field.id === "uploadFotosInspecao")
-                    shouldRenderField = fotosInspecao === "sim";
-                  if (
-                    field.id === "itensNaoConformes" ||
-                    field.id === "acoesCorretivasSugeridas"
-                  ) {
-                    shouldRenderField = conformidadeSeguranca === "nao";
-                  }
-                }
+                );
 
                 if (!shouldRenderField) return null;
 
@@ -996,4 +849,246 @@ export function DynamicFormRenderer({
       </AlertDialog>
     </>
   );
+}
+
+function runFieldVisibilitySideEffects({
+  formDefinition,
+  stableGetValues,
+  stableSetValue,
+  watchedValues,
+}: {
+  formDefinition: FormDefinition;
+  stableGetValues: any;
+  stableSetValue: any;
+  watchedValues: any;
+}) {
+  const {
+    situacaoEtapaDia,
+    fotosEtapaDia,
+    horasRetrabalhoParadasDia,
+    horarioEfetivoInicioAtividades,
+    horarioInicioJornadaPrevisto,
+    horarioEfetivoSaidaObra,
+    horarioTerminoJornadaPrevisto,
+    fotosNaoConformidade,
+    fotosInspecao,
+    conformidadeSeguranca,
+  } = watchedValues;
+
+  if (formDefinition.id === "cronograma-diario-obra") {
+    if (
+      situacaoEtapaDia !== "em_atraso" &&
+      stableGetValues("motivoAtrasoDia") !== ""
+    ) {
+      stableSetValue("motivoAtrasoDia", "", { shouldValidate: false });
+    }
+    if (
+      fotosEtapaDia !== "sim" &&
+      stableGetValues("uploadFotosEtapaDia") !== null
+    ) {
+      stableSetValue("uploadFotosEtapaDia", null, {
+        shouldValidate: false,
+      });
+    }
+    if (
+      (!horasRetrabalhoParadasDia ||
+        String(horasRetrabalhoParadasDia).trim() === "") &&
+      stableGetValues("motivoRetrabalhoParadaDia") !== ""
+    ) {
+      stableSetValue("motivoRetrabalhoParadaDia", "", {
+        shouldValidate: false,
+      });
+    }
+    const efetivoInicio = String(horarioEfetivoInicioAtividades || "").trim();
+    const previstoInicio = String(horarioInicioJornadaPrevisto || "").trim();
+    if (
+      (efetivoInicio === "" || efetivoInicio === previstoInicio) &&
+      stableGetValues("motivoNaoCumprimentoHorarioInicio") !== ""
+    ) {
+      stableSetValue("motivoNaoCumprimentoHorarioInicio", "", {
+        shouldValidate: false,
+      });
+    }
+    const efetivoSaida = String(horarioEfetivoSaidaObra || "").trim();
+    const previstoSaida = String(horarioTerminoJornadaPrevisto || "").trim();
+    if (
+      (efetivoSaida === "" || efetivoSaida === previstoSaida) &&
+      stableGetValues("motivoNaoCumprimentoHorarioSaida") !== ""
+    ) {
+      stableSetValue("motivoNaoCumprimentoHorarioSaida", "", {
+        shouldValidate: false,
+      });
+    }
+  } else if (formDefinition.id === "rnc-report") {
+    if (
+      fotosNaoConformidade !== "sim" &&
+      stableGetValues("uploadFotosNaoConformidade") !== null
+    ) {
+      stableSetValue("uploadFotosNaoConformidade", null, {
+        shouldValidate: false,
+      });
+    }
+  } else if (formDefinition.id === "relatorio-inspecao-site") {
+    if (
+      fotosInspecao !== "sim" &&
+      stableGetValues("uploadFotosInspecao") !== null
+    ) {
+      stableSetValue("uploadFotosInspecao", null, {
+        shouldValidate: false,
+      });
+    }
+    if (
+      conformidadeSeguranca === "sim" &&
+      (stableGetValues("itensNaoConformes") !== "" ||
+        stableGetValues("acoesCorretivasSugeridas") !== "")
+    ) {
+      stableSetValue("itensNaoConformes", "", {
+        shouldValidate: false,
+      });
+      stableSetValue("acoesCorretivasSugeridas", "", {
+        shouldValidate: false,
+      });
+    }
+  }
+}
+
+function shouldRenderFormItem(
+  formDefinition: FormDefinition,
+  field: FormFieldType,
+  watchedValues: any
+): boolean {
+  const {
+    situacaoEtapaDia,
+    fotosEtapaDia,
+    horasRetrabalhoParadasDia,
+    horarioEfetivoInicioAtividades,
+    horarioInicioJornadaPrevisto,
+    horarioEfetivoSaidaObra,
+    horarioTerminoJornadaPrevisto,
+    fotosNaoConformidade,
+    fotosInspecao,
+    conformidadeSeguranca,
+  } = watchedValues;
+
+  if (formDefinition.id === "cronograma-diario-obra") {
+    if (field.id === "motivoAtrasoDia") return situacaoEtapaDia === "em_atraso";
+    if (field.id === "uploadFotosEtapaDia") return fotosEtapaDia === "sim";
+    if (field.id === "motivoRetrabalhoParadaDia")
+      return (
+        !!horasRetrabalhoParadasDia &&
+        String(horasRetrabalhoParadasDia).trim() !== ""
+      );
+    if (field.id === "motivoNaoCumprimentoHorarioInicio") {
+      const efetivo = String(horarioEfetivoInicioAtividades || "").trim();
+      const previsto = String(horarioInicioJornadaPrevisto || "").trim();
+      return efetivo !== "" && efetivo !== previsto;
+    }
+    if (field.id === "motivoNaoCumprimentoHorarioSaida") {
+      const efetivo = String(horarioEfetivoSaidaObra || "").trim();
+      const previsto = String(horarioTerminoJornadaPrevisto || "").trim();
+      return efetivo !== "" && efetivo !== previsto;
+    }
+  } else if (formDefinition.id === "rnc-report") {
+    if (field.id === "uploadFotosNaoConformidade")
+      return fotosNaoConformidade === "sim";
+  } else if (formDefinition.id === "relatorio-inspecao-site") {
+    if (field.id === "uploadFotosInspecao") return fotosInspecao === "sim";
+    if (
+      field.id === "itensNaoConformes" ||
+      field.id === "acoesCorretivasSugeridas"
+    ) {
+      return conformidadeSeguranca === "nao";
+    }
+  }
+  return true;
+}
+
+function handleLinkedFormTriggers(
+  formDefinition: FormDefinition,
+  data: any,
+  result: any,
+  carryOverQueryParams: any,
+  osValue: string | undefined,
+  mainOriginatingFormId: string | null,
+  currentFormIsMainOriginator: boolean,
+  nextMainOriginatingFormId: string | null,
+  router: any,
+  setIsShareDialogOpen: (v: boolean) => void,
+  toast: any
+) {
+  const triggers = formDefinition.linkedFormTriggers;
+  if (triggers && result.reportId) {
+    for (const trigger of triggers) {
+      let conditionMet = false;
+
+      if (
+        formDefinition.id === "relatorio-inspecao-site" &&
+        trigger.linkedFormId === "rnc-report"
+      ) {
+        const rncTriggerFromAcompanhamento =
+          carryOverQueryParams["rncTriggerValueFromAcompanhamento"];
+        const currentConformidade = (data as any)["conformidadeSeguranca"];
+        if (
+          currentConformidade === "nao" &&
+          rncTriggerFromAcompanhamento === "sim"
+        ) {
+          conditionMet = true;
+        }
+      } else {
+        if (trigger.triggerFieldId.startsWith("_queryParam_")) {
+          const paramName = trigger.triggerFieldId.substring(
+            "_queryParam_".length
+          );
+          conditionMet =
+            carryOverQueryParams[paramName] === trigger.triggerFieldValue;
+        } else {
+          conditionMet =
+            (data as any)[trigger.triggerFieldId] === trigger.triggerFieldValue;
+        }
+      }
+
+      if (conditionMet) {
+        const nextQueryParams = new URLSearchParams();
+        const osToPass =
+          trigger.passOsFieldId && (data as any)[trigger.passOsFieldId]
+            ? String((data as any)[trigger.passOsFieldId]).trim()
+            : osValue?.trim();
+
+        if (osToPass) {
+          nextQueryParams.append("os", osToPass);
+        }
+
+        if (nextMainOriginatingFormId) {
+          nextQueryParams.append(
+            "originatingFormId",
+            nextMainOriginatingFormId
+          );
+        }
+
+        trigger.carryOverParams?.forEach((cop) => {
+          if ((data as any)[cop.fieldIdFromCurrentForm] !== undefined) {
+            nextQueryParams.append(
+              cop.queryParamName,
+              String((data as any)[cop.fieldIdFromCurrentForm])
+            );
+          }
+        });
+
+        toast({
+          title: "Próximo Passo",
+          description: `Por favor, preencha o formulário: ${trigger.linkedFormId}.`,
+          duration: 4000,
+        });
+
+        router.push(
+          `/dashboard/forms/${
+            trigger.linkedFormId
+          }?${nextQueryParams.toString()}`
+        );
+        return true;
+      }
+    }
+  }
+  setIsShareDialogOpen(true);
+  return false;
 }

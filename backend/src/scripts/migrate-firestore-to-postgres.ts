@@ -23,162 +23,187 @@ async function migrateFirestoreToPostgres() {
   console.log("🚀 Iniciando migração Firestore → PostgreSQL...\n");
 
   try {
-    // 0. Migrar gerentes cadastrados primeiro
-    console.log("👥 Migrando gerentes cadastrados...\n");
-    const gerentesSnapshot = await db.collection("gerentes_cadastrados").get();
-    console.log(`📋 Encontrados ${gerentesSnapshot.size} gerentes\n`);
-
-    for (const gerenteDoc of gerentesSnapshot.docs) {
-      const gerenteData = gerenteDoc.data();
-      const gerenteId = gerenteDoc.id;
-      const gerenteEmail = `${gerenteId}@metalgalvano.forms`;
-
-      try {
-        const existingUser = await prisma.user.findUnique({
-          where: { email: gerenteEmail },
-        });
-
-        if (!existingUser) {
-          await prisma.user.create({
-            data: {
-              firebaseUid: `gerente-${gerenteId}`,
-              email: gerenteEmail,
-              name: gerenteData.nome || gerenteId,
-              role: gerenteEmail.includes("admin") ? "ADMIN" : "MANAGER",
-            },
-          });
-          console.log(`✅ Gerente criado: ${gerenteData.nome || gerenteId}`);
-        } else {
-          console.log(
-            `⏭️  Gerente já existe: ${gerenteData.nome || gerenteId}`
-          );
-        }
-      } catch (error: any) {
-        console.error(`❌ Erro ao criar gerente ${gerenteId}:`, error.message);
-      }
-    }
+    await migrateManagers();
 
     console.log("\n" + "-".repeat(60) + "\n");
 
-    // 1. Buscar todas as Ordens de Serviço
-    const osSnapshot = await db.collection("ordens_servico").get();
-    console.log(`📦 Encontradas ${osSnapshot.size} Ordens de Serviço\n`);
+    const stats = { total: 0, success: 0, errors: 0, oss: 0 };
+    await processServiceOrders(stats);
 
-    let totalReports = 0;
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const osDoc of osSnapshot.docs) {
-      const osNumber = osDoc.id;
-      const osData = osDoc.data();
-
-      console.log(`\n📋 Processando OS: ${osNumber}`);
-      console.log(`   Gerente: ${osData.updatedByGerenteId || "N/A"}`);
-
-      // 2. Buscar relatórios desta OS
-      const reportsSnapshot = await db
-        .collection("ordens_servico")
-        .doc(osNumber)
-        .collection("relatorios")
-        .get();
-
-      console.log(`   📝 ${reportsSnapshot.size} relatórios encontrados`);
-
-      for (const reportDoc of reportsSnapshot.docs) {
-        totalReports++;
-        const reportData = reportDoc.data() as FirestoreReport;
-        const reportId = reportDoc.id;
-
-        try {
-          // 3. Buscar ou criar usuário
-          const gerenteEmail = `${reportData.gerenteId}@metalgalvano.forms`;
-          let user = await prisma.user.findUnique({
-            where: { email: gerenteEmail },
-          });
-
-          if (!user) {
-            // Criar usuário se não existir
-            const userName = reportData.gerenteId
-              .split(".")
-              .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-              .join(" ");
-
-            user = await prisma.user.create({
-              data: {
-                firebaseUid: reportData.submittedBy || `migrated-${Date.now()}`,
-                email: gerenteEmail,
-                name: userName,
-                role: gerenteEmail.includes("admin") ? "ADMIN" : "MANAGER",
-              },
-            });
-            console.log(`   ✅ Usuário criado: ${userName}`);
-          }
-
-          // 4. Verificar se relatório já existe (evitar duplicatas)
-          const existingForm = await prisma.form.findUnique({
-            where: { id: reportId },
-          });
-
-          if (existingForm) {
-            console.log(`   ⏭️  Relatório ${reportId} já existe, pulando...`);
-            continue;
-          }
-
-          // 5. Criar formulário no PostgreSQL
-          const form = await prisma.form.create({
-            data: {
-              id: reportId, // Manter mesmo ID do Firestore
-              formType: reportData.formType,
-              osNumber: osNumber,
-              status: "SUBMITTED",
-              data: reportData.formData as any,
-              userId: user.id,
-              submittedAt: reportData.submittedAt.toDate(),
-              createdAt: reportData.submittedAt.toDate(),
-            },
-          });
-
-          // 6. Migrar fotos (se houver)
-          const photos = extractPhotosFromFormData(reportData.formData);
-          if (photos.length > 0) {
-            for (const photo of photos) {
-              await prisma.photo.create({
-                data: {
-                  formId: form.id,
-                  firebaseUrl: photo.url,
-                  firebasePath: extractPathFromUrl(photo.url),
-                  filename: photo.name,
-                  originalName: photo.name,
-                  mimeType: photo.type || "image/jpeg",
-                  size: photo.size || 0,
-                },
-              });
-            }
-            console.log(`   📷 ${photos.length} fotos migradas`);
-          }
-
-          successCount++;
-          console.log(`   ✅ Relatório ${reportId} migrado com sucesso`);
-        } catch (error: any) {
-          errorCount++;
-          console.error(`   ❌ Erro ao migrar ${reportId}:`, error.message);
-        }
-      }
-    }
-
-    console.log("\n" + "=".repeat(60));
-    console.log("📊 RESUMO DA MIGRAÇÃO");
-    console.log("=".repeat(60));
-    console.log(`✅ Sucesso: ${successCount}/${totalReports} relatórios`);
-    console.log(`❌ Erros: ${errorCount}/${totalReports} relatórios`);
-    console.log(`📦 Total OSs processadas: ${osSnapshot.size}`);
-    console.log("=".repeat(60) + "\n");
+    printSummary(stats);
   } catch (error) {
     console.error("❌ Erro fatal na migração:", error);
     throw error;
   } finally {
     await prisma.$disconnect();
   }
+}
+
+async function migrateManagers() {
+  console.log("👥 Migrando gerentes cadastrados...\n");
+  const gerentesSnapshot = await db.collection("gerentes_cadastrados").get();
+  console.log(`📋 Encontrados ${gerentesSnapshot.size} gerentes\n`);
+
+  for (const gerenteDoc of gerentesSnapshot.docs) {
+    const gerenteData = gerenteDoc.data();
+    const gerenteId = gerenteDoc.id;
+    const gerenteEmail = `${gerenteId}@metalgalvano.forms`;
+
+    try {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: gerenteEmail },
+      });
+
+      if (!existingUser) {
+        await prisma.user.create({
+          data: {
+            firebaseUid: `gerente-${gerenteId}`,
+            email: gerenteEmail,
+            name: gerenteData.nome || gerenteId,
+            role: gerenteEmail.includes("admin") ? "ADMIN" : "MANAGER",
+          },
+        });
+        console.log(`✅ Gerente criado: ${gerenteData.nome || gerenteId}`);
+      } else {
+        console.log(`⏭️  Gerente já existe: ${gerenteData.nome || gerenteId}`);
+      }
+    } catch (error: any) {
+      console.error(`❌ Erro ao criar gerente ${gerenteId}:`, error.message);
+    }
+  }
+}
+
+async function processServiceOrders(stats: {
+  total: number;
+  success: number;
+  errors: number;
+  oss: number;
+}) {
+  const osSnapshot = await db.collection("ordens_servico").get();
+  stats.oss = osSnapshot.size;
+  console.log(`📦 Encontradas ${stats.oss} Ordens de Serviço\n`);
+
+  for (const osDoc of osSnapshot.docs) {
+    const osNumber = osDoc.id;
+    const osData = osDoc.data();
+
+    console.log(`\n📋 Processando OS: ${osNumber}`);
+    console.log(`   Gerente: ${osData.updatedByGerenteId || "N/A"}`);
+
+    const reportsSnapshot = await db
+      .collection("ordens_servico")
+      .doc(osNumber)
+      .collection("relatorios")
+      .get();
+
+    console.log(`   📝 ${reportsSnapshot.size} relatórios encontrados`);
+
+    for (const reportDoc of reportsSnapshot.docs) {
+      stats.total++;
+      await processReport(reportDoc, osNumber, stats);
+    }
+  }
+}
+
+async function processReport(
+  reportDoc: FirebaseFirestore.QueryDocumentSnapshot,
+  osNumber: string,
+  stats: { success: number; errors: number }
+) {
+  const reportId = reportDoc.id;
+  const reportData = reportDoc.data() as FirestoreReport;
+
+  try {
+    const user = await findOrCreateUser(reportData);
+    if (!user) throw new Error("Falha ao vincular usuário");
+
+    const existingForm = await prisma.form.findUnique({
+      where: { id: reportId },
+    });
+
+    if (existingForm) {
+      console.log(`   ⏭️  Relatório ${reportId} já existe, pulando...`);
+      return;
+    }
+
+    const form = await prisma.form.create({
+      data: {
+        id: reportId,
+        formType: reportData.formType,
+        osNumber: osNumber,
+        status: "SUBMITTED",
+        data: reportData.formData as any,
+        userId: user.id,
+        submittedAt: reportData.submittedAt.toDate(),
+        createdAt: reportData.submittedAt.toDate(),
+      },
+    });
+
+    await migratePhotos(form.id, reportData.formData);
+    stats.success++;
+    console.log(`   ✅ Relatório ${reportId} migrado com sucesso`);
+  } catch (error: any) {
+    stats.errors++;
+    console.error(`   ❌ Erro ao migrar ${reportId}:`, error.message);
+  }
+}
+
+async function findOrCreateUser(reportData: FirestoreReport) {
+  const gerenteEmail = `${reportData.gerenteId}@metalgalvano.forms`;
+  let user = await prisma.user.findUnique({ where: { email: gerenteEmail } });
+
+  if (!user) {
+    const userName = reportData.gerenteId
+      .split(".")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+
+    user = await prisma.user.create({
+      data: {
+        firebaseUid: reportData.submittedBy || `migrated-${Date.now()}`,
+        email: gerenteEmail,
+        name: userName,
+        role: gerenteEmail.includes("admin") ? "ADMIN" : "MANAGER",
+      },
+    });
+    console.log(`   ✅ Usuário criado: ${userName}`);
+  }
+  return user;
+}
+
+async function migratePhotos(formId: string, formData: any) {
+  const photos = extractPhotosFromFormData(formData);
+  if (photos.length > 0) {
+    for (const photo of photos) {
+      await prisma.photo.create({
+        data: {
+          formId: formId,
+          firebaseUrl: photo.url,
+          firebasePath: extractPathFromUrl(photo.url),
+          filename: photo.name,
+          originalName: photo.name,
+          mimeType: photo.type || "image/jpeg",
+          size: photo.size || 0,
+        },
+      });
+    }
+    console.log(`   📷 ${photos.length} fotos migradas`);
+  }
+}
+
+function printSummary(stats: {
+  total: number;
+  success: number;
+  errors: number;
+  oss: number;
+}) {
+  console.log("\n" + "=".repeat(60));
+  console.log("📊 RESUMO DA MIGRAÇÃO");
+  console.log("=".repeat(60));
+  console.log(`✅ Sucesso: ${stats.success}/${stats.total} relatórios`);
+  console.log(`❌ Erros: ${stats.errors}/${stats.total} relatórios`);
+  console.log(`📦 Total OSs processadas: ${stats.oss}`);
+  console.log("=".repeat(60) + "\n");
 }
 
 // Helpers

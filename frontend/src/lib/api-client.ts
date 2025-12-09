@@ -146,52 +146,9 @@ async function fetchBackend(
   });
 
   if (!response.ok) {
-    // Se o erro for 401 (não autorizado), limpar token e tentar novamente
     if (response.status === 401) {
-      console.warn("[api-client] Token inválido ou expirado, limpando cache");
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("firebase_token");
-        localStorage.removeItem("firebase_token_expiry");
-      }
-
-      // Tentar obter novo token (forçando atualização) e fazer requisição novamente
-      const user = auth.currentUser;
-      if (user) {
-        try {
-          const newToken = await user.getIdToken(true); // Forçar atualização
-
-          // Atualizar token no localStorage
-          if (typeof window !== "undefined" && newToken) {
-            const expiryTime = Date.now() + 50 * 60 * 1000;
-            localStorage.setItem("firebase_token", newToken);
-            localStorage.setItem(
-              "firebase_token_expiry",
-              expiryTime.toString()
-            );
-          }
-
-          const retryHeaders = new Headers(options.headers);
-          retryHeaders.set("Authorization", `Bearer ${newToken}`);
-          retryHeaders.set("Content-Type", "application/json");
-
-          const retryResponse = await fetch(`${API_URL}${endpoint}`, {
-            ...options,
-            headers: retryHeaders,
-          });
-
-          if (retryResponse.ok) {
-            console.log(
-              "[api-client] Requisição refeita com sucesso após atualizar token"
-            );
-            return retryResponse;
-          }
-        } catch (retryError) {
-          console.error(
-            "[api-client] Erro ao tentar obter novo token:",
-            retryError
-          );
-        }
-      }
+      const retryResponse = await handle401Retry(endpoint, options);
+      if (retryResponse) return retryResponse;
     }
 
     const errorData = await response
@@ -201,6 +158,50 @@ async function fetchBackend(
   }
 
   return response;
+}
+
+async function handle401Retry(
+  endpoint: string,
+  options: RequestInit
+): Promise<Response | null> {
+  console.warn("[api-client] Token inválido ou expirado, limpando cache");
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("firebase_token");
+    localStorage.removeItem("firebase_token_expiry");
+  }
+
+  const user = auth.currentUser;
+  if (!user) return null;
+
+  try {
+    const newToken = await user.getIdToken(true);
+
+    if (typeof window !== "undefined" && newToken) {
+      const expiryTime = Date.now() + 50 * 60 * 1000;
+      localStorage.setItem("firebase_token", newToken);
+      localStorage.setItem("firebase_token_expiry", expiryTime.toString());
+    }
+
+    const retryHeaders = new Headers(options.headers);
+    retryHeaders.set("Authorization", `Bearer ${newToken}`);
+    retryHeaders.set("Content-Type", "application/json");
+
+    const retryResponse = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers: retryHeaders,
+    });
+
+    if (retryResponse.ok) {
+      console.log(
+        "[api-client] Requisição refeita com sucesso após atualizar token"
+      );
+      return retryResponse;
+    }
+  } catch (retryError) {
+    console.error("[api-client] Erro ao tentar obter novo token:", retryError);
+  }
+
+  return null;
 }
 
 /**

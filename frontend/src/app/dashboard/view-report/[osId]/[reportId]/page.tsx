@@ -756,62 +756,11 @@ export default function ViewReportPage() {
                   formDefinition.fields.map((field) => {
                     const fieldValue = report.formData[field.id];
 
-                    let shouldRenderField = true;
-                    if (formDefinition.id === "cronograma-diario-obra") {
-                      if (field.id === "motivoAtrasoDia")
-                        shouldRenderField =
-                          report.formData["situacaoEtapaDia"] === "em_atraso";
-                      else if (field.id === "uploadFotosEtapaDia")
-                        shouldRenderField =
-                          report.formData["fotosEtapaDia"] === "sim";
-                      else if (field.id === "motivoRetrabalhoParadaDia")
-                        shouldRenderField =
-                          !!report.formData["horasRetrabalhoParadasDia"] &&
-                          String(
-                            report.formData["horasRetrabalhoParadasDia"]
-                          ).trim() !== "";
-                      else if (
-                        field.id === "motivoNaoCumprimentoHorarioInicio"
-                      ) {
-                        const efetivo = String(
-                          report.formData["horarioEfetivoInicioAtividades"] ||
-                            ""
-                        ).trim();
-                        const previsto = String(
-                          report.formData["horarioInicioJornadaPrevisto"] || ""
-                        ).trim();
-                        shouldRenderField =
-                          efetivo !== "" && efetivo !== previsto;
-                      } else if (
-                        field.id === "motivoNaoCumprimentoHorarioSaida"
-                      ) {
-                        const efetivo = String(
-                          report.formData["horarioEfetivoSaidaObra"] || ""
-                        ).trim();
-                        const previsto = String(
-                          report.formData["horarioTerminoJornadaPrevisto"] || ""
-                        ).trim();
-                        shouldRenderField =
-                          efetivo !== "" && efetivo !== previsto;
-                      }
-                    } else if (formDefinition.id === "rnc-report") {
-                      if (field.id === "uploadFotosNaoConformidade")
-                        shouldRenderField =
-                          report.formData["fotosNaoConformidade"] === "sim";
-                    } else if (
-                      formDefinition.id === "relatorio-inspecao-site"
-                    ) {
-                      if (field.id === "uploadFotosInspecao")
-                        shouldRenderField =
-                          report.formData["fotosInspecao"] === "sim";
-                      if (
-                        field.id === "itensNaoConformes" ||
-                        field.id === "acoesCorretivasSugeridas"
-                      ) {
-                        shouldRenderField =
-                          report.formData["conformidadeSeguranca"] === "nao";
-                      }
-                    }
+                    const shouldRenderField = shouldFieldRender(
+                      formDefinition,
+                      report.formData,
+                      field
+                    );
 
                     if (
                       !shouldRenderField &&
@@ -944,4 +893,51 @@ export default function ViewReportPage() {
       )}
     </div>
   );
+}
+
+function shouldFieldRender(
+  formDefinition: FormDefinitionType,
+  formData: any,
+  field: FormField
+): boolean {
+  if (formDefinition.id === "cronograma-diario-obra") {
+    if (field.id === "motivoAtrasoDia")
+      return formData["situacaoEtapaDia"] === "em_atraso";
+    if (field.id === "uploadFotosEtapaDia")
+      return formData["fotosEtapaDia"] === "sim";
+    if (field.id === "motivoRetrabalhoParadaDia")
+      return (
+        !!formData["horasRetrabalhoParadasDia"] &&
+        String(formData["horasRetrabalhoParadasDia"]).trim() !== ""
+      );
+    if (field.id === "motivoNaoCumprimentoHorarioInicio") {
+      const efetivo = String(
+        formData["horarioEfetivoInicioAtividades"] || ""
+      ).trim();
+      const previsto = String(
+        formData["horarioInicioJornadaPrevisto"] || ""
+      ).trim();
+      return efetivo !== "" && efetivo !== previsto;
+    }
+    if (field.id === "motivoNaoCumprimentoHorarioSaida") {
+      const efetivo = String(formData["horarioEfetivoSaidaObra"] || "").trim();
+      const previsto = String(
+        formData["horarioTerminoJornadaPrevisto"] || ""
+      ).trim();
+      return efetivo !== "" && efetivo !== previsto;
+    }
+  } else if (formDefinition.id === "rnc-report") {
+    if (field.id === "uploadFotosNaoConformidade")
+      return formData["fotosNaoConformidade"] === "sim";
+  } else if (formDefinition.id === "relatorio-inspecao-site") {
+    if (field.id === "uploadFotosInspecao")
+      return formData["fotosInspecao"] === "sim";
+    if (
+      field.id === "itensNaoConformes" ||
+      field.id === "acoesCorretivasSugeridas"
+    ) {
+      return formData["conformidadeSeguranca"] === "nao";
+    }
+  }
+  return true;
 }
