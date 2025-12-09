@@ -1,32 +1,44 @@
-import { render, screen } from '@testing-library/react';
-import DashboardPage from '@/app/dashboard/page';
+import { render, screen } from "@testing-library/react";
+import DashboardPage from "@/app/dashboard/page";
 
 // Mock Auth
-jest.mock('@/components/auth/AuthInitializer', () => ({
+jest.mock("@/components/auth/AuthInitializer", () => ({
   useAuth: () => ({
-    user: { displayName: 'Test User', email: 'test@example.com' },
+    user: { displayName: "Test User", email: "test@example.com" },
   }),
 }));
 
 // Mock Navigation
-jest.mock('next/navigation', () => ({
+jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
 
 // Mock Config
-jest.mock('@/config/forms', () => ({
+jest.mock("@/config/forms", () => ({
   formDefinitions: [
-    { id: 'form1', name: 'Form 1', iconName: 'FileText', description: 'Desc 1' },
+    {
+      id: "form1",
+      name: "Form 1",
+      iconName: "FileText",
+      description: "Desc 1",
+    },
   ],
 }));
 
 // Mock Icons
-jest.mock('@/components/icons/icon-resolver', () => ({
+jest.mock("@/components/icons/icon-resolver", () => ({
   getFormIcon: () => () => <div data-testid="icon">Icon</div>,
 }));
 
+jest.mock("lucide-react", () => ({
+  Sparkles: () => <div data-testid="sparkles">Sparkles</div>,
+  ClipboardList: () => <div data-testid="clipboard-list">ClipboardList</div>,
+  ArrowRight: () => <div data-testid="arrow-right">ArrowRight</div>,
+  FileText: () => <div data-testid="file-text">FileText</div>,
+}));
+
 // Mock UI Components
-jest.mock('@/components/ui/card', () => ({
+jest.mock("@/components/ui/card", () => ({
   Card: ({ children }: any) => <div>{children}</div>,
   CardHeader: ({ children }: any) => <div>{children}</div>,
   CardTitle: ({ children }: any) => <div>{children}</div>,
@@ -34,11 +46,13 @@ jest.mock('@/components/ui/card', () => ({
   CardContent: ({ children }: any) => <div>{children}</div>,
 }));
 
-jest.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
+jest.mock("@/components/ui/button", () => ({
+  Button: ({ children, onClick }: any) => (
+    <button onClick={onClick}>{children}</button>
+  ),
 }));
 
-jest.mock('@/components/ui/select', () => ({
+jest.mock("@/components/ui/select", () => ({
   Select: ({ children }: any) => <div>{children}</div>,
   SelectTrigger: ({ children }: any) => <div>{children}</div>,
   SelectValue: () => <div>Select Value</div>,
@@ -46,16 +60,20 @@ jest.mock('@/components/ui/select', () => ({
   SelectItem: ({ children }: any) => <div>{children}</div>,
 }));
 
-describe('Dashboard Page', () => {
-  it('renders welcome message', () => {
+describe("Dashboard Page", () => {
+  it("renders welcome message", () => {
     render(<DashboardPage />);
-    expect(screen.getByText(/Bem-vindo\(a\), Test User!/i)).toBeInTheDocument();
-    expect(screen.getByText(/Selecione um formulário abaixo para começar/i)).toBeInTheDocument();
+    expect(screen.getByText(/Olá, Test User!/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Selecione um formulário abaixo para começar/i)
+    ).toBeInTheDocument();
   });
 
-  it('renders form selection', () => {
+  it("renders form selection", () => {
     render(<DashboardPage />);
     expect(screen.getByText(/Selecionar Formulário/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Abrir Formulário Selecionado/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Abrir Formulário/i })
+    ).toBeInTheDocument();
   });
 });
