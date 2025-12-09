@@ -24,18 +24,15 @@ export const deletePhoto = catchAsync(async (req: Request, res: Response) => {
     throw new AppError("Foto não encontrada", 404);
   }
 
-  // Autorização: permitir se for dono do formulário ou role ADMIN/MANAGER/EDITOR
+  // Autorização: Apenas ADMIN pode deletar fotos (conforme RF10 e requisitos de acesso)
   const user = req.user;
   if (!user) {
     throw new AppError("Não autenticado", 401);
   }
 
-  const allowedRoles = ["ADMIN", "MANAGER", "EDITOR"];
-  const isOwner = user.userId === photo.form.userId;
-  const isAllowedRole = allowedRoles.includes(user.role);
-
-  if (!isOwner && !isAllowedRole) {
-    throw new AppError("Permissão negada para deletar esta foto", 403);
+  // RF10: Permitir exclusão de foto apenas para ADMIN
+  if (user.role !== "ADMIN") {
+    throw new AppError("Apenas administradores podem deletar fotos", 403);
   }
 
   // Tenta deletar do Firebase Storage

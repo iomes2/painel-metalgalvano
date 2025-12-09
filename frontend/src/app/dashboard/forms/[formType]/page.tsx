@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/ui/back-button";
 
 interface FormPageProps {
   params: Promise<{
@@ -32,7 +33,7 @@ export default async function FormPage({ params }: FormPageProps) {
   }
 
   return (
-    <div className="container mx-auto ">
+    <div className="w-full max-w-full py-6">
       <DynamicFormRenderer formDefinition={formDefinition} />
     </div>
   );

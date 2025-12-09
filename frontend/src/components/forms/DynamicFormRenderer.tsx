@@ -45,7 +45,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarIcon, Info } from "lucide-react";
+import { CalendarIcon, Info, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -176,7 +176,31 @@ export function DynamicFormRenderer({
     return acc;
   }, {} as Record<string, any>);
 
-  const combinedDefaultValues = { ...defaultValues, ...(initialValues || {}) };
+  // Helper to normalize values (especially dates/timestamps)
+  const prepareInitialValues = (values: Record<string, any> | undefined) => {
+    if (!values) return {};
+    const normalized = { ...values };
+
+    Object.keys(normalized).forEach((key) => {
+      const val = normalized[key];
+      // Check if it looks like a Firebase Timestamp (seconds/nanoseconds) or similar object
+      if (val && typeof val === "object") {
+        if ("seconds" in val && typeof val.seconds === "number") {
+          normalized[key] = new Date(val.seconds * 1000);
+        } else if ("_seconds" in val && typeof val._seconds === "number") {
+          normalized[key] = new Date(val._seconds * 1000);
+        } else if (typeof val.toDate === "function") {
+          normalized[key] = val.toDate();
+        }
+      }
+    });
+    return normalized;
+  };
+
+  const combinedDefaultValues = {
+    ...defaultValues,
+    ...prepareInitialValues(initialValues),
+  };
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -186,7 +210,10 @@ export function DynamicFormRenderer({
   const { watch, setValue, reset, getValues, control } = form;
 
   useEffect(() => {
-    if (initialValues) reset({ ...combinedDefaultValues } as any);
+    if (initialValues) {
+      const normalizedValues = prepareInitialValues(initialValues);
+      reset({ ...defaultValues, ...normalizedValues } as any);
+    }
   }, [initialValues, reset]);
 
   // Watch specific fields for conditional rendering & logic
@@ -550,11 +577,13 @@ export function DynamicFormRenderer({
 
   const IconComponent = getFormIcon(formDefinition.iconName);
 
-  const [submittedReportId, setSubmittedReportId] = useState<string | null>(null);
+  const [submittedReportId, setSubmittedReportId] = useState<string | null>(
+    null
+  );
 
   const handleDownloadPdf = async () => {
     if (!submittedReportId) return;
-    
+
     try {
       toast({
         title: "Gerando PDF...",
@@ -571,12 +600,12 @@ export function DynamicFormRenderer({
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      
+
       toast({
         title: "PDF baixado",
         description: "O arquivo foi salvo no seu dispositivo.",
       });
-      
+
       // Fechar modal e redirecionar após download
       handleShareDialogCancel();
     } catch (err: any) {
@@ -603,13 +632,28 @@ export function DynamicFormRenderer({
 
   return (
     <>
-      <Card className="w-full shadow-xl">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <IconComponent className="h-8 w-8 text-primary" />
-            <CardTitle className="title-form">{formDefinition.name}</CardTitle>
+      <Card className="w-full shadow-xl overflow-hidden">
+        <CardHeader className="overflow-hidden pb-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <IconComponent className="h-6 w-6 sm:h-8 sm:w-8 text-primary flex-shrink-0" />
+              <CardTitle className="text-lg sm:text-2xl leading-tight break-words">
+                {formDefinition.name}
+              </CardTitle>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.back()}
+              className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex-shrink-0 -mt-1"
+            >
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              Voltar
+            </Button>
           </div>
-          <CardDescription>{formDefinition.description}</CardDescription>
+          <CardDescription className="mt-1">
+            {formDefinition.description}
+          </CardDescription>
           {mainOriginatingFormId && (
             <div className="mt-2 p-2 bg-accent/10 border border-accent/30 rounded-md text-sm text-accent-foreground/80 flex items-center gap-2">
               <Info className="h-4 w-4" />
@@ -798,38 +842,91 @@ export function DynamicFormRenderer({
                                     disabled={isSubmitting}
                                   >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {controllerField.value ? (
-                                      format(
-                                        new Date(
-                                          controllerField.value as
-                                            | string
-                                            | number
-                                            | Date
-                                        ),
-                                        "PPP",
-                                        { locale: ptBR }
-                                      )
-                                    ) : (
-                                      <span>
-                                        {field.placeholder ||
-                                          "Escolha uma data"}
-                                      </span>
-                                    )}
+                                    {(() => {
+                                      const normalizeDate = (
+                                        val: any
+                                      ): Date | undefined => {
+                                        if (!val) return undefined;
+                                        try {
+                                          if (val instanceof Date) return val;
+                                          if (
+                                            typeof val === "object" &&
+                                            "toDate" in val &&
+                                            typeof val.toDate === "function"
+                                          ) {
+                                            return val.toDate();
+                                          }
+                                          // Handle serialized timestamps (seconds/_seconds)
+                                          if (
+                                            typeof val === "object" &&
+                                            ("seconds" in val ||
+                                              "_seconds" in val)
+                                          ) {
+                                            const seconds =
+                                              val.seconds || val._seconds;
+                                            return new Date(seconds * 1000);
+                                          }
+                                          // Handle string/number
+                                          const d = new Date(val);
+                                          if (!isNaN(d.getTime())) return d;
+                                          return undefined;
+                                        } catch {
+                                          return undefined;
+                                        }
+                                      };
+                                      const dateVal = normalizeDate(
+                                        controllerField.value
+                                      );
+                                      return dateVal ? (
+                                        format(dateVal, "PPP", { locale: ptBR })
+                                      ) : (
+                                        <span>
+                                          {field.placeholder ||
+                                            "Escolha uma data"}
+                                        </span>
+                                      );
+                                    })()}
                                   </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0">
                                   <Calendar
                                     mode="single"
-                                    selected={
-                                      controllerField.value
-                                        ? new Date(
-                                            controllerField.value as
-                                              | string
-                                              | number
-                                              | Date
-                                          )
-                                        : undefined
-                                    }
+                                    selected={(() => {
+                                      const normalizeDate = (
+                                        val: any
+                                      ): Date | undefined => {
+                                        if (!val) return undefined;
+                                        try {
+                                          if (val instanceof Date) return val;
+                                          if (
+                                            typeof val === "object" &&
+                                            "toDate" in val &&
+                                            typeof val.toDate === "function"
+                                          ) {
+                                            return val.toDate();
+                                          }
+                                          // Handle serialized timestamps (seconds/_seconds)
+                                          if (
+                                            typeof val === "object" &&
+                                            ("seconds" in val ||
+                                              "_seconds" in val)
+                                          ) {
+                                            const seconds =
+                                              val.seconds || val._seconds;
+                                            return new Date(seconds * 1000);
+                                          }
+                                          // Handle string/number
+                                          const d = new Date(val);
+                                          if (!isNaN(d.getTime())) return d;
+                                          return undefined;
+                                        } catch {
+                                          return undefined;
+                                        }
+                                      };
+                                      return normalizeDate(
+                                        controllerField.value
+                                      );
+                                    })()}
                                     onSelect={(date) =>
                                       controllerField.onChange(date)
                                     }
@@ -881,12 +978,10 @@ export function DynamicFormRenderer({
       <AlertDialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Formulário Enviado com Sucesso!
-            </AlertDialogTitle>
+            <AlertDialogTitle>Formulário Enviado com Sucesso!</AlertDialogTitle>
             <AlertDialogDescription>
-              Seu formulário "{formDefinition.name}" foi salvo.
-              Deseja baixar o PDF gerado agora?
+              Seu formulário "{formDefinition.name}" foi salvo. Deseja baixar o
+              PDF gerado agora?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

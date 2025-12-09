@@ -305,14 +305,46 @@ export class PdfService {
       return "Não preenchido";
     }
 
+    // Helper to convert various date formats
+    const parseDate = (val: any): Date | null => {
+      try {
+        // Firebase Timestamp with _seconds
+        if (val && typeof val === "object" && "_seconds" in val) {
+          return new Date(val._seconds * 1000);
+        }
+        // Firebase Timestamp with seconds (Firestore)
+        if (val && typeof val === "object" && "seconds" in val) {
+          return new Date(val.seconds * 1000);
+        }
+        // Firebase Timestamp toDate method
+        if (val && typeof val.toDate === "function") {
+          return val.toDate();
+        }
+        // ISO string or timestamp
+        if (typeof val === "string" || typeof val === "number") {
+          return new Date(val);
+        }
+        // Already a Date
+        if (val instanceof Date) {
+          return val;
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    };
+
     switch (field.type) {
       case "date":
-        try {
-          const date = value instanceof Date ? value : new Date(value);
+        const date = parseDate(value);
+        if (date && !isNaN(date.getTime())) {
           return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-        } catch {
-          return String(value);
         }
+        // If object, try to extract meaningful value
+        if (typeof value === "object") {
+          return "Data inválida";
+        }
+        return String(value);
 
       case "checkbox":
         return value ? "Sim" : "Não";
@@ -336,6 +368,20 @@ export class PdfService {
           : String(value);
 
       default:
+        // Handle objects that aren't handled elsewhere
+        if (typeof value === "object") {
+          // Try to parse as date first
+          const maybeDate = parseDate(value);
+          if (maybeDate && !isNaN(maybeDate.getTime())) {
+            return format(maybeDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+          }
+          // Otherwise try JSON
+          try {
+            return JSON.stringify(value);
+          } catch {
+            return "[Objeto]";
+          }
+        }
         return String(value);
     }
   }
@@ -382,5 +428,5 @@ export class PdfService {
   }
 }
 
-// export default new PdfService();
-export default {} as any;
+// Exporta instância do serviço
+export default new PdfService();

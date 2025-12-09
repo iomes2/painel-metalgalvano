@@ -59,15 +59,19 @@ export const authenticateFirebase = async (
       const email = decodedToken.email;
       if (email && email.endsWith("@gmail.com")) {
         const oldEmail = email.replace("@gmail.com", "@metalgalvano.forms");
-        logger.info(`Tentando encontrar usuário pelo email antigo: ${oldEmail}`);
+        logger.info(
+          `Tentando encontrar usuário pelo email antigo: ${oldEmail}`
+        );
 
         const existingUser = await prisma.user.findUnique({
           where: { email: oldEmail },
         });
 
         if (existingUser) {
-          logger.info(`Usuário encontrado para migração: ${existingUser.id}. Atualizando UID e Email...`);
-          
+          logger.info(
+            `Usuário encontrado para migração: ${existingUser.id}. Atualizando UID e Email...`
+          );
+
           // Atualizar o usuário com o novo UID e novo Email
           const updatedUser = await prisma.user.update({
             where: { id: existingUser.id },
@@ -76,7 +80,7 @@ export const authenticateFirebase = async (
               email: email,
             },
           });
-          
+
           // Usar o usuário atualizado
           req.user = {
             uid: updatedUser.firebaseUid,
@@ -84,14 +88,16 @@ export const authenticateFirebase = async (
             userId: updatedUser.id,
             role: updatedUser.role,
           };
-          
+
           // Atualizar último login
           await prisma.user.update({
             where: { id: updatedUser.id },
             data: { lastLoginAt: new Date() },
           });
 
-          logger.info(`Migração concluída e autenticação bem-sucedida para: ${updatedUser.name}`);
+          logger.info(
+            `Migração concluída e autenticação bem-sucedida para: ${updatedUser.name}`
+          );
           next();
           return;
         }
@@ -99,17 +105,19 @@ export const authenticateFirebase = async (
 
       // Se não encontrou para migração, CRIA um novo usuário (Auto-cadastro)
       if (decodedToken.email) {
-        logger.info(`Usuário novo detectado: ${decodedToken.email}. Criando cadastro automático...`);
+        logger.info(
+          `Usuário novo detectado: ${decodedToken.email}. Criando cadastro automático...`
+        );
 
         try {
           const newUser = await prisma.user.create({
             data: {
               firebaseUid: decodedToken.uid,
               email: decodedToken.email,
-              name: decodedToken.email.split('@')[0], // Usa a parte antes do @ como nome inicial
-              role: 'MANAGER', // Define como Gerente por padrão
-              isActive: true
-            }
+              name: decodedToken.email.split("@")[0], // Usa a parte antes do @ como nome inicial
+              role: "MANAGER", // Define como Gerente por padrão
+              isActive: true,
+            },
           });
 
           logger.info(`Usuário criado com sucesso: ${newUser.id}`);
@@ -130,7 +138,9 @@ export const authenticateFirebase = async (
           next();
           return;
         } catch (createError: any) {
-          logger.error(`Erro ao criar usuário automático: ${createError.message}`);
+          logger.error(
+            `Erro ao criar usuário automático: ${createError.message}`
+          );
           res.status(500).json({
             success: false,
             message: "Erro ao criar cadastro do usuário",
@@ -181,9 +191,12 @@ export const authenticateFirebase = async (
       code: error.code,
       stack: error.stack?.split("\n")[0],
     });
+
+    // Retornar erro detalhado para debug
     res.status(401).json({
       success: false,
-      message: "Token inválido ou expirado",
+      message: error.message || "Token inválido ou expirado",
+      code: error.code || "auth/unknown-error",
     });
   }
 };

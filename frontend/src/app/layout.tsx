@@ -1,22 +1,22 @@
-
-import type {Metadata} from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
-import './globals.css';
-import { AuthInitializer } from '@/components/auth/AuthInitializer';
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { AuthInitializer } from "@/components/auth/AuthInitializer";
 
 const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: 'Metalgalvano Formulários',
-  description: 'Formulários dinâmicos para processos de construção da Metalgalvano.',
+  title: "Metalgalvano Formulários",
+  description:
+    "Formulários dinâmicos para processos de construção da Metalgalvano.",
 };
 
 export default function RootLayout({
@@ -25,11 +25,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthInitializer>
-          {children}
-        </AuthInitializer>
+    <html lang="pt-BR" suppressHydrationWarning>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning
+      >
+        <AuthInitializer>{children}</AuthInitializer>
       </body>
     </html>
   );

@@ -12,9 +12,10 @@ export default function DashboardLayout({
     <SidebarProvider defaultOpen={true}>
       <AppSidebar />
       <SidebarInset>
-        <div className="flex flex-col print:block print:h-auto">
+        <div className="flex flex-col print:block print:h-auto min-h-screen">
           <AppHeader />
-          <main className="flex-1 w-full max-w-full sm:p-6 lg:p-8 bg-background overflow-y-auto print:p-0 print:bg-white print:overflow-visible print:h-auto">
+          {/* Main content - pt-0 because header is not sticky anymore */}
+          <main className="flex-1 w-full max-w-full px-3 pb-3 pt-3 print:p-0 print:bg-white print:h-auto">
             {children}
           </main>
         </div>

@@ -55,19 +55,15 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
 
-    /* Sidebar specific colors */
-    --sidebar-background: 207 30% 25%;
-    /* Darker shade of Steel Blue */
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 197 71% 73%;
-    /* Sky Blue for active items in sidebar */
-    --sidebar-primary-foreground: 207 44% 20%;
-    /* Darker for text on sidebar primary */
-    --sidebar-accent: 207 30% 32%;
-    /* Hover color in sidebar */
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 207 30% 20%;
-    --sidebar-ring: 197 71% 73%;
+    /* Sidebar specific colors - Premium Dark */
+    --sidebar-background: 215 28% 17%;
+    --sidebar-foreground: 210 20% 90%;
+    --sidebar-primary: 199 89% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 28% 22%;
+    --sidebar-accent-foreground: 210 20% 95%;
+    --sidebar-border: 215 28% 17%;
+    --sidebar-ring: 199 89% 48%;
   }
 
   .dark {
@@ -234,5 +230,185 @@ body {
     .print-images-section {
       margin-top: 16mm;
     }
+  }
+
+  /* Mobile-First Utilities */
+  .touch-target {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  .touch-target-lg {
+    min-height: 56px;
+    min-width: 56px;
+  }
+}
+
+/* Mobile-First Dashboard Styles */
+@layer components {
+
+  /* Card Styles */
+  .dashboard-card {
+    @apply bg-card rounded-xl shadow-lg border border-border/50;
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .dashboard-card:hover {
+    @apply shadow-xl;
+    transform: translateY(-2px);
+  }
+
+  .dashboard-card:active {
+    transform: translateY(0);
+    @apply shadow-lg;
+  }
+
+  /* Form Card (clickable) */
+  .form-card {
+    @apply dashboard-card cursor-pointer;
+    @apply p-5 sm:p-6;
+    @apply flex flex-col items-center gap-4;
+    @apply min-h-[140px];
+  }
+
+  .form-card:hover {
+    @apply border-primary/50 bg-card/80;
+  }
+
+  .form-card:active {
+    @apply bg-muted/50;
+  }
+
+  .form-card-icon {
+    @apply w-14 h-14 sm:w-16 sm:h-16;
+    @apply rounded-2xl;
+    @apply flex items-center justify-center;
+    @apply bg-gradient-to-br from-primary/10 to-primary/5;
+    @apply text-primary;
+    @apply transition-transform duration-300;
+  }
+
+  .form-card:hover .form-card-icon {
+    transform: scale(1.05);
+  }
+
+  .form-card-title {
+    @apply text-base sm:text-lg font-semibold text-center;
+    @apply text-foreground;
+    @apply leading-tight;
+  }
+
+  /* Welcome Banner */
+  .welcome-banner {
+    @apply relative overflow-hidden;
+    @apply bg-gradient-to-br from-primary via-primary to-primary/90;
+    @apply text-primary-foreground;
+    @apply rounded-2xl p-6 sm:p-8;
+    @apply shadow-xl;
+  }
+
+  .welcome-banner::before {
+    content: '';
+    @apply absolute inset-0;
+    background: radial-gradient(ellipse at top right, rgba(255, 255, 255, 0.15) 0%, transparent 60%);
+  }
+
+  .welcome-banner-content {
+    @apply relative z-10;
+  }
+
+  .welcome-title {
+    @apply text-2xl sm:text-3xl md:text-4xl font-bold;
+    @apply mb-2;
+  }
+
+  .welcome-subtitle {
+    @apply text-base sm:text-lg opacity-90;
+  }
+
+  /* Section Title */
+  .section-title {
+    @apply text-lg sm:text-xl font-semibold text-foreground;
+    @apply mb-4 sm:mb-6;
+    @apply flex items-center gap-2;
+  }
+
+  .section-title-icon {
+    @apply w-6 h-6 text-primary;
+  }
+
+  /* Sidebar Enhancements */
+  .sidebar-item-mobile {
+    @apply min-h-[56px] text-base;
+    @apply flex items-center gap-3 px-4;
+  }
+
+  .sidebar-icon-lg {
+    @apply w-6 h-6;
+  }
+}
+
+/* Enhanced Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* Stagger animations for cards */
+.stagger-1 {
+  animation-delay: 0.05s;
+}
+
+.stagger-2 {
+  animation-delay: 0.1s;
+}
+
+.stagger-3 {
+  animation-delay: 0.15s;
+}
+
+.stagger-4 {
+  animation-delay: 0.2s;
+}
+
+.stagger-5 {
+  animation-delay: 0.25s;
+}
+
+/* Safe area support for notched devices */
+@supports (padding: max(0px)) {
+  .safe-area-inset-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .safe-area-inset-top {
+    padding-top: max(0px, env(safe-area-inset-top));
   }
 }

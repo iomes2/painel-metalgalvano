@@ -12,7 +12,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { useAuth } from "@/components/auth/AuthInitializer";
+import { useAuth } from "@/hooks/useAuth";
 import {
   fetchGerentes,
   fetchRelatoriosByOs,
@@ -156,6 +156,13 @@ export default function SearchPage() {
     loadGerentes();
   }, [user, authLoading, toast]);
 
+  const getDateObject = (dateOrTimestamp: Date | Timestamp): Date => {
+    if (dateOrTimestamp instanceof Date) {
+      return dateOrTimestamp;
+    }
+    return dateOrTimestamp.toDate();
+  };
+
   const extractPhotos = (formData: Record<string, any>): ReportPhoto[] => {
     const photos: ReportPhoto[] = [];
     for (const key in formData) {
@@ -166,7 +173,7 @@ export default function SearchPage() {
             (item) =>
               typeof item === "object" &&
               item !== null &&
-              "name" &&
+              "name" in item &&
               "url" in item
           )
         ) {
@@ -384,8 +391,17 @@ export default function SearchPage() {
       let comparison = 0;
       if (sortColumn === "formName")
         comparison = a.formName.localeCompare(b.formName);
-      else if (sortColumn === "submittedAt")
-        comparison = a.submittedAt.toMillis() - b.submittedAt.toMillis();
+      else if (sortColumn === "submittedAt") {
+        const timeA =
+          a.submittedAt instanceof Date
+            ? a.submittedAt.getTime()
+            : a.submittedAt.toMillis();
+        const timeB =
+          b.submittedAt instanceof Date
+            ? b.submittedAt.getTime()
+            : b.submittedAt.toMillis();
+        comparison = timeA - timeB;
+      }
       return sortDirection === "asc" ? comparison : -comparison;
     });
   }, [results, sortColumn, sortDirection]);
@@ -396,8 +412,17 @@ export default function SearchPage() {
     return [...osResultsByGerente].sort((a, b) => {
       let comparison = 0;
       if (sortOsColumn === "os") comparison = a.os.localeCompare(b.os);
-      else if (sortOsColumn === "lastReportAt")
-        comparison = a.lastReportAt.toMillis() - b.lastReportAt.toMillis();
+      else if (sortOsColumn === "lastReportAt") {
+        const timeA =
+          a.lastReportAt instanceof Date
+            ? a.lastReportAt.getTime()
+            : a.lastReportAt.toMillis();
+        const timeB =
+          b.lastReportAt instanceof Date
+            ? b.lastReportAt.getTime()
+            : b.lastReportAt.toMillis();
+        comparison = timeA - timeB;
+      }
       return sortOsDirection === "asc" ? comparison : -comparison;
     });
   }, [osResultsByGerente, sortOsColumn, sortOsDirection]);
@@ -441,34 +466,58 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="space-y-8 search-container">
-      <Card className="shadow-lg overflow-hidden container-consulta">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <SearchIcon className="h-8 w-8 text-primary" />
-            <CardTitle className="text-3xl font-bold">
-              Consultar Relatórios
-            </CardTitle>
+    <div className="space-y-4 w-full max-w-full overflow-hidden">
+      {/* Premium Header - matching Monitoring Panel */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-800 via-slate-800 to-slate-900 p-4 md:p-6 shadow-xl">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl" />
+
+        <div className="relative z-10">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 text-sm text-slate-400 mb-2">
+            <span>Dashboard</span>
+            <span>›</span>
+            <span className="text-cyan-400">Consultar</span>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Formulário de Busca por OS */}
+
+          {/* Title */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 shadow-lg shadow-cyan-500/20">
+              <SearchIcon className="h-5 w-5 md:h-6 md:w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-white">
+                Consultar Relatórios
+              </h1>
+              <p className="text-sm text-slate-400 hidden sm:block">
+                Busque por OS ou por gerente responsável
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Search Forms Card */}
+      <div className="rounded-2xl bg-white/80 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg overflow-hidden">
+        <div className="p-4 md:p-6 space-y-5">
+          {/* Busca por OS */}
           <form
             onSubmit={handleSearchByOsSubmit}
-            className="flex flex-col sm:flex-row gap-4"
+            className="flex flex-col sm:flex-row gap-3"
           >
             <Input
               type="tel"
               value={osInput}
               onChange={(e) => setOsInput(e.target.value)}
               placeholder="Buscar por OS (ex: 123)"
-              className="flex-grow text-base md:text-sm"
+              className="flex-grow text-base md:text-sm h-11 rounded-xl border-slate-200 dark:border-slate-700"
               aria-label="Ordem de Serviço"
             />
             <Button
               type="submit"
               disabled={isLoading && activeSearchType === "os"}
-              className="bg-primary hover:bg-primary/90 text-base md:text-sm"
+              className="h-11 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-md"
             >
               {isLoading && activeSearchType === "os" ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -479,70 +528,74 @@ export default function SearchPage() {
             </Button>
           </form>
 
-          {/* Formulário de Busca por Gerente (apenas desktop) */}
-          <div className="hidden md:block border-t border-border pt-6 mt-6">
-            <form
-              onSubmit={handleSearchByGerenteSubmit}
-              className="flex flex-col sm:flex-row gap-4 items-center"
-            >
-              <Users className="h-6 w-6 text-muted-foreground sm:hidden" />
-              <Select
-                onValueChange={setSelectedGerenteIdParaBusca}
-                value={selectedGerenteIdParaBusca}
-                disabled={isLoadingGerentes || firestoreGerentes.length === 0}
-              >
-                <SelectTrigger className="flex-grow text-base md:text-sm">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-muted-foreground" />
-                    <SelectValue
-                      placeholder={
-                        isLoadingGerentes
-                          ? "Carregando gerentes..."
-                          : firestoreGerentes.length === 0
-                          ? "Nenhum gerente encontrado"
-                          : "Buscar OS por Gerente..."
-                      }
-                    />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  {!isLoadingGerentes && firestoreGerentes.length > 0 ? (
-                    firestoreGerentes.map((gerente) => (
-                      <SelectItem
-                        key={gerente.id}
-                        value={gerente.id}
-                        className="py-2"
-                      >
-                        {gerente.nome} ({gerente.id})
-                      </SelectItem>
-                    ))
-                  ) : !isLoadingGerentes && firestoreGerentes.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground">
-                      Nenhum gerente cadastrado.
-                    </div>
-                  ) : null}
-                </SelectContent>
-              </Select>
-              <Button
-                type="submit"
-                disabled={
-                  (isLoading && activeSearchType === "gerente") ||
-                  !selectedGerenteIdParaBusca ||
-                  isLoadingGerentes
-                }
-                className="bg-secondary hover:bg-secondary/80 text-secondary-foreground text-base md:text-sm"
-              >
-                {isLoading && activeSearchType === "gerente" ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <SearchIcon className="mr-2 h-4 w-4" />
-                )}
-                Buscar por Gerente
-              </Button>
-            </form>
+          {/* Divider */}
+          <div className="hidden md:flex items-center gap-4">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-600 to-transparent" />
+            <span className="text-xs text-slate-400 font-medium">ou</span>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-600 to-transparent" />
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Busca por Gerente (apenas desktop) */}
+          <form
+            onSubmit={handleSearchByGerenteSubmit}
+            className="hidden md:flex flex-col sm:flex-row gap-3 items-center"
+          >
+            <Select
+              onValueChange={setSelectedGerenteIdParaBusca}
+              value={selectedGerenteIdParaBusca}
+              disabled={isLoadingGerentes || firestoreGerentes.length === 0}
+            >
+              <SelectTrigger className="flex-grow text-base md:text-sm h-11 rounded-xl border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <SelectValue
+                    placeholder={
+                      isLoadingGerentes
+                        ? "Carregando gerentes..."
+                        : firestoreGerentes.length === 0
+                        ? "Nenhum gerente encontrado"
+                        : "Selecione um gerente..."
+                    }
+                  />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {!isLoadingGerentes && firestoreGerentes.length > 0 ? (
+                  firestoreGerentes.map((gerente) => (
+                    <SelectItem
+                      key={gerente.id}
+                      value={gerente.id}
+                      className="py-2"
+                    >
+                      {gerente.nome} ({gerente.id})
+                    </SelectItem>
+                  ))
+                ) : !isLoadingGerentes && firestoreGerentes.length === 0 ? (
+                  <div className="p-2 text-sm text-muted-foreground">
+                    Nenhum gerente cadastrado.
+                  </div>
+                ) : null}
+              </SelectContent>
+            </Select>
+            <Button
+              type="submit"
+              disabled={
+                (isLoading && activeSearchType === "gerente") ||
+                !selectedGerenteIdParaBusca ||
+                isLoadingGerentes
+              }
+              className="h-11 px-6 rounded-xl bg-slate-600 hover:bg-slate-700 text-white"
+            >
+              {isLoading && activeSearchType === "gerente" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <SearchIcon className="mr-2 h-4 w-4" />
+              )}
+              Buscar por Gerente
+            </Button>
+          </form>
+        </div>
+      </div>
 
       {isLoading && (
         <div className="flex justify-center items-center p-8">
@@ -552,22 +605,22 @@ export default function SearchPage() {
       )}
 
       {error && !isLoading && (
-        <Card className="border-destructive bg-destructive/10 shadow-md overflow-hidden">
-          <CardHeader className="flex flex-row items-center gap-3">
-            <AlertTriangle className="h-6 w-6 text-destructive" />
-            <CardTitle className="text-destructive">Erro na Pesquisa</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-destructive">{error}</p>
-            <Button
-              variant="link"
-              onClick={() => setError(null)}
-              className="p-0 h-auto mt-2 text-destructive"
-            >
-              Tentar nova pesquisa
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50/80 dark:bg-red-900/20 p-4 md:p-6 shadow-lg">
+          <div className="flex items-center gap-3 mb-2">
+            <AlertTriangle className="h-6 w-6 text-red-500" />
+            <h3 className="text-lg font-semibold text-red-600 dark:text-red-400">
+              Erro na Pesquisa
+            </h3>
+          </div>
+          <p className="text-red-600 dark:text-red-300">{error}</p>
+          <Button
+            variant="link"
+            onClick={() => setError(null)}
+            className="p-0 h-auto mt-2 text-red-500"
+          >
+            Tentar nova pesquisa
+          </Button>
+        </div>
       )}
 
       {/* Resultados da Busca por OS */}
@@ -576,35 +629,38 @@ export default function SearchPage() {
         !error &&
         searchedOs &&
         results.length === 0 && (
-          <Card className="shadow-md overflow-hidden">
-            <CardHeader>
-              <CardTitle>Nenhum Relatório</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Nenhum relatório encontrado para a OS: "{searchedOs}".</p>
-            </CardContent>
-          </Card>
+          <div className="rounded-2xl bg-white/80 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-6 shadow-lg text-center">
+            <FileSearch className="h-12 w-12 text-slate-400 mx-auto mb-3" />
+            <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">
+              Nenhum Relatório
+            </h3>
+            <p className="text-slate-500 mt-1">
+              Nenhum relatório encontrado para a OS: "{searchedOs}".
+            </p>
+          </div>
         )}
 
       {activeSearchType === "os" &&
         results.length > 0 &&
         !isLoading &&
         !error && (
-          <Card className="shadow-md overflow-hidden container-resultados-lista">
-            <CardHeader>
-              <CardTitle>Relatórios para OS: {searchedOs}</CardTitle>
-              <CardDescription>
+          <div className="rounded-2xl bg-white/80 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg overflow-hidden">
+            <div className="p-4 md:p-6 border-b border-slate-200/50 dark:border-slate-700/50">
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                Relatórios para OS: {searchedOs}
+              </h3>
+              <p className="text-sm text-slate-500 mt-1">
                 {results.length} relatório(s) encontrado(s).
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="overflow-hidden card-resultados-lista">
-              <div className="max-h-[24rem] overflow-y-auto overflow-x-auto relative border border-border rounded-md w-full max-w-full">
-                <table className="w-full caption-bottom text-sm table-os">
+              </p>
+            </div>
+            <div className="p-4 md:p-6 overflow-hidden">
+              <div className="max-h-[24rem] overflow-y-auto overflow-x-hidden relative border border-border rounded-md">
+                <table className="w-full caption-bottom text-sm table-os min-w-0 table-fixed">
                   <TableHeader className="sticky top-0 bg-background z-10 [&_tr]:border-b">
                     <TableRow>
                       <TableHead
                         onClick={() => handleSort("formName")}
-                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        className="cursor-pointer hover:bg-muted/50 transition-colors w-auto"
                       >
                         <div className="flex items-center colunas-lista">
                           Nome do Formulário{" "}
@@ -613,17 +669,17 @@ export default function SearchPage() {
                       </TableHead>
                       <TableHead
                         onClick={() => handleSort("submittedAt")}
-                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        className="cursor-pointer hover:bg-muted/50 transition-colors w-[85px] p-2"
                       >
-                        <div className="flex items-center colunas-lista">
-                          Data de Envio{" "}
+                        <div className="flex items-center colunas-lista justify-center">
+                          Data
                           <SortIndicator column="submittedAt" type="report" />
                         </div>
                       </TableHead>
-                      <TableHead className="text-center colunas-lista">
+                      <TableHead className="text-center colunas-lista hidden md:table-cell w-[10%]">
                         Fotos
                       </TableHead>
-                      <TableHead className="text-center colunas-lista">
+                      <TableHead className="text-center colunas-lista w-[50px] p-2">
                         Ações
                       </TableHead>
                     </TableRow>
@@ -637,26 +693,28 @@ export default function SearchPage() {
                           index % 2 !== 0 ? "bg-[#80808021]" : ""
                         )}
                       >
-                        <TableCell className="font-medium break-words">
+                        <TableCell className="font-medium break-words align-middle">
                           {report.formName}
                         </TableCell>
-                        <TableCell className="date-time-cell whitespace-nowrap text-center">
-                          {report.submittedAt
-                            .toDate()
-                            .toLocaleDateString("pt-BR", {
+                        <TableCell className="date-time-cell whitespace-nowrap text-center align-middle text-xs sm:text-sm p-1">
+                          {getDateObject(report.submittedAt).toLocaleDateString(
+                            "pt-BR",
+                            {
                               day: "2-digit",
                               month: "2-digit",
-                              year: "numeric",
-                            })}
+                              year: "2-digit",
+                            }
+                          )}
                           <br />
-                          {report.submittedAt
-                            .toDate()
-                            .toLocaleTimeString("pt-BR", {
+                          {getDateObject(report.submittedAt).toLocaleTimeString(
+                            "pt-BR",
+                            {
                               hour: "2-digit",
                               minute: "2-digit",
-                            })}
+                            }
+                          )}
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="text-center align-middle hidden md:table-cell">
                           {report.photoUrls && report.photoUrls.length > 0 ? (
                             <Button
                               variant="outline"
@@ -672,22 +730,19 @@ export default function SearchPage() {
                               {report.photoUrls.length})
                             </Button>
                           ) : (
-                            <span className="text-muted-foreground">
-                              Nenhuma
-                            </span>
+                            <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-center coluna-acao-lista">
+                        <TableCell className="text-center coluna-acao-lista align-middle p-1">
                           <Button
                             asChild
-                            size="sm"
-                            className="bg-accent text-accent-foreground hover:bg-primary hover:text-primary-foreground whitespace-nowrap"
+                            size="icon"
+                            className="h-8 w-8 bg-accent text-accent-foreground hover:bg-primary hover:text-primary-foreground mx-auto"
                           >
                             <Link
                               href={`/dashboard/view-report/${searchedOs}/${report.id}?formType=${report.formType}`}
                             >
-                              <FileSearch className="mr-2 h-4 w-4" />
-                              Visualizar
+                              <FileSearch className="h-5 w-5" />
                             </Link>
                           </Button>
                         </TableCell>
@@ -696,8 +751,8 @@ export default function SearchPage() {
                   </TableBody>
                 </table>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
       {/* Resultados da Busca por Gerente */}
@@ -777,20 +832,20 @@ export default function SearchPage() {
                           {osItem.os}
                         </TableCell>
                         <TableCell className="date-time-cell whitespace-nowrap text-center">
-                          {osItem.lastReportAt
-                            .toDate()
-                            .toLocaleDateString("pt-BR", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                            })}
+                          {getDateObject(
+                            osItem.lastReportAt
+                          ).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })}
                           <br />
-                          {osItem.lastReportAt
-                            .toDate()
-                            .toLocaleTimeString("pt-BR", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                          {getDateObject(
+                            osItem.lastReportAt
+                          ).toLocaleTimeString("pt-BR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </TableCell>
                         <TableCell className="text-center coluna-acao-lista">
                           <Button
@@ -812,9 +867,9 @@ export default function SearchPage() {
         )}
 
       <Button
-        variant="outline"
+        variant="ghost"
         onClick={() => router.push("/dashboard")}
-        className="mt-6"
+        className="mt-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
         Voltar para o Painel Principal

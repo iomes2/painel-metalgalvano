@@ -5,7 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useAuth } from "@/components/auth/AuthInitializer";
+import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Card,
   CardContent,
@@ -14,6 +15,15 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Timeline } from "@/components/timeline/Timeline";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -28,6 +38,7 @@ import {
   Hash,
   Image as ImageIcon,
   Clock,
+  History,
   X,
   Printer,
   FileText as FileTextIcon,
@@ -81,7 +92,7 @@ export default function ViewReportPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
 
   const handleGeneratePdf = async () => {
@@ -259,27 +270,27 @@ export default function ViewReportPage() {
 
     switch (field.type) {
       case "date":
-        // Suportar Timestamp do Firebase e objeto {seconds, nanoseconds}
-        if (value instanceof Timestamp) {
-          return format(value.toDate(), "dd/MM/yyyy 'às' HH:mm", {
+        // Safe parsing for date fields
+        let dateVal: Date | null = null;
+        try {
+          const val = value as any;
+          if (val instanceof Date) dateVal = val;
+          else if (val && typeof val.toDate === "function")
+            dateVal = val.toDate();
+          else if (val && typeof val === "object") {
+            if (val.seconds) dateVal = new Date(val.seconds * 1000);
+            else if (val._seconds) dateVal = new Date(val._seconds * 1000);
+          } else if (typeof val === "string" || typeof val === "number") {
+            dateVal = new Date(val);
+          }
+        } catch (e) {
+          console.error("Error parsing date value", value, e);
+        }
+
+        if (dateVal && !isNaN(dateVal.getTime())) {
+          return format(dateVal, "dd/MM/yyyy 'às' HH:mm", {
             locale: ptBR,
           });
-        }
-        if (typeof value === "object" && value !== null && "seconds" in value) {
-          const date = new Date(
-            value.seconds * 1000 + (value.nanoseconds || 0) / 1000000
-          );
-          return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-        }
-        if (
-          typeof value === "object" &&
-          value !== null &&
-          "_seconds" in value
-        ) {
-          const date = new Date(
-            value._seconds * 1000 + (value._nanoseconds || 0) / 1000000
-          );
-          return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
         }
         return String(value);
       case "checkbox":
@@ -424,80 +435,77 @@ export default function ViewReportPage() {
   }
 
   return (
-    <div className="mx-auto max-w-screen-2xl w-full px-3 md:px-6 py-0 overflow-x-hidden">
-      <div className="h-[calc(100svh-64px)] sm:h-[calc(100svh-64px-3rem)] lg:h-[calc(100svh-64px-4rem)] w-full max-w-[100vw] flex flex-col rounded-2xl border bg-gradient-to-b from-background to-muted/30 shadow-sm overflow-hidden print:block print:h-auto print:max-w-none print:rounded-none print:border-0 print:shadow-none print:bg-white print-reset-overflow">
-        {/* Cabeçalho (fixo dentro do container) */}
-        <div className="border-b rounded-t-2xl">
-          <div className="flex items-start justify-between gap-3 p-2 md:p-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2.5 mb-1 flex-wrap">
-                <FormSpecificIcon className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-                <h1 className="truncate text-lg font-semibold md:text-xl mr-2">
-                  {formDefinition.name}
-                </h1>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm text-muted-foreground">
-                <span className="hidden md:inline print:inline">
-                  Ordem de Serviço:
-                </span>
-                <Badge
-                  variant="secondary"
-                  className="font-mono px-1.5 py-0.5 text-[10px] md:text-xs"
-                >
-                  {osId}
-                </Badge>
-                <span className="mx-1 hidden md:inline print:inline">•</span>
-                <span className="truncate">
-                  {report.submittedAt
-                    ? format(
-                        report.submittedAt.toDate(),
-                        "dd/MM/yyyy 'às' HH:mm",
-                        { locale: ptBR }
-                      )
-                    : "Data inválida"}
-                </span>
-                {report.submittedBy && (
-                  <>
-                    <span className="mx-1 hidden md:inline print:inline">
-                      •
-                    </span>
-                    <span className="truncate max-w-[50vw] hidden md:inline print:inline">
-                      por {report.submittedBy}
-                      {report.id && (
-                        <span
-                          className="font-mono text-[10px] md:text-xs text-muted-foreground ml-2"
-                          title={`ID completo do relatório: ${report.id}`}
-                        >
-                          (ID: {report.id})
-                        </span>
-                      )}
-                    </span>
-                  </>
-                )}
-              </div>
+    <div className="w-full max-w-full overflow-x-hidden">
+      <div className="h-[calc(100svh-64px)] sm:h-[calc(100svh-64px-3rem)] lg:h-[calc(100svh-64px-4rem)] w-full max-w-full flex flex-col rounded-2xl border bg-gradient-to-b from-background to-muted/30 shadow-sm overflow-hidden print:block print:h-auto print:max-w-none print:rounded-none print:border-0 print:shadow-none print:bg-white">
+        {/* Cabeçalho Premium - Mobile First */}
+        <div className="border-b bg-gradient-to-r from-slate-50 via-blue-50/50 to-slate-50 dark:from-slate-800/50 dark:via-blue-900/20 dark:to-slate-800/50 relative overflow-hidden">
+          {/* Accent Bar */}
+          <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600" />
+
+          {/* Header Row: Icon + Title + Buttons */}
+          <div className="flex items-center gap-2 px-3 py-2 pt-3 overflow-hidden">
+            {/* Icon */}
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-md flex-shrink-0">
+              <FormSpecificIcon className="h-4 w-4 text-white" />
             </div>
-            <div className="flex shrink-0 items-center gap-2 print:hidden">
-              <Button
-                variant="outline"
-                size="icon"
+
+            {/* Title - truncated */}
+            <h1 className="flex-1 text-base font-bold text-foreground min-w-0 break-words">
+              {formDefinition.name}
+            </h1>
+
+            {/* Buttons - always visible */}
+            <div className="flex items-center gap-1.5 flex-shrink-0 print:hidden">
+              <button
                 onClick={() => router.back()}
-                aria-label="Voltar"
+                title="Voltar"
+                className="h-8 w-8 rounded-lg flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/50 transition-all active:scale-95"
               >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              {user?.email?.split("@")[0] === report?.gerenteId && (
-                <Button
-                  variant="outline"
-                  size="icon"
+                <ArrowLeft className="h-4 w-4 text-slate-600 dark:text-slate-300" />
+              </button>
+
+              <Dialog>
+                <DialogTrigger asChild>
+                  <button
+                    className="h-8 w-8 rounded-lg flex items-center justify-center bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 transition-all active:scale-95 cursor-pointer"
+                    title="Ver Linha do Tempo"
+                  >
+                    <History className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Histórico da Obra: {osId}</DialogTitle>
+                    <DialogDescription>
+                      Acompanhe todas as atividades registradas para esta OS.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="mt-4">
+                    <Timeline osNumber={osId as string} />
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {isAdmin && (
+                <button
                   onClick={() => setIsEditing((v) => !v)}
-                  aria-label={isEditing ? "Cancelar Edição" : "Editar"}
+                  title={isEditing ? "Cancelar" : "Editar"}
+                  className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all active:scale-95 ${
+                    isEditing
+                      ? "bg-amber-500 text-white"
+                      : "bg-amber-100 dark:bg-amber-900/30"
+                  }`}
                 >
-                  <Edit3 className="h-5 w-5" />
-                </Button>
+                  <Edit3
+                    className={`h-4 w-4 ${
+                      isEditing
+                        ? "text-white"
+                        : "text-amber-600 dark:text-amber-400"
+                    }`}
+                  />
+                </button>
               )}
-              <Button
-                variant="outline"
-                size="icon"
+              <button
                 onClick={async () => {
                   if (!report) return;
                   try {
@@ -508,111 +516,172 @@ export default function ViewReportPage() {
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement("a");
                     a.href = url;
-                    a.download = `relatorio-${report.formType}-${osId}-${report.id}.pdf`;
+                    a.download = `relatorio-${report.formType}-${osId}.pdf`;
                     document.body.appendChild(a);
                     a.click();
                     a.remove();
                     window.URL.revokeObjectURL(url);
-                    toast({
-                      title: "PDF baixado",
-                      description: "O PDF foi gerado e salvo",
-                    });
+                    toast({ title: "PDF baixado" });
                   } catch (err: any) {
-                    console.error(err);
                     toast({
                       title: "Erro",
-                      description: err.message || "Falha ao baixar PDF",
+                      description: err.message,
                       variant: "destructive",
                     });
                   }
                 }}
-                aria-label="Gerar PDF"
+                title="Baixar PDF"
+                className="h-8 w-8 rounded-lg flex items-center justify-center bg-red-100 hover:bg-red-200 dark:bg-red-900/30 transition-all active:scale-95"
               >
-                <FileText className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
+                <FileText className="h-4 w-4 text-red-600 dark:text-red-400" />
+              </button>
+              <button
                 onClick={() => window.print()}
-                aria-label="Imprimir"
+                title="Imprimir"
+                className="h-8 w-8 rounded-lg flex items-center justify-center bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/30 transition-all active:scale-95"
               >
-                <Printer className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleGeneratePdf()}
-                aria-label="Gerar PDF"
-              >
-                <FileTextIcon className="h-5 w-5" />
-              </Button>
+                <Printer className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              </button>
             </div>
+          </div>
+
+          {/* Meta Row: OS + Date + By */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 pb-2 text-[11px] text-muted-foreground overflow-hidden">
+            <Badge className="font-mono px-1.5 py-0 text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 border-0">
+              OS: {osId}
+            </Badge>
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3 text-blue-500" />
+              {(() => {
+                if (!report.submittedAt) return "—";
+                // Safe date parsing logic
+                let dateVal: Date | null = null;
+                const val = report.submittedAt as any;
+                try {
+                  if (val instanceof Date) dateVal = val;
+                  else if (typeof val.toDate === "function")
+                    dateVal = val.toDate();
+                  else if (val.seconds) dateVal = new Date(val.seconds * 1000);
+                  else if (val._seconds)
+                    dateVal = new Date(val._seconds * 1000);
+                  // Firebase internal
+                  else dateVal = new Date(val);
+                } catch (e) {
+                  console.error("Date parse error", e);
+                }
+
+                return dateVal && !isNaN(dateVal.getTime())
+                  ? format(dateVal, "dd/MM/yy HH:mm", { locale: ptBR })
+                  : "—";
+              })()}
+            </span>
+            {report.submittedBy && (
+              <span className="hidden sm:inline">
+                •{" "}
+                <span className="font-medium text-foreground">
+                  {report.submittedBy}
+                </span>
+              </span>
+            )}
           </div>
         </div>
 
         {/* Corpo em Grid: Metadados (col-esq) + Campos (col-dir) */}
         <div className="flex-1 overflow-hidden min-w-0">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 p-3 md:p-4 h-full overflow-x-hidden min-w-0 w-full max-w-full">
-            {/* Sidebar de Metadados */}
+            {/* Sidebar de Metadados - Premium */}
             <aside className="hidden lg:block lg:col-span-4 xl:col-span-3 space-y-4 print:hidden">
-              <Card className="shadow-none border-border/80">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Resumo</CardTitle>
-                  <CardDescription>Informações do relatório</CardDescription>
-                </CardHeader>
-                <CardContent className="text-sm space-y-2">
+              <div className="rounded-xl border shadow-sm overflow-hidden bg-card">
+                {/* Sidebar Header */}
+                <div className="px-4 py-3 bg-gradient-to-r from-slate-100 to-blue-50/50 dark:from-slate-800 dark:to-blue-900/20 border-b">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                    Resumo do Relatório
+                  </h3>
+                </div>
+
+                <div className="p-4 space-y-3 text-sm">
+                  {/* ID Badge */}
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-muted-foreground">ID Relatório</span>
-                    <span
-                      className="font-mono text-xs md:text-[13px] truncate max-w-[60%]"
-                      title={report.id}
+                    <span className="text-muted-foreground text-xs uppercase tracking-wide">
+                      ID
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="font-mono text-[10px] max-w-[65%] truncate"
                     >
                       {report.id}
-                    </span>
+                    </Badge>
                   </div>
+
+                  {/* Gerente */}
                   {report.gerenteId && (
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-muted-foreground">ID Gerente</span>
-                      <span
-                        className="font-mono text-xs md:text-[13px] truncate max-w-[60%]"
-                        title={report.gerenteId}
-                      >
-                        {report.gerenteId}
+                      <span className="text-muted-foreground text-xs uppercase tracking-wide">
+                        Gerente
                       </span>
+                      <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-0 text-xs">
+                        {report.gerenteId}
+                      </Badge>
                     </div>
                   )}
+
+                  {/* Formulário */}
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-muted-foreground">Formulário</span>
-                    <span
-                      className="truncate max-w-[60%]"
-                      title={formDefinition.name}
-                    >
+                    <span className="text-muted-foreground text-xs uppercase tracking-wide">
+                      Tipo
+                    </span>
+                    <Badge className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-0 text-xs max-w-[65%] truncate">
                       {formDefinition.name}
+                    </Badge>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="border-t my-2" />
+
+                  {/* Data/Hora */}
+                  <div className="flex items-center gap-2 text-muted-foreground bg-slate-50 dark:bg-slate-800/50 rounded-lg p-2.5">
+                    <Clock className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                    <span className="text-xs">
+                      {(() => {
+                        if (!report.submittedAt) return "Data inválida";
+                        let dateVal: Date | null = null;
+                        const val = report.submittedAt as any;
+                        try {
+                          if (val instanceof Date) dateVal = val;
+                          else if (typeof val.toDate === "function")
+                            dateVal = val.toDate();
+                          else if (val.seconds)
+                            dateVal = new Date(val.seconds * 1000);
+                          else if (val._seconds)
+                            dateVal = new Date(val._seconds * 1000);
+                          else dateVal = new Date(val);
+                        } catch (e) {
+                          console.error("Sidebar date parse error", e);
+                        }
+
+                        return dateVal && !isNaN(dateVal.getTime())
+                          ? format(
+                              dateVal,
+                              "dd 'de' MMMM 'de' yyyy 'às' HH:mm",
+                              { locale: ptBR }
+                            )
+                          : "Data inválida";
+                      })()}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>
-                      {report.submittedAt
-                        ? format(
-                            report.submittedAt.toDate(),
-                            "dd/MM/yyyy HH:mm",
-                            { locale: ptBR }
-                          )
-                        : "Data inválida"}
-                    </span>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex gap-2">
+                </div>
+
+                {/* Footer */}
+                <div className="p-3 border-t bg-slate-50/50 dark:bg-slate-800/30">
                   <Button
-                    className="w-full"
-                    variant="outline"
+                    className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-sm"
                     onClick={() => router.back()}
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
                   </Button>
-                </CardFooter>
-              </Card>
+                </div>
+              </div>
             </aside>
 
             {/* Conteúdo: Campos do formulário - rolável */}
@@ -736,33 +805,58 @@ export default function ViewReportPage() {
 
                     const isLargeField =
                       field.type === "textarea" || field.type === "file";
+
+                    // Color based on field type
+                    const getFieldHeaderColor = (type: FormField["type"]) => {
+                      switch (type) {
+                        case "date":
+                          return "from-amber-100 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/20 text-amber-700 dark:text-amber-300";
+                        case "checkbox":
+                          return "from-green-100 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/20 text-green-700 dark:text-green-300";
+                        case "select":
+                          return "from-slate-100 to-gray-50 dark:from-slate-800 dark:to-gray-900/50 text-slate-700 dark:text-slate-300";
+                        case "file":
+                          return "from-zinc-100 to-stone-50 dark:from-zinc-900/30 dark:to-stone-900/20 text-zinc-700 dark:text-zinc-300";
+                        case "textarea":
+                          return "from-cyan-100 to-teal-50 dark:from-cyan-900/30 dark:to-teal-900/20 text-cyan-700 dark:text-cyan-300";
+                        case "number":
+                          return "from-sky-100 to-blue-50 dark:from-sky-900/30 dark:to-blue-900/20 text-sky-700 dark:text-sky-300";
+                        default:
+                          return "from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-700/50 text-slate-700 dark:text-slate-300";
+                      }
+                    };
+
                     return (
                       <div
                         key={field.id}
-                        className={`rounded-md border bg-card shadow-sm hover:shadow transition-shadow overflow-hidden min-w-0 print-avoid-break-inside ${
+                        className={`rounded-xl border border-slate-200/80 dark:border-slate-700/50 bg-card shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden min-w-0 print-avoid-break-inside ${
                           isLargeField ? "sm:col-span-2 xl:col-span-3" : ""
                         }`}
                       >
-                        {/* Título do campo */}
-                        <div className="flex items-center gap-1.5 border-b bg-muted/40 px-2.5 py-1">
-                          <FieldIcon className="h-3 w-3 text-primary" />
+                        {/* Título do campo com cor */}
+                        <div
+                          className={`flex items-center gap-2 px-3 py-2 bg-gradient-to-r ${getFieldHeaderColor(
+                            field.type
+                          )}`}
+                        >
+                          <FieldIcon className="h-3.5 w-3.5 flex-shrink-0" />
                           <h3
-                            className="text-[11px] font-medium leading-5 truncate"
+                            className="text-xs font-semibold leading-5 truncate"
                             title={field.label}
                           >
                             {field.label}
                           </h3>
                         </div>
                         {/* Valor */}
-                        <div className="px-2.5 py-1.5 text-[13px] leading-relaxed break-words break-all whitespace-pre-wrap min-w-0 max-w-full">
+                        <div className="px-3 py-2.5 text-sm leading-relaxed break-words break-all whitespace-pre-wrap min-w-0 max-w-full bg-white dark:bg-slate-900/50">
                           {renderFieldValue(field, fieldValue)}
                           {field.linkedForm &&
                             fieldValue === field.linkedForm.conditionValue && (
-                              <div className="mt-2 pt-2 border-t">
+                              <div className="mt-3 pt-2 border-t border-dashed">
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="w-full sm:w-auto whitespace-normal break-words text-[12px] leading-tight text-center max-w-full"
+                                  className="w-full sm:w-auto whitespace-normal break-words text-xs leading-tight text-center max-w-full border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30"
                                   onClick={() =>
                                     openLinkedReportModal(
                                       field.linkedForm!.targetFormType

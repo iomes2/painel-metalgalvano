@@ -19,6 +19,7 @@ model User {
   // Relações
   forms        Form[]
   auditLogs    AuditLog[]
+  notifications Notification[]
 
   // Timestamps
   createdAt    DateTime @default(now())
@@ -160,4 +161,23 @@ model SystemConfig {
   updatedAt   DateTime @updatedAt
 
   @@map("system_config")
+}
+
+// ==================== NOTIFICATIONS ====================
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  message     String
+  type        String   // Ex: 'INFO', 'WARNING', 'SUCCESS', 'ERROR'
+  isRead      Boolean  @default(false)
+  link        String?  // Optional link to redirect user
+  
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
 }

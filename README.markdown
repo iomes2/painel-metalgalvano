@@ -38,7 +38,7 @@ Este documento apresenta o Request for Comments (RFC) para o desenvolvimento do 
     - RF02: O sistema deve disponibilizar, no mínimo, cinco modelos de documentos editáveis (Cronograma, Diário de Obra, Checklists, Relatório Fotográfico, Medições).
     - RF03: O sistema deve permitir upload de fotos para anexar aos relatórios de obra.
     - RF04: O sistema deve gerar relatórios com os dados preenchidos pelos usuários.
-    - RF05: O sistema deve permitir busca e filtro de documentos por nome da obra ou período.
+    - RF05: O sistema deve permitir busca e filtro de documentos por nome da obra ou gerente.
     - RF06: O sistema deve suportar a edição de documentos antes da submissão final.
     - RF07: O sistema deve permitir o download de relatórios gerados.
     - RF08: O sistema deve oferecer histórico de documentos por obra.
@@ -50,10 +50,7 @@ Este documento apresenta o Request for Comments (RFC) para o desenvolvimento do 
     - RF14: O sistema deve oferecer painel de controle para monitoramento de obras.
     - RF15: O sistema deve permitir exportar dados das obras (Excel).
     - RF16: O sistema deve realizar backups automáticos periódicos.
-    - RF17: O sistema deve oferecer tutorial interativo para novos usuários.
-    - RF18: O sistema deve permitir personalização de modelos por administrador.
-    - RF19: O sistema deve permitir agendamento de tarefas associadas às obras.
-    - RF20: O sistema deve utilizar Inteligência Artificial para auxiliar no preenchimento e correção de relatórios.
+    - RF17: O sistema deve permitir personalização de modelos por administrador.
 
   - **Não-Funcionais (RNF)**:
     - RNF01: Carregamento de páginas em menos de 3 segundos.
@@ -92,7 +89,6 @@ Este documento apresenta o Request for Comments (RFC) para o desenvolvimento do 
 - **Linguagens de Programação**: TypeScript (Frontend e Backend), JavaScript ES6+.
 - **Frontend**: Next.js 15 (App Router), React 18, Tailwind CSS, Shadcn/UI, TanStack Query, React Hook Form, Zod, Recharts, Lucide React.
 - **Backend**: Node.js, Express.js, Prisma ORM, Firebase Admin SDK, PDFMake, Puppeteer, Winston.
-- **Inteligência Artificial**: Google Genkit, Google Gemini 2.0 Flash.
 - **Ferramentas de Desenvolvimento e Gestão de Projeto**: Git, GitHub, VS Code, Draw.io/Structurizr (diagramas).
 
 ### 3.4. Considerações de Segurança

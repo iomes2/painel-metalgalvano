@@ -15,6 +15,10 @@ import logger from "./utils/logger";
 import formsRoutes from "./routes/forms.routes";
 import usersRoutes from "./routes/users.routes";
 import gerentesRoutes from "./routes/gerentes.routes";
+import timelineRoutes from "./routes/timeline.routes";
+import notificationRoutes from "./routes/notification.routes";
+import exportRoutes from "./routes/export.routes";
+import statsRoutes from "./routes/stats.routes";
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -71,7 +75,7 @@ app.use((req: Request, _res: Response, next) => {
 // ==================== ROTAS ====================
 
 // Rota de Cobertura de Testes (Apenas em Dev/Test ou protegida)
-app.use('/coverage', express.static(path.join(__dirname, '../coverage')));
+app.use("/coverage", express.static(path.join(__dirname, "../coverage")));
 
 // Health check
 app.get("/health", (_req: Request, res: Response) => {
@@ -108,6 +112,10 @@ app.use(
 );
 app.use(`${apiPrefix}/upload`, require("./routes/upload.routes").default);
 app.use(`${apiPrefix}/photos`, require("./routes/photos.routes").default);
+app.use(`${apiPrefix}/timeline`, timelineRoutes);
+app.use(`${apiPrefix}/notifications`, notificationRoutes);
+app.use(`${apiPrefix}/export`, exportRoutes);
+app.use(`${apiPrefix}/stats`, statsRoutes);
 
 // ==================== ERROR HANDLING ====================
 

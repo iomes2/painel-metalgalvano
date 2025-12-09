@@ -248,6 +248,36 @@ function extractPhotos(formData: Record<string, any>): ReportPhoto[] {
   return photos;
 }
 
+// ==================== API: USUÁRIOS ====================
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  role: "ADMIN" | "MANAGER" | "USER";
+  isActive: boolean;
+  createdAt: string;
+}
+
+/**
+ * Busca dados do usuário atual (incluindo role)
+ */
+export async function fetchCurrentUser(): Promise<UserProfile | null> {
+  if (USE_BACKEND) {
+    try {
+      const response = await fetchBackend("/api/v1/users/me");
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error("Erro ao buscar perfil do usuário:", error);
+      return null;
+    }
+  } else {
+    // Mock para Firebase-only mode
+    return null;
+  }
+}
+
 // ==================== API: GERENTES ====================
 
 /**
@@ -627,4 +657,55 @@ export async function downloadRelatorioPdf(
   a.click();
   document.body.removeChild(a);
   window.URL.revokeObjectURL(url);
+}
+
+// ==================== API: NOTIFICAÇÕES ====================
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: "INFO" | "WARNING" | "SUCCESS" | "ERROR";
+  link?: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export async function fetchNotifications(): Promise<AppNotification[]> {
+  if (USE_BACKEND) {
+    try {
+      const response = await fetchBackend("/api/v1/notifications");
+      const data = await response.json();
+      return data.data || [];
+    } catch (e) {
+      console.error("Error fetching notifications", e);
+      return [];
+    }
+  }
+  return [];
+}
+
+export async function markNotificationAsRead(id: string): Promise<void> {
+  if (USE_BACKEND) {
+    try {
+      await fetchBackend(`/api/v1/notifications/${id}/read`, {
+        method: "PATCH",
+      });
+    } catch (e) {
+      console.error("Error marking notification read", e);
+    }
+  }
+}
+
+export async function markAllNotificationsAsRead(): Promise<void> {
+  if (USE_BACKEND) {
+    try {
+      await fetchBackend("/api/v1/notifications/read-all", {
+        method: "PATCH",
+      });
+    } catch (e) {
+      console.error("Error marking all notifications read", e);
+    }
+  }
 }

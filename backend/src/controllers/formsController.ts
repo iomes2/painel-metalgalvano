@@ -9,6 +9,8 @@ import { db } from "../config/firebase";
 import admin from "firebase-admin";
 import prisma from "../config/database";
 
+import { NotificationService } from "../services/notification.service";
+
 const formService = new FormService();
 
 /**
@@ -78,6 +80,16 @@ export const createForm = catchAsync(async (req: Request, res: Response) => {
       osId: form.osNumber,
     },
   });
+
+  // Notificar admins sobre novo formulário
+  await NotificationService.notifyAdmins({
+    title: "Novo Formulário Criado",
+    message: `Formulário do tipo ${formType} criado para OS ${
+      form.osNumber
+    } por ${req.user!.email}`,
+    type: "INFO",
+    link: `/dashboard/view-report/${form.osNumber}/${form.id}?formType=${formType}`,
+  });
 });
 
 /**
@@ -90,9 +102,13 @@ export const getFormById = catchAsync(async (req: Request, res: Response) => {
 
   const form = await formService.getFormById(id);
 
-  // Validar se a OS corresponde (compatibilidade Firebase)
-  if (os && form.osNumber !== os) {
-    throw new AppError("Relatório não pertence à OS especificada", 404);
+  // Log OS mismatch for debugging but don't block access
+  // The form ID already uniquely identifies the report
+  if (os && String(form.osNumber) !== String(os)) {
+    console.log(
+      `[DEBUG] OS mismatch: form.osNumber=${form.osNumber}, query.os=${os}`
+    );
+    // Don't throw error - just log for investigation
   }
 
   // Buscar fotos associadas
@@ -274,6 +290,14 @@ export const submitForm = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user!.userId;
 
   const form = await formService.submitForm(id, userId);
+
+  // Notificar admins sobre submissão
+  await NotificationService.notifyAdmins({
+    title: "Formulário Submetido",
+    message: `Formulário ${form.formType} (OS ${form.osNumber}) foi submetido para revisão.`,
+    type: "SUCCESS",
+    link: `/dashboard/view-report/${form.osNumber}/${form.id}?formType=${form.formType}`,
+  });
 
   res.json({
     success: true,
