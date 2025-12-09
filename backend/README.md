@@ -317,3 +317,5 @@ Para contribuir:
 ## 📄 Licença
 
 ISC - Renan Iomes © 2025
+
+<!-- Trigger deploy: v0.0.2 -->
