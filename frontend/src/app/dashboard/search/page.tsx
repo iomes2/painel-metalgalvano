@@ -466,7 +466,7 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="space-y-4 w-full max-w-full overflow-hidden">
+    <div className="space-y-4 w-full max-w-full overflow-x-hidden">
       {/* Premium Header - matching Monitoring Panel */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-800 via-slate-800 to-slate-900 p-4 md:p-6 shadow-xl">
         {/* Decorative elements */}
@@ -655,7 +655,7 @@ export default function SearchPage() {
             </div>
             <div className="p-4 md:p-6 overflow-hidden">
               <div className="max-h-[24rem] overflow-y-auto overflow-x-hidden relative border border-border rounded-md">
-                <table className="w-full caption-bottom text-sm table-os min-w-0 table-fixed">
+                <table className="w-full caption-bottom text-sm table-os table-fixed">
                   <TableHeader className="sticky top-0 bg-background z-10 [&_tr]:border-b">
                     <TableRow>
                       <TableHead
@@ -669,17 +669,17 @@ export default function SearchPage() {
                       </TableHead>
                       <TableHead
                         onClick={() => handleSort("submittedAt")}
-                        className="cursor-pointer hover:bg-muted/50 transition-colors w-[85px] p-2"
+                        className="cursor-pointer hover:bg-muted/50 transition-colors w-[110px] md:w-[15%] text-center"
                       >
                         <div className="flex items-center colunas-lista justify-center">
                           Data
                           <SortIndicator column="submittedAt" type="report" />
                         </div>
                       </TableHead>
-                      <TableHead className="text-center colunas-lista hidden md:table-cell w-[10%]">
+                      <TableHead className="text-center colunas-lista hidden md:table-cell md:w-[15%]">
                         Fotos
                       </TableHead>
-                      <TableHead className="text-center colunas-lista w-[50px] p-2">
+                      <TableHead className="text-center colunas-lista w-[60px] md:w-[10%]">
                         Ações
                       </TableHead>
                     </TableRow>

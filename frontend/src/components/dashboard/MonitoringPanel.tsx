@@ -96,7 +96,9 @@ export default function MonitoringPanel() {
 
       // Fetch all forms data
       const formsRes = await fetch(
-        "http://localhost:3001/api/v1/forms?limit=1000",
+        `${
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+        }/api/v1/forms?limit=1000`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const formsJson = await formsRes.json();
@@ -243,7 +245,9 @@ export default function MonitoringPanel() {
       try {
         const token = await user.getIdToken();
         const res = await fetch(
-          "http://localhost:3001/api/v1/stats/dashboard",
+          `${
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+          }/api/v1/stats/dashboard`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

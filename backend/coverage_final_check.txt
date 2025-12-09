@@ -1,0 +1,97 @@
+
+> painel-metalgalvano-backend@1.0.0 test
+> jest --coverage
+
+PASS src/tests/middleware/auth.test.ts (8.573 s)
+PASS src/tests/utils/formHelpers.test.ts (9.006 s)
+PASS src/tests/services/notification.service.test.ts (9.09 s)
+PASS src/tests/controllers/gerentesController.test.ts (9.42 s)
+PASS src/tests/services/formService.test.ts (9.496 s)
+PASS src/tests/controllers/formsController.test.ts (10.146 s)
+PASS src/tests/services/pdfService.simple.test.ts (10.371 s)
+PASS src/tests/middleware/errorHandler.test.ts (10.494 s)
+PASS src/tests/controllers/ordensServicoController.test.ts (10.743 s)
+PASS src/tests/services/pdfService.test.ts (10.7 s)
+PASS src/tests/health.test.ts (12.433 s)
+  ● Console
+
+    console.warn
+      event-loop-stats not found, ignoring event loop metrics...
+
+    [0m [90m  5 |[39m [36mimport[39m compression [36mfrom[39m [32m"compression"[39m[33m;[39m
+     [90m  6 |[39m [36mimport[39m dotenv [36mfrom[39m [32m"dotenv"[39m[33m;[39m
+    [31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m statusMonitor [36mfrom[39m [32m"express-status-monitor"[39m[33m;[39m
+     [90m    |[39m [31m[1m^[22m[39m
+     [90m  8 |[39m [36mimport[39m { config[33m,[39m validateConfig } [36mfrom[39m [32m"./config"[39m[33m;[39m
+     [90m  9 |[39m [36mimport[39m { errorHandler[33m,[39m notFoundHandler } [36mfrom[39m [32m"./middleware/errorHandler"[39m[33m;[39m
+     [90m 10 |[39m [36mimport[39m { generalLimiter } [36mfrom[39m [32m"./middleware/rateLimit"[39m[33m;[39m[0m
+
+      at Object.<anonymous> (node_modules/express-status-monitor/src/helpers/gather-os-metrics.js:12:11)
+      at Object.<anonymous> (node_modules/express-status-monitor/src/helpers/socket-io-init.js:6:25)
+      at Object.<anonymous> (node_modules/express-status-monitor/src/middleware-wrapper.js:7:22)
+      at Object.<anonymous> (node_modules/express-status-monitor/index.js:1:120)
+      at Object.require (src/app.ts:7:1)
+      at Object.<anonymous> (src/tests/health.test.ts:11:1)
+
+    console.log
+      2025-12-09 02:34:18 [[32minfo[39m]: GET /health {
+        "ip": "::ffff:127.0.0.1"
+      }
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+-----------------------------|---------|----------|---------|---------|----------------------------------------------------
+File                         | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                  
+-----------------------------|---------|----------|---------|---------|----------------------------------------------------
+All files                    |    64.3 |    33.43 |   54.12 |   64.77 |                                                    
+ src                         |   94.64 |      100 |   66.66 |   94.64 |                                                    
+  app.ts                     |   94.64 |      100 |   66.66 |   94.64 | 30-31,92                                           
+ src/config                  |    61.9 |    42.55 |   28.57 |    61.4 |                                                    
+  database.ts                |   85.71 |       50 |       0 |   85.71 | 16                                                 
+  firebase.ts                |   60.97 |     37.5 |     100 |   57.89 | 13,24,29-32,41,58,70-87                            
+  forms.ts                   |      50 |        0 |       0 |   66.66 | 40                                                 
+  index.ts                   |   54.54 |    48.14 |   33.33 |   55.55 | 45-55                                              
+ src/controllers             |   45.05 |    25.75 |   30.76 |   46.15 |                                                    
+  export.controller.ts       |      40 |        0 |       0 |      40 | 10-30                                              
+  formsController.ts         |   59.45 |    38.46 |   46.66 |   61.11 | 72,108,122-145,154-157,171,210-231,330-379,389-417 
+  gerentesController.ts      |     100 |       60 |     100 |     100 | 33-45                                              
+  notification.controller.ts |    37.5 |      100 |       0 |    37.5 | 11-19,31-39,47-54                                  
+  ordensServicoController.ts |     100 |      100 |     100 |     100 |                                                    
+  photosController.ts        |    10.6 |        0 |       0 |    10.6 | 12-95,104-173                                      
+  stats.controller.ts        |   29.41 |        0 |       0 |   33.33 | 12-77                                              
+  timeline.controller.ts     |   23.52 |        0 |       0 |   26.66 | 11-55                                              
+  uploadController.ts        |      20 |        0 |       0 |      20 | 12-61                                              
+ src/middleware              |    70.3 |    65.85 |      70 |   68.18 |                                                    
+  auth.ts                    |   63.63 |    59.09 |      75 |   62.16 | 62-103,142-160,240-265                             
+  errorHandler.ts            |     100 |    84.61 |     100 |     100 | 15,70                                              
+  rateLimit.ts               |     100 |      100 |     100 |     100 |                                                    
+  validation.ts              |   51.16 |       50 |      50 |   44.73 | 8-21,35-39,53-57,71-75,94-97                       
+ src/routes                  |   92.39 |        0 |       0 |   92.39 |                                                    
+  export.routes.ts           |     100 |      100 |     100 |     100 |                                                    
+  forms.routes.ts            |     100 |      100 |     100 |     100 |                                                    
+  gerentes.routes.ts         |     100 |      100 |     100 |     100 |                                                    
+  notification.routes.ts     |     100 |      100 |     100 |     100 |                                                    
+  ordensServico.routes.ts    |     100 |      100 |     100 |     100 |                                                    
+  photos.routes.ts           |     100 |      100 |     100 |     100 |                                                    
+  relatorios.routes.ts       |     100 |      100 |     100 |     100 |                                                    
+  stats.routes.ts            |     100 |      100 |     100 |     100 |                                                    
+  timeline.routes.ts         |     100 |      100 |     100 |     100 |                                                    
+  upload.routes.ts           |     100 |      100 |     100 |     100 |                                                    
+  users.routes.ts            |   53.33 |        0 |       0 |   53.33 | 17-30,46-66                                        
+ src/services                |   60.42 |    15.15 |   71.87 |   62.71 |                                                    
+  export.service.ts          |   35.71 |        0 |       0 |   35.71 | 20-63                                              
+  formService.ts             |   67.14 |    14.63 |   77.77 |   73.43 | 76-90,94-95,151-154,159-161,251-273                
+  notification.service.ts    |     100 |      100 |     100 |     100 |                                                    
+  pdfService.ts              |   51.72 |    14.28 |   72.22 |    51.8 | 118-119,276,306,311-334,340-368,376-384,395,409    
+ src/utils                   |   89.47 |    79.16 |     100 |    90.9 |                                                    
+  formHelpers.ts             |   92.85 |    85.71 |     100 |   95.65 | 49                                                 
+  logger.ts                  |      80 |    33.33 |     100 |      80 | 34-37                                              
+ src/validators              |     100 |      100 |     100 |     100 |                                                    
+  formValidators.ts          |     100 |      100 |     100 |     100 |                                                    
+-----------------------------|---------|----------|---------|---------|----------------------------------------------------
+
+Test Suites: 11 passed, 11 total
+Tests:       53 passed, 53 total
+Snapshots:   0 total
+Time:        14.04 s
+Ran all test suites.

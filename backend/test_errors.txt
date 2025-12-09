@@ -1,0 +1,196 @@
+FAIL src/tests/controllers/photosController.test.ts
+  PhotosController
+    deletePhoto
+      × should delete photo successfully (Storage + DB + Audit) (5 ms)
+      × should throw 400 if ID is missing
+      × should throw 404 if photo not found
+      × should throw 401 if user not authenticated (1 ms)
+      × should throw 403 if user is not ADMIN (1 ms)
+      × should update form data if photo was present in form (2 ms)
+    deletePhotoByUrl
+      × should delete by URL query param (1 ms)
+      × should delete by body url param
+      × should throw 400 if url missing (1 ms)
+
+  ● PhotosController › deletePhoto › should delete photo successfully (Storage + DB + Audit)
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: {"where": {"id": "p-1"}}
+
+    Number of calls: 0
+
+    [0m [90m 90 |[39m       expect(mockBucket[33m.[39mfile)[33m.[39mtoHaveBeenCalledWith([32m"path/to/img"[39m)[33m;[39m
+     [90m 91 |[39m       expect(mockFile[33m.[39m[36mdelete[39m)[33m.[39mtoHaveBeenCalled()[33m;[39m
+    [31m[1m>[22m[39m[90m 92 |[39m       expect(prisma[33m.[39mphoto[33m.[39m[36mdelete[39m)[33m.[39mtoHaveBeenCalledWith({
+     [90m    |[39m                                   [31m[1m^[22m[39m
+     [90m 93 |[39m         where[33m:[39m { id[33m:[39m [32m"p-1"[39m }[33m,[39m
+     [90m 94 |[39m       })[33m;[39m
+     [90m 95 |[39m       expect(prisma[33m.[39mauditLog[33m.[39mcreate)[33m.[39mtoHaveBeenCalled()[33m;[39m [90m// Should create audit log[39m[0m
+
+      at Object.<anonymous> (src/tests/controllers/photosController.test.ts:92:35)
+
+  ● PhotosController › deletePhoto › should throw 400 if ID is missing
+
+    expect(received).rejects.toThrow()
+
+    Matcher error: received value must be a promise or a function returning a promise
+
+    Received has value: undefined
+
+    [0m [90m 105 |[39m       [36mawait[39m expect(
+     [90m 106 |[39m         deletePhoto(req [36mas[39m [33mRequest[39m[33m,[39m res [36mas[39m [33mResponse[39m[33m,[39m () [33m=>[39m {})
+    [31m[1m>[22m[39m[90m 107 |[39m       )[33m.[39mrejects[33m.[39mtoThrow([32m"ID da foto é obrigatório"[39m)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 108 |[39m     })[33m;[39m
+     [90m 109 |[39m
+     [90m 110 |[39m     it([32m"should throw 404 if photo not found"[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.toThrow (node_modules/expect/build/index.js:204:13)
+      at Object.<anonymous> (src/tests/controllers/photosController.test.ts:107:17)
+
+  ● PhotosController › deletePhoto › should throw 404 if photo not found
+
+    expect(received).rejects.toThrow()
+
+    Matcher error: received value must be a promise or a function returning a promise
+
+    Received has value: undefined
+
+    [0m [90m 114 |[39m       [36mawait[39m expect(
+     [90m 115 |[39m         deletePhoto(req [36mas[39m [33mRequest[39m[33m,[39m res [36mas[39m [33mResponse[39m[33m,[39m () [33m=>[39m {})
+    [31m[1m>[22m[39m[90m 116 |[39m       )[33m.[39mrejects[33m.[39mtoThrow([32m"Foto não encontrada"[39m)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 117 |[39m     })[33m;[39m
+     [90m 118 |[39m
+     [90m 119 |[39m     it([32m"should throw 401 if user not authenticated"[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.toThrow (node_modules/expect/build/index.js:204:13)
+      at Object.<anonymous> (src/tests/controllers/photosController.test.ts:116:17)
+
+  ● PhotosController › deletePhoto › should throw 401 if user not authenticated
+
+    expect(received).rejects.toThrow()
+
+    Matcher error: received value must be a promise or a function returning a promise
+
+    Received has value: undefined
+
+    [0m [90m 124 |[39m       [36mawait[39m expect(
+     [90m 125 |[39m         deletePhoto(req [36mas[39m [33mRequest[39m[33m,[39m res [36mas[39m [33mResponse[39m[33m,[39m () [33m=>[39m {})
+    [31m[1m>[22m[39m[90m 126 |[39m       )[33m.[39mrejects[33m.[39mtoThrow([32m"Não autenticado"[39m)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 127 |[39m     })[33m;[39m
+     [90m 128 |[39m
+     [90m 129 |[39m     it([32m"should throw 403 if user is not ADMIN"[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.toThrow (node_modules/expect/build/index.js:204:13)
+      at Object.<anonymous> (src/tests/controllers/photosController.test.ts:126:17)
+
+  ● PhotosController › deletePhoto › should throw 403 if user is not ADMIN
+
+    expect(received).rejects.toThrow()
+
+    Matcher error: received value must be a promise or a function returning a promise
+
+    Received has value: undefined
+
+    [0m [90m 134 |[39m       [36mawait[39m expect(
+     [90m 135 |[39m         deletePhoto(req [36mas[39m [33mRequest[39m[33m,[39m res [36mas[39m [33mResponse[39m[33m,[39m () [33m=>[39m {})
+    [31m[1m>[22m[39m[90m 136 |[39m       )[33m.[39mrejects[33m.[39mtoThrow([32m"Apenas administradores podem deletar fotos"[39m)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 137 |[39m     })[33m;[39m
+     [90m 138 |[39m
+     [90m 139 |[39m     it([32m"should update form data if photo was present in form"[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.toThrow (node_modules/expect/build/index.js:204:13)
+      at Object.<anonymous> (src/tests/controllers/photosController.test.ts:136:17)
+
+  ● PhotosController › deletePhoto › should update form data if photo was present in form
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: ObjectContaining {"data": {"data": ObjectContaining {"photos": [{"name": "pic2", "url": "http://other"}]}}, "where": {"id": "f-1"}}
+
+    Number of calls: 0
+
+    [0m [90m 160 |[39m       [36mawait[39m deletePhoto(req [36mas[39m [33mRequest[39m[33m,[39m res [36mas[39m [33mResponse[39m[33m,[39m () [33m=>[39m {})[33m;[39m
+     [90m 161 |[39m
+    [31m[1m>[22m[39m[90m 162 |[39m       expect(prisma[33m.[39mform[33m.[39mupdate)[33m.[39mtoHaveBeenCalledWith(
+     [90m     |[39m                                  [31m[1m^[22m[39m
+     [90m 163 |[39m         expect[33m.[39mobjectContaining({
+     [90m 164 |[39m           where[33m:[39m { id[33m:[39m [32m"f-1"[39m }[33m,[39m
+     [90m 165 |[39m           data[33m:[39m {[0m
+
+      at Object.<anonymous> (src/tests/controllers/photosController.test.ts:162:34)
+
+  ● PhotosController › deletePhotoByUrl › should delete by URL query param
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: ObjectContaining {"success": true}
+
+    Number of calls: 0
+
+    [0m [90m 184 |[39m         where[33m:[39m { firebasePath[33m:[39m [32m"path/to/file"[39m }[33m,[39m
+     [90m 185 |[39m       })[33m;[39m
+    [31m[1m>[22m[39m[90m 186 |[39m       expect(res[33m.[39mjson)[33m.[39mtoHaveBeenCalledWith(
+     [90m     |[39m                        [31m[1m^[22m[39m
+     [90m 187 |[39m         expect[33m.[39mobjectContaining({ success[33m:[39m [36mtrue[39m })
+     [90m 188 |[39m       )[33m;[39m
+     [90m 189 |[39m     })[33m;[39m[0m
+
+      at Object.<anonymous> (src/tests/controllers/photosController.test.ts:186:24)
+
+  ● PhotosController › deletePhotoByUrl › should delete by body url param
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: ObjectContaining {"success": true}
+
+    Number of calls: 0
+
+    [0m [90m 196 |[39m
+     [90m 197 |[39m       expect(mockBucket[33m.[39mfile)[33m.[39mtoHaveBeenCalledWith([32m"http://simple-url"[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 198 |[39m       expect(res[33m.[39mjson)[33m.[39mtoHaveBeenCalledWith(
+     [90m     |[39m                        [31m[1m^[22m[39m
+     [90m 199 |[39m         expect[33m.[39mobjectContaining({ success[33m:[39m [36mtrue[39m })
+     [90m 200 |[39m       )[33m;[39m
+     [90m 201 |[39m     })[33m;[39m[0m
+
+      at Object.<anonymous> (src/tests/controllers/photosController.test.ts:198:24)
+
+  ● PhotosController › deletePhotoByUrl › should throw 400 if url missing
+
+    expect(received).rejects.toThrow()
+
+    Matcher error: received value must be a promise or a function returning a promise
+
+    Received has value: undefined
+
+    [0m [90m 207 |[39m       [36mawait[39m expect(
+     [90m 208 |[39m         deletePhotoByUrl(req [36mas[39m [33mRequest[39m[33m,[39m res [36mas[39m [33mResponse[39m[33m,[39m () [33m=>[39m {})
+    [31m[1m>[22m[39m[90m 209 |[39m       )[33m.[39mrejects[33m.[39mtoThrow([32m"Parâmetro url é obrigatório"[39m)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 210 |[39m     })[33m;[39m
+     [90m 211 |[39m   })[33m;[39m
+     [90m 212 |[39m })[33m;[39m[0m
+
+      at Object.toThrow (node_modules/expect/build/index.js:204:13)
+      at Object.<anonymous> (src/tests/controllers/photosController.test.ts:209:17)
+
+----------------------|---------|----------|---------|---------|-------------------
+File                  | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+----------------------|---------|----------|---------|---------|-------------------
+All files             |   73.33 |    65.78 |      75 |   72.54 |                   
+ controllers          |   92.42 |       96 |     100 |   92.42 |                   
+  photosController.ts |   92.42 |       96 |     100 |   92.42 | 44,81,118,130-131 
+ middleware           |   41.02 |     7.69 |      50 |   36.11 |                   
+  errorHandler.ts     |   41.02 |     7.69 |      50 |   36.11 | 34-102,115        
+----------------------|---------|----------|---------|---------|-------------------
+Test Suites: 1 failed, 1 total
+Tests:       9 failed, 9 total
+Snapshots:   0 total
+Time:        2.528 s, estimated 4 s
+Ran all test suites matching /src\\tests\\controllers\\photosController.test.ts/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

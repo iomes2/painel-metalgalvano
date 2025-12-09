@@ -82,9 +82,9 @@
     font-size: 0;
   }
 
-  .coluna-acao-lista svg {
+  /* .coluna-acao-lista svg {
     margin-right: -10px;
-  }
+  } */
 
   /* Hide the 3rd and 4th table header cells */
   .table-os th:nth-child(3) {

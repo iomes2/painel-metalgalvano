@@ -27,7 +27,9 @@ export function Timeline({ osNumber }: { osNumber: string }) {
       try {
         const token = await user.getIdToken();
         const res = await fetch(
-          `http://localhost:3001/api/v1/timeline/${osNumber}`,
+          `${
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+          }/api/v1/timeline/${osNumber}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
