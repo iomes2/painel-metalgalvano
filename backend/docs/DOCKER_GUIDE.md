@@ -58,11 +58,11 @@ docker-compose up -d
 
 ## 🌐 Serviços Disponíveis
 
-| Serviço | URL | Descrição |
-|---------|-----|-----------|
-| **Backend API** | http://localhost:3001 | API REST |
+| Serviço           | URL                   | Descrição                 |
+| ----------------- | --------------------- | ------------------------- |
+| **Backend API**   | http://localhost:3001 | API REST                  |
 | **Prisma Studio** | http://localhost:5555 | Interface visual do banco |
-| **PostgreSQL** | localhost:5432 | Banco de dados |
+| **PostgreSQL**    | localhost:5432        | Banco de dados            |
 
 ### Credenciais PostgreSQL
 
@@ -71,7 +71,7 @@ Host: localhost
 Port: 5432
 Database: metalgalvano
 User: metalgalvano
-Password: metalgalvano123
+Password: change_me
 ```
 
 ## 📝 Comandos Úteis
@@ -128,6 +128,7 @@ curl http://localhost:3001/health
 ```
 
 Resposta esperada:
+
 ```json
 {
   "success": true,
@@ -189,7 +190,7 @@ Se a porta 3001, 5432 ou 5555 já estiver em uso:
 2. Altere o mapeamento de portas:
    ```yaml
    ports:
-     - '3002:3001'  # Usar porta 3002 no host
+     - "3002:3001" # Usar porta 3002 no host
    ```
 
 ### Erro ao conectar no PostgreSQL
@@ -232,6 +233,7 @@ docker-compose up -d
 ## 🔄 Workflow de Desenvolvimento
 
 1. **Iniciar serviços**
+
    ```bash
    docker-compose up -d
    ```
@@ -239,6 +241,7 @@ docker-compose up -d
 2. **Desenvolver** (código é atualizado automaticamente)
 
 3. **Ver logs** em tempo real
+
    ```bash
    docker-compose logs -f backend
    ```
@@ -246,6 +249,7 @@ docker-compose up -d
 4. **Testar** usando Postman, curl ou frontend
 
 5. **Acessar banco** via Prisma Studio
+
    ```
    http://localhost:5555
    ```
@@ -262,6 +266,7 @@ Os dados do PostgreSQL são persistidos em um volume Docker chamado `postgres_da
 Isso significa que você pode parar e iniciar os containers sem perder dados.
 
 Para limpar os dados:
+
 ```bash
 docker-compose down -v
 ```

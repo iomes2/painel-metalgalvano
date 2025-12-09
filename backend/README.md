@@ -94,7 +94,7 @@ LOG_LEVEL=info
 
 ```bash
 docker run --name postgres-metalgalvano \
-  -e POSTGRES_PASSWORD=metalgalvano123 \
+  -e POSTGRES_PASSWORD=change_me \
   -e POSTGRES_DB=metalgalvano \
   -e POSTGRES_USER=metalgalvano \
   -p 5432:5432 \
@@ -104,7 +104,7 @@ docker run --name postgres-metalgalvano \
 DATABASE_URL:
 
 ```
-postgresql://metalgalvano:metalgalvano123@localhost:5432/metalgalvano
+postgresql://metalgalvano:change_me@localhost:5432/metalgalvano
 ```
 
 ##### Opção B: PostgreSQL local
