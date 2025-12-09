@@ -74,6 +74,7 @@ export class PdfService {
 
   private getPrinter(): any {
     if (!this.printer) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const PdfPrinter = require("pdfmake");
       const fonts = {
         Courier: {
@@ -335,7 +336,7 @@ export class PdfService {
     };
 
     switch (field.type) {
-      case "date":
+      case "date": {
         const date = parseDate(value);
         if (date && !isNaN(date.getTime())) {
           return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
@@ -345,6 +346,7 @@ export class PdfService {
           return "Data inválida";
         }
         return String(value);
+      }
 
       case "checkbox":
         return value ? "Sim" : "Não";

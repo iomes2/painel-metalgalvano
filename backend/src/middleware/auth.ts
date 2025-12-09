@@ -6,6 +6,7 @@ import { UserRole } from "@prisma/client";
 
 // Estender o Request do Express para incluir dados do usuário
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user?: {

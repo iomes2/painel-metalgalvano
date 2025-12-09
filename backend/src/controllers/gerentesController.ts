@@ -30,7 +30,7 @@ export const listGerentes = catchAsync(async (_req: Request, res: Response) => {
     const seenIds = new Set<string>();
 
     const gerentes = users.map((user) => {
-      let baseId = user.email?.split("@")[0] || user.id;
+      const baseId = user.email?.split("@")[0] || user.id;
       let finalId = baseId;
       let counter = 1;
 
