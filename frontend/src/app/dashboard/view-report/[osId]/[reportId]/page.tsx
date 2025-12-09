@@ -442,35 +442,43 @@ export default function ViewReportPage() {
           {/* Accent Bar */}
           <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600" />
 
-          {/* Header Row: Icon + Title + Buttons */}
-          <div className="flex items-center gap-2 px-3 py-2 pt-3 overflow-hidden">
-            {/* Icon */}
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-md flex-shrink-0">
-              <FormSpecificIcon className="h-4 w-4 text-white" />
-            </div>
-
-            {/* Title - truncated */}
-            <h1 className="flex-1 text-base font-bold text-foreground min-w-0 break-words">
-              {formDefinition.name}
-            </h1>
-
-            {/* Buttons - always visible */}
-            <div className="flex items-center gap-1.5 flex-shrink-0 print:hidden">
+          {/* Header Row: Back + Icon + Title + Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-3 py-3 overflow-hidden">
+            {/* Left Group: Back + Icon + Title */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              {/* Back Button - Moved Here */}
               <button
                 onClick={() => router.back()}
                 title="Voltar"
-                className="h-8 w-8 rounded-lg flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/50 transition-all active:scale-95"
+                className="h-9 w-9 rounded-lg flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/50 transition-all active:scale-95 flex-shrink-0"
               >
-                <ArrowLeft className="h-4 w-4 text-slate-600 dark:text-slate-300" />
+                <ArrowLeft className="h-5 w-5 text-slate-600 dark:text-slate-300" />
               </button>
 
+              {/* Icon */}
+              <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-md flex-shrink-0">
+                <FormSpecificIcon className="h-5 w-5 text-white" />
+              </div>
+
+              {/* Title */}
+              <h1 className="text-base sm:text-lg font-bold text-foreground leading-tight">
+                {formDefinition.name}
+              </h1>
+            </div>
+
+            {/* Right Group: Action Buttons (Grid 2x2 on mobile, Flex on Desktop) */}
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 print:hidden w-full sm:w-auto">
+              {/* History Button */}
               <Dialog>
                 <DialogTrigger asChild>
                   <button
-                    className="h-8 w-8 rounded-lg flex items-center justify-center bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 transition-all active:scale-95 cursor-pointer"
+                    className="h-9 w-full sm:w-9 rounded-lg flex items-center justify-center bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 transition-all active:scale-95 cursor-pointer"
                     title="Ver Linha do Tempo"
                   >
                     <History className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <span className="ml-2 text-xs font-semibold text-blue-700 dark:text-blue-300 sm:hidden">
+                      Histórico
+                    </span>
                   </button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -486,11 +494,12 @@ export default function ViewReportPage() {
                 </DialogContent>
               </Dialog>
 
+              {/* Edit Button (Admin Only) */}
               {isAdmin && (
                 <button
                   onClick={() => setIsEditing((v) => !v)}
                   title={isEditing ? "Cancelar" : "Editar"}
-                  className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all active:scale-95 ${
+                  className={`h-9 w-full sm:w-9 rounded-lg flex items-center justify-center transition-all active:scale-95 ${
                     isEditing
                       ? "bg-amber-500 text-white"
                       : "bg-amber-100 dark:bg-amber-900/30"
@@ -503,8 +512,13 @@ export default function ViewReportPage() {
                         : "text-amber-600 dark:text-amber-400"
                     }`}
                   />
+                  <span className="ml-2 text-xs font-semibold text-amber-700 dark:text-amber-300 sm:hidden">
+                    {isEditing ? "Cancelar" : "Editar"}
+                  </span>
                 </button>
               )}
+
+              {/* Download PDF Button */}
               <button
                 onClick={async () => {
                   if (!report) return;
@@ -531,16 +545,24 @@ export default function ViewReportPage() {
                   }
                 }}
                 title="Baixar PDF"
-                className="h-8 w-8 rounded-lg flex items-center justify-center bg-red-100 hover:bg-red-200 dark:bg-red-900/30 transition-all active:scale-95"
+                className="h-9 w-full sm:w-9 rounded-lg flex items-center justify-center bg-red-100 hover:bg-red-200 dark:bg-red-900/30 transition-all active:scale-95"
               >
                 <FileText className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <span className="ml-2 text-xs font-semibold text-red-700 dark:text-red-300 sm:hidden">
+                  PDF
+                </span>
               </button>
+
+              {/* Print Button */}
               <button
                 onClick={() => window.print()}
                 title="Imprimir"
-                className="h-8 w-8 rounded-lg flex items-center justify-center bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/30 transition-all active:scale-95"
+                className="h-9 w-full sm:w-9 rounded-lg flex items-center justify-center bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/30 transition-all active:scale-95"
               >
                 <Printer className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="ml-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300 sm:hidden">
+                  Imprimir
+                </span>
               </button>
             </div>
           </div>
