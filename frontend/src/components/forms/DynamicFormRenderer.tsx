@@ -58,77 +58,71 @@ interface DynamicFormRendererProps {
   onSubmit?: (payload: any) => Promise<void>;
 }
 
+// Helper to create schema for a single field
+const createFieldSchema = (field: FormFieldType): z.ZodTypeAny => {
+  switch (field.type) {
+    case "text":
+    case "textarea":
+      if (field.required) {
+        return z.string().min(1, `${field.label} é obrigatório(a).`);
+      }
+      return z.string().optional().or(z.literal(""));
+
+    case "email":
+      const emailSchema = z
+        .string()
+        .email(`Formato de e-mail inválido para ${field.label}.`);
+      if (field.required) {
+        return emailSchema.min(1, `${field.label} é obrigatório(a).`);
+      }
+      return emailSchema.optional().or(z.literal(""));
+
+    case "number":
+      const numberSchema = z.coerce.number();
+      if (field.required) {
+        return numberSchema.min(
+          0.00001,
+          `${field.label} é obrigatório(a) e deve ser diferente de zero, se aplicável.`
+        );
+      }
+      return numberSchema.optional().nullable();
+
+    case "date":
+      if (field.required) {
+        return z.coerce.date({
+          required_error: `${field.label} é obrigatório(a).`,
+          invalid_type_error: `Data inválida para ${field.label}.`,
+        });
+      }
+      return z.preprocess(
+        (val) => (val === "" ? undefined : val),
+        z.coerce.date().optional().nullable()
+      );
+
+    case "checkbox":
+      return z.boolean().default((field.defaultValue as boolean) || false);
+
+    case "select":
+      if (field.required) {
+        return z
+          .string()
+          .min(1, `Por favor, selecione uma opção para ${field.label}.`);
+      }
+      return z.string().optional().or(z.literal(""));
+
+    case "file":
+      return z.any().optional().nullable();
+
+    default:
+      return z.any();
+  }
+};
+
 // Helper to build Zod schema from form definition
 const buildZodSchema = (fields: FormFieldType[]) => {
   const schemaShape: Record<string, z.ZodTypeAny> = {};
   fields.forEach((field) => {
-    let fieldSchema: z.ZodTypeAny;
-
-    switch (field.type) {
-      case "text":
-      case "textarea":
-        fieldSchema = z.string();
-        if (field.required)
-          fieldSchema = (fieldSchema as z.ZodString).min(
-            1,
-            `${field.label} é obrigatório(a).`
-          );
-        else fieldSchema = fieldSchema.optional().or(z.literal(""));
-        break;
-      case "email":
-        fieldSchema = z
-          .string()
-          .email(`Formato de e-mail inválido para ${field.label}.`);
-        if (field.required)
-          fieldSchema = (fieldSchema as z.ZodString).min(
-            1,
-            `${field.label} é obrigatório(a).`
-          );
-        else fieldSchema = fieldSchema.optional().or(z.literal(""));
-        break;
-      case "number":
-        fieldSchema = z.coerce.number();
-        if (field.required)
-          fieldSchema = (fieldSchema as z.ZodNumber).min(
-            0.00001,
-            `${field.label} é obrigatório(a) e deve ser diferente de zero, se aplicável.`
-          );
-        else fieldSchema = fieldSchema.optional().nullable();
-        break;
-      case "date":
-        if (field.required) {
-          fieldSchema = z.coerce.date({
-            required_error: `${field.label} é obrigatório(a).`,
-            invalid_type_error: `Data inválida para ${field.label}.`,
-          });
-        } else {
-          fieldSchema = z.preprocess(
-            (val) => (val === "" ? undefined : val),
-            z.coerce.date().optional().nullable()
-          );
-        }
-        break;
-      case "checkbox":
-        fieldSchema = z
-          .boolean()
-          .default((field.defaultValue as boolean) || false);
-        break;
-      case "select":
-        fieldSchema = z.string();
-        if (field.required)
-          fieldSchema = (fieldSchema as z.ZodString).min(
-            1,
-            `Por favor, selecione uma opção para ${field.label}.`
-          );
-        else fieldSchema = fieldSchema.optional().or(z.literal(""));
-        break;
-      case "file":
-        fieldSchema = z.any().optional().nullable(); // FileList or null/undefined
-        break;
-      default:
-        fieldSchema = z.any();
-    }
-    schemaShape[field.id] = fieldSchema;
+    schemaShape[field.id] = createFieldSchema(field);
   });
   return z.object(schemaShape);
 };
@@ -282,30 +276,7 @@ export function DynamicFormRenderer({
       );
 
       if (!isVisible) {
-        const currentValue = stableGetValues(field.id as any);
-        const emptyValue =
-          field.type === "checkbox"
-            ? false
-            : field.type === "number"
-            ? null
-            : field.type === "file"
-            ? null
-            : "";
-
-        // Only reset if it currently has a non-empty value (to avoid loops/redundant updates)
-        // Note: we consider "false" as empty for checkbox, so strictly check
-        if (
-          currentValue !== emptyValue &&
-          currentValue !== undefined &&
-          currentValue !== null
-        ) {
-          // For strings, check if ""
-          if (typeof currentValue === "string" && currentValue === "") return;
-
-          stableSetValue(field.id as any, emptyValue, {
-            shouldValidate: false,
-          });
-        }
+        clearHiddenFieldValue(field, stableGetValues, stableSetValue);
       }
     });
 
@@ -860,6 +831,67 @@ function handleInspecaoSideEffects(
   }
 }
 
+function clearHiddenFieldValue(
+  field: FormFieldType,
+  stableGetValues: any,
+  stableSetValue: any
+) {
+  const currentValue = stableGetValues(field.id as any);
+  const emptyValue =
+    field.type === "checkbox"
+      ? false
+      : field.type === "number"
+      ? null
+      : field.type === "file"
+      ? null
+      : "";
+
+  // Only reset if it currently has a non-empty value (to avoid loops/redundant updates)
+  // Note: we consider "false" as empty for checkbox, so strictly check
+  if (
+    currentValue !== emptyValue &&
+    currentValue !== undefined &&
+    currentValue !== null
+  ) {
+    // For strings, check if ""
+    if (typeof currentValue === "string" && currentValue === "") return;
+
+    stableSetValue(field.id as any, emptyValue, {
+      shouldValidate: false,
+    });
+  }
+}
+
+function checkGenericVisibility(
+  field: FormFieldType,
+  watchedValues: any
+): boolean {
+  if (!field.visibilityCondition) return true;
+
+  const { fieldId, conditionValue, operator } = field.visibilityCondition;
+  const dependentValue = watchedValues[fieldId];
+
+  const checkEquality = (val1: any, val2: any) => String(val1) === String(val2);
+  const valuesToCheck = Array.isArray(conditionValue)
+    ? conditionValue
+    : [conditionValue];
+
+  if (operator === "neq") {
+    return !valuesToCheck.some((v) => checkEquality(dependentValue, v));
+  }
+
+  if (operator === "in") {
+    return valuesToCheck.some((v) => checkEquality(dependentValue, v));
+  }
+
+  if (operator === "contains") {
+    return String(dependentValue || "").includes(String(conditionValue));
+  }
+
+  // Default 'eq'
+  return valuesToCheck.some((v) => checkEquality(dependentValue, v));
+}
+
 function shouldRenderFormItem(
   formDefinition: FormDefinition,
   field: FormFieldType,
@@ -867,46 +899,7 @@ function shouldRenderFormItem(
 ): boolean {
   // 1. Generic Visibility Condition
   if (field.visibilityCondition) {
-    const { fieldId, conditionValue, operator } = field.visibilityCondition;
-    const dependentValue = watchedValues[fieldId];
-
-    // Normalize comparison (handle booleans, strings, etc.)
-    const checkEquality = (val1: any, val2: any) => {
-      // Handle "S"/"N" vs boolean logic if needed, or strict equality
-      return String(val1) === String(val2);
-    };
-
-    let isVisible = false;
-
-    if (operator === "neq") {
-      if (Array.isArray(conditionValue)) {
-        isVisible = !conditionValue.some((v) =>
-          checkEquality(dependentValue, v)
-        );
-      } else {
-        isVisible = !checkEquality(dependentValue, conditionValue);
-      }
-    } else if (operator === "in") {
-      if (Array.isArray(conditionValue)) {
-        isVisible = conditionValue.some((v) =>
-          checkEquality(dependentValue, v)
-        );
-      } else {
-        isVisible = checkEquality(dependentValue, conditionValue);
-      }
-    } else if (operator === "contains") {
-      isVisible = String(dependentValue || "").includes(String(conditionValue));
-    } else {
-      // Default 'eq'
-      if (Array.isArray(conditionValue)) {
-        isVisible = conditionValue.some((v) =>
-          checkEquality(dependentValue, v)
-        );
-      } else {
-        isVisible = checkEquality(dependentValue, conditionValue);
-      }
-    }
-
+    const isVisible = checkGenericVisibility(field, watchedValues);
     if (!isVisible) return false;
   }
 
@@ -927,6 +920,13 @@ function shouldRenderFormItem(
   return true;
 }
 
+// Helper for comparing times
+function isTimeMismatch(effective: any, expected: any): boolean {
+  const e = String(effective || "").trim();
+  const p = String(expected || "").trim();
+  return e !== "" && e !== p;
+}
+
 function shouldRenderCronogramaItem(
   field: FormFieldType,
   watchedValues: any
@@ -945,36 +945,30 @@ function shouldRenderCronogramaItem(
     situacaoEtapa, // From DOC-020
     fotosEtapa,
     motivoAtraso,
-    equipamentosUtilizados,
-    relatorioInspecao,
-    emissaoRNC,
-    pteEmitida,
     horasRetrabalho,
     horarioEfetivoInicio,
     horarioEfetivoSaida,
-    motivoNaoCumprimentoInicio,
-    motivoNaoCumprimentoSaida,
+    horarioInicioJornada,
+    horarioTerminoJornada, // Fixed missing destructuring
   } = watchedValues;
 
-  // Existing DOC-020 Logic (Keep this until I update the forms.ts for DOC-020)
+  // Existing DOC-020 Logic
   if (field.id === "motivoAtraso") return situacaoEtapa === "em_atraso";
   if (field.id === "uploadFotos") return fotosEtapa === "S";
   if (field.id === "motivoRetrabalho")
     return !!horasRetrabalho && String(horasRetrabalho).trim() !== "";
 
   if (field.id === "motivoNaoCumprimentoInicio") {
-    const efetivo = String(horarioEfetivoInicio || "").trim();
-    const previsto = String(
-      watchedValues.horarioInicioJornada || "07:30"
-    ).trim();
-    return efetivo !== "" && efetivo !== previsto;
+    return isTimeMismatch(
+      horarioEfetivoInicio,
+      horarioInicioJornada || "07:30"
+    );
   }
   if (field.id === "motivoNaoCumprimentoSaida") {
-    const efetivo = String(horarioEfetivoSaida || "").trim();
-    const previsto = String(
-      watchedValues.horarioTerminoJornada || "17:30"
-    ).trim();
-    return efetivo !== "" && efetivo !== previsto;
+    return isTimeMismatch(
+      horarioEfetivoSaida,
+      horarioTerminoJornada || "17:30"
+    );
   }
 
   // Legacy (Older cronograma ID fields)
@@ -986,14 +980,16 @@ function shouldRenderCronogramaItem(
       String(horasRetrabalhoParadasDia).trim() !== ""
     );
   if (field.id === "motivoNaoCumprimentoHorarioInicio") {
-    const efetivo = String(horarioEfetivoInicioAtividades || "").trim();
-    const previsto = String(horarioInicioJornadaPrevisto || "").trim();
-    return efetivo !== "" && efetivo !== previsto;
+    return isTimeMismatch(
+      horarioEfetivoInicioAtividades,
+      horarioInicioJornadaPrevisto
+    );
   }
   if (field.id === "motivoNaoCumprimentoHorarioSaida") {
-    const efetivo = String(horarioEfetivoSaidaObra || "").trim();
-    const previsto = String(horarioTerminoJornadaPrevisto || "").trim();
-    return efetivo !== "" && efetivo !== previsto;
+    return isTimeMismatch(
+      horarioEfetivoSaidaObra,
+      horarioTerminoJornadaPrevisto
+    );
   }
   return true;
 }
