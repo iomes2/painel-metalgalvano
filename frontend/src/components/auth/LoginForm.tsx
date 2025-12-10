@@ -84,7 +84,9 @@ export function LoginForm() {
         <Logo className="mb-4" />
         <CardTitle className="text-2xl">Login do Gerente</CardTitle>
         <CardDescription>
-          Insira suas credenciais para acessar o painel de formulários.
+          Insira suas credenciais para acessar o painel de formulários.<br></br> <br></br>Usuário
+          padrão: mg01 | Senha: 123456 <br></br> Admin: renaniomes10 | Senha:
+          101010
         </CardDescription>
       </CardHeader>
       <CardContent>
