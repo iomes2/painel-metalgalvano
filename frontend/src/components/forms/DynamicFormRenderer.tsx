@@ -635,79 +635,102 @@ function runFieldVisibilitySideEffects({
   } = watchedValues;
 
   if (formDefinition.id === "cronograma-diario-obra") {
-    if (
-      situacaoEtapaDia !== "em_atraso" &&
-      stableGetValues("motivoAtrasoDia") !== ""
-    ) {
-      stableSetValue("motivoAtrasoDia", "", { shouldValidate: false });
-    }
-    if (
-      fotosEtapaDia !== "sim" &&
-      stableGetValues("uploadFotosEtapaDia") !== null
-    ) {
-      stableSetValue("uploadFotosEtapaDia", null, {
-        shouldValidate: false,
-      });
-    }
-    if (
-      (!horasRetrabalhoParadasDia ||
-        String(horasRetrabalhoParadasDia).trim() === "") &&
-      stableGetValues("motivoRetrabalhoParadaDia") !== ""
-    ) {
-      stableSetValue("motivoRetrabalhoParadaDia", "", {
-        shouldValidate: false,
-      });
-    }
-    const efetivoInicio = String(horarioEfetivoInicioAtividades || "").trim();
-    const previstoInicio = String(horarioInicioJornadaPrevisto || "").trim();
-    if (
-      (efetivoInicio === "" || efetivoInicio === previstoInicio) &&
-      stableGetValues("motivoNaoCumprimentoHorarioInicio") !== ""
-    ) {
-      stableSetValue("motivoNaoCumprimentoHorarioInicio", "", {
-        shouldValidate: false,
-      });
-    }
-    const efetivoSaida = String(horarioEfetivoSaidaObra || "").trim();
-    const previstoSaida = String(horarioTerminoJornadaPrevisto || "").trim();
-    if (
-      (efetivoSaida === "" || efetivoSaida === previstoSaida) &&
-      stableGetValues("motivoNaoCumprimentoHorarioSaida") !== ""
-    ) {
-      stableSetValue("motivoNaoCumprimentoHorarioSaida", "", {
-        shouldValidate: false,
-      });
-    }
+    handleCronogramaSideEffects(watchedValues, stableGetValues, stableSetValue);
   } else if (formDefinition.id === "rnc-report") {
-    if (
-      fotosNaoConformidade !== "sim" &&
-      stableGetValues("uploadFotosNaoConformidade") !== null
-    ) {
-      stableSetValue("uploadFotosNaoConformidade", null, {
-        shouldValidate: false,
-      });
-    }
+    handleRncSideEffects(watchedValues, stableGetValues, stableSetValue);
   } else if (formDefinition.id === "relatorio-inspecao-site") {
-    if (
-      fotosInspecao !== "sim" &&
-      stableGetValues("uploadFotosInspecao") !== null
-    ) {
-      stableSetValue("uploadFotosInspecao", null, {
-        shouldValidate: false,
-      });
+    handleInspecaoSideEffects(watchedValues, stableGetValues, stableSetValue);
+  }
+}
+
+function handleCronogramaSideEffects(
+  watchedValues: any,
+  stableGetValues: any,
+  stableSetValue: any
+) {
+  const {
+    situacaoEtapaDia,
+    fotosEtapaDia,
+    horasRetrabalhoParadasDia,
+    horarioEfetivoInicioAtividades,
+    horarioInicioJornadaPrevisto,
+    horarioEfetivoSaidaObra,
+    horarioTerminoJornadaPrevisto,
+  } = watchedValues;
+
+  if (
+    situacaoEtapaDia !== "em_atraso" &&
+    stableGetValues("motivoAtrasoDia") !== ""
+  ) {
+    stableSetValue("motivoAtrasoDia", "", { shouldValidate: false });
+  }
+  if (
+    fotosEtapaDia !== "sim" &&
+    stableGetValues("uploadFotosEtapaDia") !== null
+  ) {
+    stableSetValue("uploadFotosEtapaDia", null, { shouldValidate: false });
+  }
+  if (
+    (!horasRetrabalhoParadasDia ||
+      String(horasRetrabalhoParadasDia).trim() === "") &&
+    stableGetValues("motivoRetrabalhoParadaDia") !== ""
+  ) {
+    stableSetValue("motivoRetrabalhoParadaDia", "", { shouldValidate: false });
+  }
+
+  const checkHorario = (efetivo: any, previsto: any, fieldName: string) => {
+    const e = String(efetivo || "").trim();
+    const p = String(previsto || "").trim();
+    if ((e === "" || e === p) && stableGetValues(fieldName) !== "") {
+      stableSetValue(fieldName, "", { shouldValidate: false });
     }
-    if (
-      conformidadeSeguranca === "sim" &&
-      (stableGetValues("itensNaoConformes") !== "" ||
-        stableGetValues("acoesCorretivasSugeridas") !== "")
-    ) {
-      stableSetValue("itensNaoConformes", "", {
-        shouldValidate: false,
-      });
-      stableSetValue("acoesCorretivasSugeridas", "", {
-        shouldValidate: false,
-      });
-    }
+  };
+
+  checkHorario(
+    horarioEfetivoInicioAtividades,
+    horarioInicioJornadaPrevisto,
+    "motivoNaoCumprimentoHorarioInicio"
+  );
+  checkHorario(
+    horarioEfetivoSaidaObra,
+    horarioTerminoJornadaPrevisto,
+    "motivoNaoCumprimentoHorarioSaida"
+  );
+}
+
+function handleRncSideEffects(
+  watchedValues: any,
+  stableGetValues: any,
+  stableSetValue: any
+) {
+  if (
+    watchedValues.fotosNaoConformidade !== "sim" &&
+    stableGetValues("uploadFotosNaoConformidade") !== null
+  ) {
+    stableSetValue("uploadFotosNaoConformidade", null, {
+      shouldValidate: false,
+    });
+  }
+}
+
+function handleInspecaoSideEffects(
+  watchedValues: any,
+  stableGetValues: any,
+  stableSetValue: any
+) {
+  if (
+    watchedValues.fotosInspecao !== "sim" &&
+    stableGetValues("uploadFotosInspecao") !== null
+  ) {
+    stableSetValue("uploadFotosInspecao", null, { shouldValidate: false });
+  }
+  if (
+    watchedValues.conformidadeSeguranca === "sim" &&
+    (stableGetValues("itensNaoConformes") !== "" ||
+      stableGetValues("acoesCorretivasSugeridas") !== "")
+  ) {
+    stableSetValue("itensNaoConformes", "", { shouldValidate: false });
+    stableSetValue("acoesCorretivasSugeridas", "", { shouldValidate: false });
   }
 }
 
@@ -730,34 +753,62 @@ function shouldRenderFormItem(
   } = watchedValues;
 
   if (formDefinition.id === "cronograma-diario-obra") {
-    if (field.id === "motivoAtrasoDia") return situacaoEtapaDia === "em_atraso";
-    if (field.id === "uploadFotosEtapaDia") return fotosEtapaDia === "sim";
-    if (field.id === "motivoRetrabalhoParadaDia")
-      return (
-        !!horasRetrabalhoParadasDia &&
-        String(horasRetrabalhoParadasDia).trim() !== ""
-      );
-    if (field.id === "motivoNaoCumprimentoHorarioInicio") {
-      const efetivo = String(horarioEfetivoInicioAtividades || "").trim();
-      const previsto = String(horarioInicioJornadaPrevisto || "").trim();
-      return efetivo !== "" && efetivo !== previsto;
-    }
-    if (field.id === "motivoNaoCumprimentoHorarioSaida") {
-      const efetivo = String(horarioEfetivoSaidaObra || "").trim();
-      const previsto = String(horarioTerminoJornadaPrevisto || "").trim();
-      return efetivo !== "" && efetivo !== previsto;
-    }
+    return shouldRenderCronogramaItem(field, watchedValues);
   } else if (formDefinition.id === "rnc-report") {
     if (field.id === "uploadFotosNaoConformidade")
-      return fotosNaoConformidade === "sim";
+      return watchedValues.fotosNaoConformidade === "sim";
   } else if (formDefinition.id === "relatorio-inspecao-site") {
-    if (field.id === "uploadFotosInspecao") return fotosInspecao === "sim";
-    if (
-      field.id === "itensNaoConformes" ||
-      field.id === "acoesCorretivasSugeridas"
-    ) {
-      return conformidadeSeguranca === "nao";
-    }
+    return shouldRenderInspecaoItem(field, watchedValues);
+  }
+
+  return true;
+}
+
+function shouldRenderCronogramaItem(
+  field: FormFieldType,
+  watchedValues: any
+): boolean {
+  const {
+    situacaoEtapaDia,
+    fotosEtapaDia,
+    horasRetrabalhoParadasDia,
+    horarioEfetivoInicioAtividades,
+    horarioInicioJornadaPrevisto,
+    horarioEfetivoSaidaObra,
+    horarioTerminoJornadaPrevisto,
+  } = watchedValues;
+
+  if (field.id === "motivoAtrasoDia") return situacaoEtapaDia === "em_atraso";
+  if (field.id === "uploadFotosEtapaDia") return fotosEtapaDia === "sim";
+  if (field.id === "motivoRetrabalhoParadaDia")
+    return (
+      !!horasRetrabalhoParadasDia &&
+      String(horasRetrabalhoParadasDia).trim() !== ""
+    );
+  if (field.id === "motivoNaoCumprimentoHorarioInicio") {
+    const efetivo = String(horarioEfetivoInicioAtividades || "").trim();
+    const previsto = String(horarioInicioJornadaPrevisto || "").trim();
+    return efetivo !== "" && efetivo !== previsto;
+  }
+  if (field.id === "motivoNaoCumprimentoHorarioSaida") {
+    const efetivo = String(horarioEfetivoSaidaObra || "").trim();
+    const previsto = String(horarioTerminoJornadaPrevisto || "").trim();
+    return efetivo !== "" && efetivo !== previsto;
+  }
+  return true;
+}
+
+function shouldRenderInspecaoItem(
+  field: FormFieldType,
+  watchedValues: any
+): boolean {
+  if (field.id === "uploadFotosInspecao")
+    return watchedValues.fotosInspecao === "sim";
+  if (
+    field.id === "itensNaoConformes" ||
+    field.id === "acoesCorretivasSugeridas"
+  ) {
+    return watchedValues.conformidadeSeguranca === "nao";
   }
   return true;
 }

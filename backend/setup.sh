@@ -28,7 +28,7 @@ echo ""
 echo "📦 Instalando dependências..."
 npm install
 
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
     echo "❌ Erro ao instalar dependências"
     exit 1
 fi
@@ -37,7 +37,7 @@ echo "✅ Dependências instaladas"
 echo ""
 
 # Verificar .env
-if [ ! -f .env ]; then
+if [[ ! -f .env ]]; then
     echo "📝 Criando arquivo .env..."
     cp .env.example .env
     echo "⚠️  IMPORTANTE: Edite o arquivo .env com suas credenciais!"
@@ -54,7 +54,7 @@ fi
 echo "🔧 Gerando Prisma Client..."
 npm run prisma:generate
 
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
     echo "❌ Erro ao gerar Prisma Client"
     exit 1
 fi
@@ -66,18 +66,18 @@ echo ""
 read -p "🗄️  Deseja rodar migrations do Prisma? (s/n) " -n 1 -r
 echo ""
 
-if [ $REPLY =~ ^[Ss]$ ]; then
+if [[ $REPLY =~ ^[Ss]$ ]]; then
     echo "🔧 Rodando migrations..."
     npm run prisma:migrate
     
-    if [ $? -eq 0 ]; then
+    if [[ $? -eq 0 ]]; then
         echo "✅ Migrations executadas"
         
         # Perguntar se quer fazer seed
         read -p "🌱 Deseja popular o banco com dados iniciais? (s/n) " -n 1 -r
         echo ""
         
-        if [ $REPLY =~ ^[Ss]$ ]; then
+        if [[ $REPLY =~ ^[Ss]$ ]]; then
             npm run prisma:seed
             echo "✅ Seed executado"
         fi
