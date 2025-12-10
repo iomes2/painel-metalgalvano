@@ -13,7 +13,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import Logo from "@/components/icons/Logo";
-import { Home, Search, PieChart, X, PlusCircle } from "lucide-react";
+import { Home, Search, PieChart, X, PlusCircle, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -50,6 +50,11 @@ export function AppSidebar({ isAdminArea = false }: AppSidebarProps) {
       href: "/dashboard/monitoramento",
       icon: <PieChart className="w-5 h-5" />,
       label: "Monitoramento",
+    },
+    {
+      href: "/dashboard/documentos",
+      icon: <FileText className="w-5 h-5" />,
+      label: "Documentos",
     },
   ];
 

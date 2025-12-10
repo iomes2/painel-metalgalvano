@@ -412,3 +412,22 @@ body {
     padding-top: max(0px, env(safe-area-inset-top));
   }
 }
+
+/* Custom Animation for Conditional Fields */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 500px; /* Adjust as needed */
+  }
+}
+
+.animate-slideDown {
+  animation: slideDown 0.3s ease-out forwards;
+  overflow: hidden;
+}

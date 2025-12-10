@@ -96,11 +96,17 @@ const buildZodSchema = (fields: FormFieldType[]) => {
         else fieldSchema = fieldSchema.optional().nullable();
         break;
       case "date":
-        fieldSchema = z.coerce.date({
-          required_error: `${field.label} é obrigatório(a).`,
-          invalid_type_error: `Esta não é uma data válida para ${field.label}!`,
-        });
-        if (!field.required) fieldSchema = fieldSchema.optional().nullable();
+        if (field.required) {
+          fieldSchema = z.coerce.date({
+            required_error: `${field.label} é obrigatório(a).`,
+            invalid_type_error: `Data inválida para ${field.label}.`,
+          });
+        } else {
+          fieldSchema = z.preprocess(
+            (val) => (val === "" ? undefined : val),
+            z.coerce.date().optional().nullable()
+          );
+        }
         break;
       case "checkbox":
         fieldSchema = z
@@ -202,26 +208,35 @@ export function DynamicFormRenderer({
     }
   }, [initialValues, reset]);
 
-  // Watch specific fields for conditional rendering & logic
-  const situacaoEtapaDia = watch("situacaoEtapaDia" as any);
-  const fotosEtapaDia = watch("fotosEtapaDia" as any);
-  const horasRetrabalhoParadasDia = watch("horasRetrabalhoParadasDia" as any);
-  const horarioEfetivoInicioAtividades = watch(
-    "horarioEfetivoInicioAtividades" as any
-  );
-  const horarioInicioJornadaPrevisto = watch(
-    "horarioInicioJornadaPrevisto" as any
-  );
-  const horarioEfetivoSaidaObra = watch("horarioEfetivoSaidaObra" as any);
-  const horarioTerminoJornadaPrevisto = watch(
-    "horarioTerminoJornadaPrevisto" as any
-  );
-  const fotosNaoConformidade = watch("fotosNaoConformidade" as any);
-  const fotosInspecao = watch("fotosInspecao" as any); // For new inspection form
-  const conformidadeSeguranca = watch("conformidadeSeguranca" as any); // For inspection form to trigger RNC
+  // Watch all fields to handle generic visibility and dependencies
+  const watchedValues = watch();
 
   const stableSetValue = useCallback(setValue, []);
   const stableGetValues = useCallback(getValues, []);
+
+  // Auto-fill manager/responsible fields
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (user?.displayName) {
+      const managerFields = [
+        "gerente",
+        "gerenteObra",
+        "responsavel",
+        "engenheiroResponsavel",
+      ];
+      managerFields.forEach((fieldName) => {
+        // Check if field exists in definition and has no current value
+        const fieldExists = formDefinition.fields.some(
+          (f) => f.id === fieldName
+        );
+        const currentValue = form.getValues(fieldName);
+
+        if (fieldExists && !currentValue) {
+          form.setValue(fieldName, user.displayName);
+        }
+      });
+    }
+  }, [formDefinition, form]);
 
   useEffect(() => {
     const osFromQuery = searchParams.get("os");
@@ -257,39 +272,50 @@ export function DynamicFormRenderer({
     stableGetValues,
   ]);
 
+  // Generic Side Effect: Clear values of hidden fields
   useEffect(() => {
-    runFieldVisibilitySideEffects({
-      formDefinition,
-      stableGetValues,
-      stableSetValue,
-      watchedValues: {
-        situacaoEtapaDia,
-        fotosEtapaDia,
-        horasRetrabalhoParadasDia,
-        horarioEfetivoInicioAtividades,
-        horarioInicioJornadaPrevisto,
-        horarioEfetivoSaidaObra,
-        horarioTerminoJornadaPrevisto,
-        fotosNaoConformidade,
-        fotosInspecao,
-        conformidadeSeguranca,
-      },
+    formDefinition.fields.forEach((field) => {
+      const isVisible = shouldRenderFormItem(
+        formDefinition,
+        field,
+        watchedValues
+      );
+
+      if (!isVisible) {
+        const currentValue = stableGetValues(field.id as any);
+        const emptyValue =
+          field.type === "checkbox"
+            ? false
+            : field.type === "number"
+            ? null
+            : field.type === "file"
+            ? null
+            : "";
+
+        // Only reset if it currently has a non-empty value (to avoid loops/redundant updates)
+        // Note: we consider "false" as empty for checkbox, so strictly check
+        if (
+          currentValue !== emptyValue &&
+          currentValue !== undefined &&
+          currentValue !== null
+        ) {
+          // For strings, check if ""
+          if (typeof currentValue === "string" && currentValue === "") return;
+
+          stableSetValue(field.id as any, emptyValue, {
+            shouldValidate: false,
+          });
+        }
+      }
     });
-  }, [
-    formDefinition,
-    stableGetValues,
-    stableSetValue,
-    situacaoEtapaDia,
-    fotosEtapaDia,
-    horasRetrabalhoParadasDia,
-    horarioEfetivoInicioAtividades,
-    horarioInicioJornadaPrevisto,
-    horarioEfetivoSaidaObra,
-    horarioTerminoJornadaPrevisto,
-    fotosNaoConformidade,
-    fotosInspecao,
-    conformidadeSeguranca,
-  ]);
+
+    // Also run legacy side effects if needed (though generic clearing likely covers most)
+    // We can keep specific legacy logic if it does complex stuff beyond clearing,
+    // but looking at the code, it was mostly clearing.
+    // Except "motivoNaoCumprimento" which compared times.
+    // The new "shouldRenderCronogramaItem" handles visibility, and this effect clears it.
+    // So distinct side-effect function is likely redundant for clearing.
+  }, [formDefinition, watchedValues, stableGetValues, stableSetValue]);
 
   const handleLocalSubmit: SubmitHandler<FormValues> = async (data) => {
     setIsSubmitting(true);
@@ -517,29 +543,25 @@ export function DynamicFormRenderer({
                 const shouldRenderField = shouldRenderFormItem(
                   formDefinition,
                   field,
-                  {
-                    situacaoEtapaDia,
-                    fotosEtapaDia,
-                    horasRetrabalhoParadasDia,
-                    horarioEfetivoInicioAtividades,
-                    horarioInicioJornadaPrevisto,
-                    horarioEfetivoSaidaObra,
-                    horarioTerminoJornadaPrevisto,
-                    fotosNaoConformidade,
-                    fotosInspecao,
-                    conformidadeSeguranca,
-                  }
+                  watchedValues
                 );
 
                 if (!shouldRenderField) return null;
 
+                // Determine if this field is conditionally rendered
+                const isConditional = !!field.visibilityCondition;
+
                 return (
-                  <DynamicField
+                  <div
                     key={field.id}
-                    field={field}
-                    control={control}
-                    isSubmitting={isSubmitting}
-                  />
+                    className={cn(isConditional && "animate-slideDown")}
+                  >
+                    <DynamicField
+                      field={field}
+                      control={control}
+                      isSubmitting={isSubmitting}
+                    />
+                  </div>
                 );
               })}
             </CardContent>
@@ -843,13 +865,63 @@ function shouldRenderFormItem(
   field: FormFieldType,
   watchedValues: any
 ): boolean {
+  // 1. Generic Visibility Condition
+  if (field.visibilityCondition) {
+    const { fieldId, conditionValue, operator } = field.visibilityCondition;
+    const dependentValue = watchedValues[fieldId];
+
+    // Normalize comparison (handle booleans, strings, etc.)
+    const checkEquality = (val1: any, val2: any) => {
+      // Handle "S"/"N" vs boolean logic if needed, or strict equality
+      return String(val1) === String(val2);
+    };
+
+    let isVisible = false;
+
+    if (operator === "neq") {
+      if (Array.isArray(conditionValue)) {
+        isVisible = !conditionValue.some((v) =>
+          checkEquality(dependentValue, v)
+        );
+      } else {
+        isVisible = !checkEquality(dependentValue, conditionValue);
+      }
+    } else if (operator === "in") {
+      if (Array.isArray(conditionValue)) {
+        isVisible = conditionValue.some((v) =>
+          checkEquality(dependentValue, v)
+        );
+      } else {
+        isVisible = checkEquality(dependentValue, conditionValue);
+      }
+    } else if (operator === "contains") {
+      isVisible = String(dependentValue || "").includes(String(conditionValue));
+    } else {
+      // Default 'eq'
+      if (Array.isArray(conditionValue)) {
+        isVisible = conditionValue.some((v) =>
+          checkEquality(dependentValue, v)
+        );
+      } else {
+        isVisible = checkEquality(dependentValue, conditionValue);
+      }
+    }
+
+    if (!isVisible) return false;
+  }
+
+  // 2. Existing Hardcoded Logic (Legacy support until fully migrated)
   if (formDefinition.id === "cronograma-diario-obra") {
     return shouldRenderCronogramaItem(field, watchedValues);
   } else if (formDefinition.id === "rnc-report") {
-    if (field.id === "uploadFotosNaoConformidade")
+    // Migrated logic can remain or be removed if config is updated
+    if (field.id === "uploadFotosNaoConformidade" && !field.visibilityCondition)
       return watchedValues.fotosNaoConformidade === "sim";
   } else if (formDefinition.id === "relatorio-inspecao-site") {
-    return shouldRenderInspecaoItem(field, watchedValues);
+    // Keep checking existing logic if no generic condition is present
+    if (!field.visibilityCondition) {
+      return shouldRenderInspecaoItem(field, watchedValues);
+    }
   }
 
   return true;
@@ -859,6 +931,9 @@ function shouldRenderCronogramaItem(
   field: FormFieldType,
   watchedValues: any
 ): boolean {
+  // If the field has a generic condition, skip hardcoded logic to avoid conflict/double hiding
+  if (field.visibilityCondition) return true;
+
   const {
     situacaoEtapaDia,
     fotosEtapaDia,
@@ -867,8 +942,42 @@ function shouldRenderCronogramaItem(
     horarioInicioJornadaPrevisto,
     horarioEfetivoSaidaObra,
     horarioTerminoJornadaPrevisto,
+    situacaoEtapa, // From DOC-020
+    fotosEtapa,
+    motivoAtraso,
+    equipamentosUtilizados,
+    relatorioInspecao,
+    emissaoRNC,
+    pteEmitida,
+    horasRetrabalho,
+    horarioEfetivoInicio,
+    horarioEfetivoSaida,
+    motivoNaoCumprimentoInicio,
+    motivoNaoCumprimentoSaida,
   } = watchedValues;
 
+  // Existing DOC-020 Logic (Keep this until I update the forms.ts for DOC-020)
+  if (field.id === "motivoAtraso") return situacaoEtapa === "em_atraso";
+  if (field.id === "uploadFotos") return fotosEtapa === "S";
+  if (field.id === "motivoRetrabalho")
+    return !!horasRetrabalho && String(horasRetrabalho).trim() !== "";
+
+  if (field.id === "motivoNaoCumprimentoInicio") {
+    const efetivo = String(horarioEfetivoInicio || "").trim();
+    const previsto = String(
+      watchedValues.horarioInicioJornada || "07:30"
+    ).trim();
+    return efetivo !== "" && efetivo !== previsto;
+  }
+  if (field.id === "motivoNaoCumprimentoSaida") {
+    const efetivo = String(horarioEfetivoSaida || "").trim();
+    const previsto = String(
+      watchedValues.horarioTerminoJornada || "17:30"
+    ).trim();
+    return efetivo !== "" && efetivo !== previsto;
+  }
+
+  // Legacy (Older cronograma ID fields)
   if (field.id === "motivoAtrasoDia") return situacaoEtapaDia === "em_atraso";
   if (field.id === "uploadFotosEtapaDia") return fotosEtapaDia === "sim";
   if (field.id === "motivoRetrabalhoParadaDia")
