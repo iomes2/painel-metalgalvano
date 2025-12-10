@@ -90,18 +90,25 @@ async function processServiceOrders(stats: {
     console.log(`\n📋 Processando OS: ${osNumber}`);
     console.log(`   Gerente: ${osData.updatedByGerenteId || "N/A"}`);
 
-    const reportsSnapshot = await db
-      .collection("ordens_servico")
-      .doc(osNumber)
-      .collection("relatorios")
-      .get();
+    await processServiceOrderReports(osNumber, stats);
+  }
+}
 
-    console.log(`   📝 ${reportsSnapshot.size} relatórios encontrados`);
+async function processServiceOrderReports(
+  osNumber: string,
+  stats: { total: number; success: number; errors: number }
+) {
+  const reportsSnapshot = await db
+    .collection("ordens_servico")
+    .doc(osNumber)
+    .collection("relatorios")
+    .get();
 
-    for (const reportDoc of reportsSnapshot.docs) {
-      stats.total++;
-      await processReport(reportDoc, osNumber, stats);
-    }
+  console.log(`   📝 ${reportsSnapshot.size} relatórios encontrados`);
+
+  for (const reportDoc of reportsSnapshot.docs) {
+    stats.total++;
+    await processReport(reportDoc, osNumber, stats);
   }
 }
 

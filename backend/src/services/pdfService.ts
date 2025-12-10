@@ -307,9 +307,6 @@ export class PdfService {
   /**
    * Formata valor de campo baseado no tipo
    */
-  /*
-   * Formata valor de campo baseado no tipo
-   */
   private formatFieldValue(field: FormField, value: any): string {
     if (value === undefined || value === null || value === "") {
       return "Não preenchido";
@@ -318,26 +315,34 @@ export class PdfService {
     switch (field.type) {
       case "date":
         return this.formatDateValue(value);
-
       case "checkbox":
-        return value ? "Sim" : "Não";
-
+        return this.formatCheckboxValue(value);
       case "select":
         return this.formatSelectValue(field, value);
-
       case "file":
-        return Array.isArray(value)
-          ? `${value.length} arquivo(s)`
-          : "Nenhum arquivo";
-
+        return this.formatFileValue(value);
       case "number":
-        return typeof value === "number"
-          ? value.toLocaleString("pt-BR")
-          : String(value);
-
+        return this.formatNumberValue(value);
       default:
         return this.formatDefaultValue(value);
     }
+  }
+
+  private formatCheckboxValue(value: any): string {
+    return value ? "Sim" : "Não";
+  }
+
+  private formatFileValue(value: any): string {
+    if (Array.isArray(value)) {
+      return `${value.length} arquivo(s)`;
+    }
+    return "Nenhum arquivo";
+  }
+
+  private formatNumberValue(value: any): string {
+    return typeof value === "number"
+      ? value.toLocaleString("pt-BR")
+      : String(value);
   }
 
   private parseDateHelper(val: any): Date | null {

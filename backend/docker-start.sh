@@ -21,7 +21,7 @@ echo "✅ Docker encontrado"
 echo ""
 
 # Verificar arquivo .env
-if [[ ! -f .env ]]; then
+if [ ! -f .env ]; then
     echo "📝 Criando arquivo .env..."
     cp .env.docker.example .env
     echo "⚠️  IMPORTANTE: Edite o arquivo .env com suas credenciais do Firebase!"
@@ -32,7 +32,7 @@ fi
 echo "🏗️  Construindo imagens Docker..."
 docker-compose build
 
-if [[ $? -ne 0 ]]; then
+if [ $? -ne 0 ]; then
     echo "❌ Erro ao construir imagens"
     exit 1
 fi
@@ -49,7 +49,7 @@ sleep 5
 echo "🔧 Rodando migrations..."
 docker-compose run --rm backend npx prisma migrate dev --name init
 
-if [[ $? -eq 0 ]]; then
+if [ $? -eq 0 ]; then
     echo "✅ Migrations executadas"
     
     # Seed
