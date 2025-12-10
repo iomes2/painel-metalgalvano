@@ -268,34 +268,40 @@ export class PdfService {
     ];
 
     formDefinition.fields.forEach((field) => {
-      const value = formData[field.id];
-      const formattedValue = this.formatFieldValue(field, value);
-
-      // Se o campo é de arquivo/foto, trata separadamente
-      if (field.type === "file" && Array.isArray(value) && value.length > 0) {
-        content.push({
-          stack: [
-            { text: field.label, style: "fieldLabel" },
-            {
-              text: `${value.length} foto(s) anexada(s)`,
-              style: "fieldValue",
-              color: "#059669",
-            },
-            ...this.buildPhotoLinks(value as ReportPhoto[]),
-          ],
-          margin: [0, 0, 0, 10],
-        });
-      } else {
-        content.push({
-          stack: [
-            { text: field.label, style: "fieldLabel" },
-            { text: formattedValue, style: "fieldValue" },
-          ],
-        });
-      }
+      content.push(this.buildFieldContent(field, formData[field.id]));
     });
 
     return content;
+  }
+
+  /**
+   * Constrói o conteúdo de um campo individual
+   */
+  private buildFieldContent(field: FormField, value: any): Content {
+    const formattedValue = this.formatFieldValue(field, value);
+
+    // Se o campo é de arquivo/foto, trata separadamente
+    if (field.type === "file" && Array.isArray(value) && value.length > 0) {
+      return {
+        stack: [
+          { text: field.label, style: "fieldLabel" },
+          {
+            text: `${value.length} foto(s) anexada(s)`,
+            style: "fieldValue",
+            color: "#059669",
+          },
+          ...this.buildPhotoLinks(value as ReportPhoto[]),
+        ],
+        margin: [0, 0, 0, 10],
+      };
+    }
+
+    return {
+      stack: [
+        { text: field.label, style: "fieldLabel" },
+        { text: formattedValue, style: "fieldValue" },
+      ],
+    };
   }
 
   /**

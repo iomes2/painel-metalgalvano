@@ -208,26 +208,19 @@ function printSummary(stats: {
 
 // Helpers
 function extractPhotosFromFormData(formData: any): any[] {
-  const photos: any[] = [];
+  return Object.values(formData)
+    .filter((value) => Array.isArray(value))
+    .flatMap((items: any[]) => items.filter(isValidPhoto));
+}
 
-  for (const key in formData) {
-    const value = formData[key];
-    if (Array.isArray(value)) {
-      value.forEach((item) => {
-        if (
-          typeof item === "object" &&
-          item !== null &&
-          "url" in item &&
-          typeof item.url === "string" &&
-          item.url.includes("storage.googleapis.com")
-        ) {
-          photos.push(item);
-        }
-      });
-    }
-  }
-
-  return photos;
+function isValidPhoto(item: any): boolean {
+  return (
+    typeof item === "object" &&
+    item !== null &&
+    "url" in item &&
+    typeof item.url === "string" &&
+    item.url.includes("storage.googleapis.com")
+  );
 }
 
 function extractPathFromUrl(url: string): string {

@@ -494,62 +494,92 @@ export async function uploadFiles(
   submissionTimestamp: number
 ): Promise<ReportPhoto[]> {
   if (USE_BACKEND) {
-    // Backend - Upload via API
-    const formData = new FormData();
-    for (let i = 0; i < files.length; i++) {
-      formData.append("files", files[i]);
-    }
-    formData.append("userId", userId);
-    formData.append("formType", formType);
-    formData.append("osNumber", osNumber);
-    formData.append("timestamp", submissionTimestamp.toString());
+    return uploadFilesToBackend(
+      files,
+      userId,
+      formType,
+      osNumber,
+      submissionTimestamp
+    );
+  } else {
+    return uploadFilesToFirebase(
+      files,
+      userId,
+      formType,
+      osNumber,
+      submissionTimestamp
+    );
+  }
+}
 
-    const token = await getAuthToken();
-    const response = await fetch(`${API_URL}/api/v1/upload`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
+async function uploadFilesToBackend(
+  files: FileList,
+  userId: string,
+  formType: string,
+  osNumber: string,
+  submissionTimestamp: number
+): Promise<ReportPhoto[]> {
+  const formData = new FormData();
+  for (let i = 0; i < files.length; i++) {
+    formData.append("files", files[i]);
+  }
+  formData.append("userId", userId);
+  formData.append("formType", formType);
+  formData.append("osNumber", osNumber);
+  formData.append("timestamp", submissionTimestamp.toString());
+
+  const token = await getAuthToken();
+  const response = await fetch(`${API_URL}/api/v1/upload`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error("Erro no upload de arquivos");
+  }
+
+  const data = await response.json();
+  return data.data || data;
+}
+
+async function uploadFilesToFirebase(
+  files: FileList,
+  userId: string,
+  formType: string,
+  osNumber: string,
+  submissionTimestamp: number
+): Promise<ReportPhoto[]> {
+  const uploadPromises: Promise<ReportPhoto>[] = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const filePath = `reports/${userId}/${formType}/${osNumber}/${submissionTimestamp}/${file.name}`;
+    const fileStorageRef = storageRef(storage, filePath);
+
+    const promise = new Promise<ReportPhoto>((resolve, reject) => {
+      const uploadTask = uploadBytesResumable(fileStorageRef, file);
+      uploadTask.on("state_changed", null, reject, async () => {
+        try {
+          const url = await getDownloadURL(fileStorageRef);
+          resolve({
+            name: file.name,
+            url,
+            type: file.type,
+            size: file.size,
+          });
+        } catch (error) {
+          reject(error);
+        }
+      });
     });
 
-    if (!response.ok) {
-      throw new Error("Erro no upload de arquivos");
-    }
-
-    const data = await response.json();
-    return data.data || data;
-  } else {
-    // Firebase Storage
-    const uploadPromises: Promise<ReportPhoto>[] = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const filePath = `reports/${userId}/${formType}/${osNumber}/${submissionTimestamp}/${file.name}`;
-      const fileStorageRef = storageRef(storage, filePath);
-
-      const promise = new Promise<ReportPhoto>((resolve, reject) => {
-        const uploadTask = uploadBytesResumable(fileStorageRef, file);
-        uploadTask.on("state_changed", null, reject, async () => {
-          try {
-            const url = await getDownloadURL(fileStorageRef);
-            resolve({
-              name: file.name,
-              url,
-              type: file.type,
-              size: file.size,
-            });
-          } catch (error) {
-            reject(error);
-          }
-        });
-      });
-
-      uploadPromises.push(promise);
-    }
-
-    return await Promise.all(uploadPromises);
+    uploadPromises.push(promise);
   }
+
+  return await Promise.all(uploadPromises);
 }
 
 // ==================== API: SUBMISSÃO ====================

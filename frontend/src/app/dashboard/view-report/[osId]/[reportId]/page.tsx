@@ -58,13 +58,11 @@ import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 
-interface ReportPhoto {
-  id?: string;
-  name: string;
-  url: string;
-  type: string;
-  size: number;
-}
+import {
+  ReportFieldValue,
+  fieldTypeIcons,
+  type ReportPhoto,
+} from "@/components/reports/ReportFieldValue";
 
 interface ReportData {
   id: string;
@@ -77,17 +75,6 @@ interface ReportData {
   originatingFormId?: string;
 }
 
-const fieldTypeIcons: Record<FormField["type"], React.ElementType> = {
-  text: Edit3,
-  email: Edit3,
-  password: Edit3,
-  number: Hash,
-  textarea: List,
-  select: List,
-  date: CalendarLucideIcon,
-  file: ImageIcon,
-  checkbox: CheckSquare,
-};
 export default function ViewReportPage() {
   const router = useRouter();
   const params = useParams();
@@ -259,114 +246,6 @@ export default function ViewReportPage() {
       n.endsWith(".webp") ||
       n.endsWith(".gif")
     );
-  };
-
-  const renderFieldValue = (field: FormField, value: any) => {
-    if (value === undefined || value === null || value === "") {
-      return (
-        <span className="italic text-muted-foreground">Não preenchido</span>
-      );
-    }
-
-    switch (field.type) {
-      case "date":
-        // Safe parsing for date fields
-        let dateVal: Date | null = null;
-        try {
-          const val = value as any;
-          if (val instanceof Date) dateVal = val;
-          else if (val && typeof val.toDate === "function")
-            dateVal = val.toDate();
-          else if (val && typeof val === "object") {
-            if (val.seconds) dateVal = new Date(val.seconds * 1000);
-            else if (val._seconds) dateVal = new Date(val._seconds * 1000);
-          } else if (typeof val === "string" || typeof val === "number") {
-            dateVal = new Date(val);
-          }
-        } catch (e) {
-          console.error("Error parsing date value", value, e);
-        }
-
-        if (dateVal && !isNaN(dateVal.getTime())) {
-          return format(dateVal, "dd/MM/yyyy 'às' HH:mm", {
-            locale: ptBR,
-          });
-        }
-        return String(value);
-      case "checkbox":
-        return (
-          <Badge variant={value ? "default" : "secondary"}>
-            {value ? "Sim" : "Não"}
-          </Badge>
-        );
-      case "select":
-        const option = field.options?.find((opt) => opt.value === value);
-        return (
-          <Badge variant="outline">
-            {option ? option.label : String(value)}
-          </Badge>
-        );
-      case "file":
-        if (Array.isArray(value) && value.length > 0) {
-          const photos = (value as ReportPhoto[]).filter((p) => !!p && !!p.url);
-          if (photos.length === 0) {
-            return (
-              <span className="italic text-muted-foreground">
-                Nenhum arquivo
-              </span>
-            );
-          }
-          const imageFiles = photos.filter((p) => isImage(p));
-          // Se houver imagens, renderiza uma grade de miniaturas clicáveis; senão, botão padrão
-          if (imageFiles.length > 0) {
-            return (
-              <div className="flex flex-wrap gap-2 print:hidden">
-                {imageFiles.slice(0, 6).map((photo, idx) => (
-                  <button
-                    key={`${photo.url}-${idx}`}
-                    type="button"
-                    className="relative h-12 w-12 overflow-hidden rounded-md ring-1 ring-border hover:ring-primary focus:outline-none focus:ring-2 focus:ring-primary"
-                    onClick={() => openImageModal(photo, photos)}
-                    aria-label={`Abrir imagem ${photo.name}`}
-                  >
-                    <Image
-                      src={photo.url}
-                      alt={photo.name}
-                      fill
-                      sizes="48px"
-                      className="object-cover"
-                    />
-                  </button>
-                ))}
-                {photos.length > 6 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openImageModal(imageFiles[0], photos)}
-                  >
-                    <ImageIcon className="mr-2 h-4 w-4" />+{photos.length - 6}
-                  </Button>
-                )}
-              </div>
-            );
-          }
-          return (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openImageModal(photos[0], photos)}
-            >
-              <ImageIcon className="mr-2 h-4 w-4" /> Ver ({photos.length})
-              Arquivo(s)
-            </Button>
-          );
-        }
-        return (
-          <span className="italic text-muted-foreground">Nenhum arquivo</span>
-        );
-      default:
-        return String(value);
-    }
   };
 
   if (isLoading) {
@@ -820,7 +699,13 @@ export default function ViewReportPage() {
                         </div>
                         {/* Valor */}
                         <div className="px-3 py-2.5 text-sm leading-relaxed break-words break-all whitespace-pre-wrap min-w-0 max-w-full bg-white dark:bg-slate-900/50">
-                          {renderFieldValue(field, fieldValue)}
+                          <ReportFieldValue
+                            field={field}
+                            value={fieldValue}
+                            onImageClick={(img, list) =>
+                              openImageModal(img, list)
+                            }
+                          />
                           {field.linkedForm &&
                             fieldValue === field.linkedForm.conditionValue && (
                               <div className="mt-3 pt-2 border-t border-dashed">
