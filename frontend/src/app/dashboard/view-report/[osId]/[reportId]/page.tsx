@@ -786,43 +786,66 @@ function shouldFieldRender(
   field: FormField
 ): boolean {
   if (formDefinition.id === "cronograma-diario-obra") {
-    if (field.id === "motivoAtrasoDia")
-      return formData["situacaoEtapaDia"] === "em_atraso";
-    if (field.id === "uploadFotosEtapaDia")
-      return formData["fotosEtapaDia"] === "sim";
-    if (field.id === "motivoRetrabalhoParadaDia")
-      return (
-        !!formData["horasRetrabalhoParadasDia"] &&
-        String(formData["horasRetrabalhoParadasDia"]).trim() !== ""
-      );
-    if (field.id === "motivoNaoCumprimentoHorarioInicio") {
-      const efetivo = String(
-        formData["horarioEfetivoInicioAtividades"] || ""
-      ).trim();
-      const previsto = String(
-        formData["horarioInicioJornadaPrevisto"] || ""
-      ).trim();
-      return efetivo !== "" && efetivo !== previsto;
-    }
-    if (field.id === "motivoNaoCumprimentoHorarioSaida") {
-      const efetivo = String(formData["horarioEfetivoSaidaObra"] || "").trim();
-      const previsto = String(
-        formData["horarioTerminoJornadaPrevisto"] || ""
-      ).trim();
-      return efetivo !== "" && efetivo !== previsto;
-    }
+    return shouldRenderCronogramaField(formData, field);
   } else if (formDefinition.id === "rnc-report") {
-    if (field.id === "uploadFotosNaoConformidade")
-      return formData["fotosNaoConformidade"] === "sim";
+    return shouldRenderRncField(formData, field);
   } else if (formDefinition.id === "relatorio-inspecao-site") {
-    if (field.id === "uploadFotosInspecao")
-      return formData["fotosInspecao"] === "sim";
-    if (
-      field.id === "itensNaoConformes" ||
-      field.id === "acoesCorretivasSugeridas"
-    ) {
-      return formData["conformidadeSeguranca"] === "nao";
-    }
+    return shouldRenderInspecaoField(formData, field);
+  }
+  return true;
+}
+
+function shouldRenderCronogramaField(formData: any, field: FormField): boolean {
+  if (field.id === "motivoAtrasoDia")
+    return formData["situacaoEtapaDia"] === "em_atraso";
+  if (field.id === "uploadFotosEtapaDia")
+    return formData["fotosEtapaDia"] === "sim";
+  if (field.id === "motivoRetrabalhoParadaDia")
+    return (
+      !!formData["horasRetrabalhoParadasDia"] &&
+      String(formData["horasRetrabalhoParadasDia"]).trim() !== ""
+    );
+  if (field.id === "motivoNaoCumprimentoHorarioInicio") {
+    return checkHorarioDiff(
+      formData,
+      "horarioEfetivoInicioAtividades",
+      "horarioInicioJornadaPrevisto"
+    );
+  }
+  if (field.id === "motivoNaoCumprimentoHorarioSaida") {
+    return checkHorarioDiff(
+      formData,
+      "horarioEfetivoSaidaObra",
+      "horarioTerminoJornadaPrevisto"
+    );
+  }
+  return true;
+}
+
+function checkHorarioDiff(
+  formData: any,
+  efetivoKey: string,
+  previstoKey: string
+): boolean {
+  const efetivo = String(formData[efetivoKey] || "").trim();
+  const previsto = String(formData[previstoKey] || "").trim();
+  return efetivo !== "" && efetivo !== previsto;
+}
+
+function shouldRenderRncField(formData: any, field: FormField): boolean {
+  if (field.id === "uploadFotosNaoConformidade")
+    return formData["fotosNaoConformidade"] === "sim";
+  return true;
+}
+
+function shouldRenderInspecaoField(formData: any, field: FormField): boolean {
+  if (field.id === "uploadFotosInspecao")
+    return formData["fotosInspecao"] === "sim";
+  if (
+    field.id === "itensNaoConformes" ||
+    field.id === "acoesCorretivasSugeridas"
+  ) {
+    return formData["conformidadeSeguranca"] === "nao";
   }
   return true;
 }
