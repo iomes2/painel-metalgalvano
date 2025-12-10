@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 
 const SONAR_ORG = "iomes2";
 const SONAR_PROJECT = "iomes2_painel-metalgalvano";
-const SONAR_TOKEN = "fe3210dd8f63b859209d8f1cda484db9b5587c58";
+const SONAR_TOKEN = "PEGAR EM SECURITY NO PERFIL";
 
 async function fetchIssues() {
   console.log(`Fetching issues for ${SONAR_ORG} / ${SONAR_PROJECT}...`);

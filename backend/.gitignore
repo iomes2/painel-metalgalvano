@@ -47,4 +47,4 @@ metalgalvano-88706-0eb2189ad6f9.json
 !package-lock.json
 !tsconfig.json
 !.eslintrc.json
-
+fetch-sonar-issues.mjs

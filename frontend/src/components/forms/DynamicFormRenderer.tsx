@@ -312,50 +312,20 @@ export function DynamicFormRenderer({
 
     try {
       // 1. Upload de arquivos via API
-      const finalFormDataToSave = { ...data } as Record<string, any>;
-
-      for (const field of formDefinition.fields) {
-        if (
-          field.type === "file" &&
-          data[field.id as keyof FormValues] instanceof FileList
-        ) {
-          const fileList = data[field.id as keyof FormValues] as FileList;
-
-          if (fileList.length > 0) {
-            toast({
-              title: "Enviando arquivos...",
-              description: `Por favor, aguarde. ${fileList.length} arquivo(s) sendo processado(s).`,
-            });
-
-            const uploadedPhotos = await uploadFiles(
-              fileList,
-              currentUser.uid,
-              formDefinition.id,
-              osValue || "general",
-              submissionTimestamp
-            );
-
-            finalFormDataToSave[field.id] = uploadedPhotos;
-          } else {
-            delete finalFormDataToSave[field.id];
-          }
-        } else if (field.type === "file") {
-          delete finalFormDataToSave[field.id];
-        }
-      }
+      const finalFormDataToSave = await processFileUploads(
+        data,
+        formDefinition,
+        currentUser,
+        osValue,
+        submissionTimestamp,
+        toast
+      );
 
       // 2. Converter Dates para Timestamps
-      const formDataWithTimestamps = { ...finalFormDataToSave };
-      formDefinition.fields.forEach((field) => {
-        if (
-          field.type === "date" &&
-          formDataWithTimestamps[field.id] instanceof Date
-        ) {
-          formDataWithTimestamps[field.id] = Timestamp.fromDate(
-            formDataWithTimestamps[field.id] as Date
-          );
-        }
-      });
+      const formDataWithTimestamps = convertDatesToTimestamps(
+        finalFormDataToSave,
+        formDefinition
+      );
 
       // 3. Submeter relatório via API
       const payload = {
@@ -415,7 +385,6 @@ export function DynamicFormRenderer({
         carryOverQueryParams,
         osValue,
         mainOriginatingFormId,
-        currentFormIsMainOriginator,
         nextMainOriginatingFormId,
         router,
         setIsShareDialogOpen,
@@ -610,6 +579,154 @@ export function DynamicFormRenderer({
   );
 }
 
+// ================= Helpers for Logic Extraction =================
+
+async function processFileUploads(
+  data: any,
+  formDefinition: FormDefinition,
+  currentUser: any,
+  osValue: string | undefined,
+  submissionTimestamp: number,
+  toast: any
+) {
+  const finalFormDataToSave = { ...data } as Record<string, any>;
+
+  for (const field of formDefinition.fields) {
+    if (field.type === "file" && data[field.id] instanceof FileList) {
+      const fileList = data[field.id] as FileList;
+
+      if (fileList.length > 0) {
+        toast({
+          title: "Enviando arquivos...",
+          description: `Por favor, aguarde. ${fileList.length} arquivo(s) sendo processado(s).`,
+        });
+
+        const uploadedPhotos = await uploadFiles(
+          fileList,
+          currentUser.uid,
+          formDefinition.id,
+          osValue || "general",
+          submissionTimestamp
+        );
+
+        finalFormDataToSave[field.id] = uploadedPhotos;
+      } else {
+        delete finalFormDataToSave[field.id];
+      }
+    } else if (field.type === "file") {
+      delete finalFormDataToSave[field.id];
+    }
+  }
+  return finalFormDataToSave;
+}
+
+function convertDatesToTimestamps(
+  data: Record<string, any>,
+  formDefinition: FormDefinition
+) {
+  const formDataWithTimestamps = { ...data };
+  formDefinition.fields.forEach((field) => {
+    if (
+      field.type === "date" &&
+      formDataWithTimestamps[field.id] instanceof Date
+    ) {
+      formDataWithTimestamps[field.id] = Timestamp.fromDate(
+        formDataWithTimestamps[field.id] as Date
+      );
+    }
+  });
+  return formDataWithTimestamps;
+}
+
+// ================= Trigger Logic =================
+
+function checkTriggerCondition(
+  trigger: LinkedFormTriggerCondition,
+  formDefinition: FormDefinition,
+  data: any,
+  carryOverQueryParams: any
+) {
+  if (
+    formDefinition.id === "relatorio-inspecao-site" &&
+    trigger.linkedFormId === "rnc-report"
+  ) {
+    const rncTriggerFromAcompanhamento =
+      carryOverQueryParams["rncTriggerValueFromAcompanhamento"];
+    const currentConformidade = data["conformidadeSeguranca"];
+    return (
+      currentConformidade === "nao" && rncTriggerFromAcompanhamento === "sim"
+    );
+  }
+
+  if (trigger.triggerFieldId.startsWith("_queryParam_")) {
+    const paramName = trigger.triggerFieldId.substring("_queryParam_".length);
+    return carryOverQueryParams[paramName] === trigger.triggerFieldValue;
+  }
+
+  return data[trigger.triggerFieldId] === trigger.triggerFieldValue;
+}
+
+function handleLinkedFormTriggers(
+  formDefinition: FormDefinition,
+  data: any,
+  result: any,
+  carryOverQueryParams: any,
+  osValue: string | undefined,
+  mainOriginatingFormId: string | null,
+  nextMainOriginatingFormId: string | null,
+  router: any,
+  setIsShareDialogOpen: (v: boolean) => void,
+  toast: any
+) {
+  const triggers = formDefinition.linkedFormTriggers;
+  if (!triggers || !result.reportId) {
+    setIsShareDialogOpen(true);
+    return false;
+  }
+
+  for (const trigger of triggers) {
+    if (
+      checkTriggerCondition(trigger, formDefinition, data, carryOverQueryParams)
+    ) {
+      const nextQueryParams = new URLSearchParams();
+      const osToPass =
+        trigger.passOsFieldId && data[trigger.passOsFieldId]
+          ? String(data[trigger.passOsFieldId]).trim()
+          : osValue?.trim();
+
+      if (osToPass) nextQueryParams.append("os", osToPass);
+      if (nextMainOriginatingFormId) {
+        nextQueryParams.append("originatingFormId", nextMainOriginatingFormId);
+      }
+
+      trigger.carryOverParams?.forEach((cop) => {
+        if (data[cop.fieldIdFromCurrentForm] !== undefined) {
+          nextQueryParams.append(
+            cop.queryParamName,
+            String(data[cop.fieldIdFromCurrentForm])
+          );
+        }
+      });
+
+      toast({
+        title: "Próximo Passo",
+        description: `Por favor, preencha o formulário: ${trigger.linkedFormId}.`,
+        duration: 4000,
+      });
+
+      router.push(
+        `/dashboard/forms/${trigger.linkedFormId}?${nextQueryParams.toString()}`
+      );
+      return true;
+    }
+  }
+
+  setIsShareDialogOpen(true);
+  return false;
+}
+
+// ================= Visibility & Side Effects Logic =================
+
 function runFieldVisibilitySideEffects({
   formDefinition,
   stableGetValues,
@@ -621,19 +738,6 @@ function runFieldVisibilitySideEffects({
   stableSetValue: any;
   watchedValues: any;
 }) {
-  const {
-    situacaoEtapaDia,
-    fotosEtapaDia,
-    horasRetrabalhoParadasDia,
-    horarioEfetivoInicioAtividades,
-    horarioInicioJornadaPrevisto,
-    horarioEfetivoSaidaObra,
-    horarioTerminoJornadaPrevisto,
-    fotosNaoConformidade,
-    fotosInspecao,
-    conformidadeSeguranca,
-  } = watchedValues;
-
   if (formDefinition.id === "cronograma-diario-obra") {
     handleCronogramaSideEffects(watchedValues, stableGetValues, stableSetValue);
   } else if (formDefinition.id === "rnc-report") {
@@ -739,19 +843,6 @@ function shouldRenderFormItem(
   field: FormFieldType,
   watchedValues: any
 ): boolean {
-  const {
-    situacaoEtapaDia,
-    fotosEtapaDia,
-    horasRetrabalhoParadasDia,
-    horarioEfetivoInicioAtividades,
-    horarioInicioJornadaPrevisto,
-    horarioEfetivoSaidaObra,
-    horarioTerminoJornadaPrevisto,
-    fotosNaoConformidade,
-    fotosInspecao,
-    conformidadeSeguranca,
-  } = watchedValues;
-
   if (formDefinition.id === "cronograma-diario-obra") {
     return shouldRenderCronogramaItem(field, watchedValues);
   } else if (formDefinition.id === "rnc-report") {
@@ -811,94 +902,4 @@ function shouldRenderInspecaoItem(
     return watchedValues.conformidadeSeguranca === "nao";
   }
   return true;
-}
-
-function handleLinkedFormTriggers(
-  formDefinition: FormDefinition,
-  data: any,
-  result: any,
-  carryOverQueryParams: any,
-  osValue: string | undefined,
-  mainOriginatingFormId: string | null,
-  currentFormIsMainOriginator: boolean,
-  nextMainOriginatingFormId: string | null,
-  router: any,
-  setIsShareDialogOpen: (v: boolean) => void,
-  toast: any
-) {
-  const triggers = formDefinition.linkedFormTriggers;
-  if (triggers && result.reportId) {
-    for (const trigger of triggers) {
-      let conditionMet = false;
-
-      if (
-        formDefinition.id === "relatorio-inspecao-site" &&
-        trigger.linkedFormId === "rnc-report"
-      ) {
-        const rncTriggerFromAcompanhamento =
-          carryOverQueryParams["rncTriggerValueFromAcompanhamento"];
-        const currentConformidade = (data as any)["conformidadeSeguranca"];
-        if (
-          currentConformidade === "nao" &&
-          rncTriggerFromAcompanhamento === "sim"
-        ) {
-          conditionMet = true;
-        }
-      } else {
-        if (trigger.triggerFieldId.startsWith("_queryParam_")) {
-          const paramName = trigger.triggerFieldId.substring(
-            "_queryParam_".length
-          );
-          conditionMet =
-            carryOverQueryParams[paramName] === trigger.triggerFieldValue;
-        } else {
-          conditionMet =
-            (data as any)[trigger.triggerFieldId] === trigger.triggerFieldValue;
-        }
-      }
-
-      if (conditionMet) {
-        const nextQueryParams = new URLSearchParams();
-        const osToPass =
-          trigger.passOsFieldId && (data as any)[trigger.passOsFieldId]
-            ? String((data as any)[trigger.passOsFieldId]).trim()
-            : osValue?.trim();
-
-        if (osToPass) {
-          nextQueryParams.append("os", osToPass);
-        }
-
-        if (nextMainOriginatingFormId) {
-          nextQueryParams.append(
-            "originatingFormId",
-            nextMainOriginatingFormId
-          );
-        }
-
-        trigger.carryOverParams?.forEach((cop) => {
-          if ((data as any)[cop.fieldIdFromCurrentForm] !== undefined) {
-            nextQueryParams.append(
-              cop.queryParamName,
-              String((data as any)[cop.fieldIdFromCurrentForm])
-            );
-          }
-        });
-
-        toast({
-          title: "Próximo Passo",
-          description: `Por favor, preencha o formulário: ${trigger.linkedFormId}.`,
-          duration: 4000,
-        });
-
-        router.push(
-          `/dashboard/forms/${
-            trigger.linkedFormId
-          }?${nextQueryParams.toString()}`
-        );
-        return true;
-      }
-    }
-  }
-  setIsShareDialogOpen(true);
-  return false;
 }
