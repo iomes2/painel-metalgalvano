@@ -131,6 +131,7 @@ export default function ImageModal({
             height={600}
             className="object-contain max-w-full max-h-full h-auto w-auto"
             data-ai-hint="report photograph"
+            unoptimized
           />
 
           {imageList.length > 1 && (
