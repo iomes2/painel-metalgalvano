@@ -154,6 +154,7 @@ function FileValue({
                 fill
                 sizes="48px"
                 className="object-cover"
+                unoptimized
               />
             </button>
           ))}
