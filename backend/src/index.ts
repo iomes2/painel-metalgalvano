@@ -1,11 +1,15 @@
 import app from "./app";
 import { config } from "./config";
 import logger from "./utils/logger";
+import { scheduleBackups } from "./services/backupService";
 
 // ==================== SERVIDOR ====================
 
 const PORT = config.port;
 const apiPrefix = `/api/${config.apiVersion}`;
+
+// Iniciar agendamento de backups
+scheduleBackups();
 
 const server = app.listen(PORT, () => {
   logger.info(`🚀 Servidor rodando na porta ${PORT}`);
