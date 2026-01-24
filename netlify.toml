@@ -8,7 +8,6 @@
   # Variáveis de ambiente necessárias para o build
   NEXT_PUBLIC_API_URL = "https://painel-metalgalvano.onrender.com"
   NEXT_PUBLIC_USE_BACKEND = "true"
-  NODE_ENV = "production"
 
 # Configuração do Next.js para Netlify
 [[redirects]]
