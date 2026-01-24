@@ -19,6 +19,10 @@ import timelineRoutes from "./routes/timeline.routes";
 import notificationRoutes from "./routes/notification.routes";
 import exportRoutes from "./routes/export.routes";
 import statsRoutes from "./routes/stats.routes";
+import relatoriosRoutes from "./routes/relatorios.routes";
+import ordensServicoRoutes from "./routes/ordensServico.routes";
+import uploadRoutes from "./routes/upload.routes";
+import photosRoutes from "./routes/photos.routes";
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -47,7 +51,7 @@ app.use(
   cors({
     origin: config.corsOrigin,
     credentials: true,
-  })
+  }),
 );
 
 // Compressão
@@ -102,16 +106,10 @@ const apiPrefix = `/api/${config.apiVersion}`;
 app.use(`${apiPrefix}/forms`, formsRoutes);
 app.use(`${apiPrefix}/users`, usersRoutes);
 app.use(`${apiPrefix}/gerentes`, gerentesRoutes);
-app.use(
-  `${apiPrefix}/relatorios`,
-  require("./routes/relatorios.routes").default
-);
-app.use(
-  `${apiPrefix}/ordens-servico`,
-  require("./routes/ordensServico.routes").default
-);
-app.use(`${apiPrefix}/upload`, require("./routes/upload.routes").default);
-app.use(`${apiPrefix}/photos`, require("./routes/photos.routes").default);
+app.use(`${apiPrefix}/relatorios`, relatoriosRoutes);
+app.use(`${apiPrefix}/ordens-servico`, ordensServicoRoutes);
+app.use(`${apiPrefix}/upload`, uploadRoutes);
+app.use(`${apiPrefix}/photos`, photosRoutes);
 app.use(`${apiPrefix}/timeline`, timelineRoutes);
 app.use(`${apiPrefix}/notifications`, notificationRoutes);
 app.use(`${apiPrefix}/export`, exportRoutes);

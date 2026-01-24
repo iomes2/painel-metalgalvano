@@ -3,7 +3,6 @@ import { catchAsync } from "../middleware/errorHandler";
 import { AppError } from "../middleware/errorHandler";
 import { storage } from "../config/firebase";
 
-
 /**
  * Controller para upload de arquivos
  * Mantém compatibilidade com Firebase Storage
@@ -20,7 +19,7 @@ export const uploadFiles = catchAsync(async (req: Request, res: Response) => {
   if (!userId || !formType || !timestamp) {
     throw new AppError(
       "Parâmetros obrigatórios: userId, formType, timestamp",
-      400
+      400,
     );
   }
 

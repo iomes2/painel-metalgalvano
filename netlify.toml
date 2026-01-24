@@ -1,0 +1,36 @@
+    [build]
+  # Especificar que o build é na pasta frontend
+  base = "frontend"
+  command = "npm run build"
+  publish = ".next/standalone"
+
+[build.environment]
+  # Variáveis de ambiente necessárias para o build
+  NEXT_PUBLIC_API_URL = "https://painel-metalgalvano.onrender.com"
+  NEXT_PUBLIC_USE_BACKEND = "true"
+  NODE_ENV = "production"
+
+# Configuração do Next.js para Netlify
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/ssr"
+  status = 200
+  conditions = { "NOT": [{ "path": "/_next/*" }, { "path": "/public/*" }] }
+
+# Headers para segurança e cache
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"

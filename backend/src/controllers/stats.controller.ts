@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../config/database";
 import { catchAsync } from "../middleware/errorHandler";
+import logger from "../utils/logger";
 import { Prisma } from "@prisma/client";
 
 /**
@@ -12,7 +13,12 @@ export const getDashboardStats = catchAsync(
     const userId = req.user!.userId;
     const isAdmin = req.user!.role === "ADMIN";
 
+    logger.info(
+      `[Stats Dashboard] Iniciando fetch para userId: ${userId}, isAdmin: ${isAdmin}`,
+    );
+
     // 1. Basic Counts
+    logger.info(`[Stats Dashboard] Contando formulários...`);
     const [totalForms, totalUsers, pendingReviews] = await Promise.all([
       prisma.form.count({
         where: isAdmin ? {} : { userId },
@@ -25,8 +31,12 @@ export const getDashboardStats = catchAsync(
         },
       }),
     ]);
+    logger.info(
+      `[Stats Dashboard] Contagens: totalForms=${totalForms}, totalUsers=${totalUsers}, pendingReviews=${pendingReviews}`,
+    );
 
     // 2. Forms by Status
+    logger.info(`[Stats Dashboard] Agrupando por status...`);
     const statusGrouping = await prisma.form.groupBy({
       by: ["status"],
       where: isAdmin ? {} : { userId },
@@ -34,6 +44,9 @@ export const getDashboardStats = catchAsync(
         status: true,
       },
     });
+    logger.info(
+      `[Stats Dashboard] Statuses encontrados: ${JSON.stringify(statusGrouping)}`,
+    );
 
     const formsByStatus = statusGrouping.map((g) => ({
       name: g.status,
@@ -41,6 +54,7 @@ export const getDashboardStats = catchAsync(
     }));
 
     // 3. Forms by Month
+    logger.info(`[Stats Dashboard] Agrupando por mês...`);
     const formsByMonth: any[] = await prisma.$queryRaw`
     SELECT TO_CHAR("createdAt", 'YYYY-MM') as month, COUNT(*)::int as count 
     FROM forms 
@@ -49,8 +63,12 @@ export const getDashboardStats = catchAsync(
     GROUP BY month 
     ORDER BY month ASC
   `;
+    logger.info(
+      `[Stats Dashboard] Meses encontrados: ${JSON.stringify(formsByMonth)}`,
+    );
 
     // 4. Forms by Type
+    logger.info(`[Stats Dashboard] Agrupando por tipo...`);
     const typeGrouping = await prisma.form.groupBy({
       by: ["formType"],
       where: isAdmin ? {} : { userId },
@@ -58,12 +76,16 @@ export const getDashboardStats = catchAsync(
         formType: true,
       },
     });
+    logger.info(
+      `[Stats Dashboard] Tipos encontrados: ${JSON.stringify(typeGrouping)}`,
+    );
 
     const formsByType = typeGrouping.map((g) => ({
       name: g.formType,
       value: g._count.formType,
     }));
 
+    logger.info(`[Stats Dashboard] Enviando resposta com sucesso`);
     res.json({
       success: true,
       data: {
@@ -82,7 +104,7 @@ export const getDashboardStats = catchAsync(
         },
       },
     });
-  }
+  },
 );
 
 export default { getDashboardStats };
