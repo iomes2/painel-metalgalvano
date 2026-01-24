@@ -15,7 +15,7 @@
   from = "/*"
   to = "/.netlify/functions/ssr"
   status = 200
-  conditions = { "NOT": [{ "path": "/_next/*" }, { "path": "/public/*" }] }
+  conditions = { "NOT" = [{ "path" = "/_next/*" }, { "path" = "/public/*" }] }
 
 # Headers para segurança e cache
 [[headers]]
