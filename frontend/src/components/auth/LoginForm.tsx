@@ -119,6 +119,7 @@ export function LoginForm() {
                 required
                 className="pr-10"
                 aria-label="Senha"
+                autoComplete="current-password"
               />
               <Button
                 type="button"

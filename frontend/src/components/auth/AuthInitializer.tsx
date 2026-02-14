@@ -7,6 +7,7 @@ import { auth } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { useSessionExpiration } from '@/hooks/useSessionExpiration';
 
 
 interface AuthContextType {
@@ -17,6 +18,18 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType>({ user: null, loading: true });
 
 export const useAuth = () => useContext(AuthContext);
+
+function AuthContent({ children }: { children: ReactNode }) {
+  // Ativar listener de sessão expirada
+  useSessionExpiration();
+
+  return (
+    <TooltipProvider>
+      {children}
+      <Toaster />
+    </TooltipProvider>
+  );
+}
 
 export function AuthInitializer({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -60,10 +73,9 @@ export function AuthInitializer({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user, loading }}>
-      <TooltipProvider>
+      <AuthContent>
         {children}
-        <Toaster />
-      </TooltipProvider>
+      </AuthContent>
     </AuthContext.Provider>
   );
 }

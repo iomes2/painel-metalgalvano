@@ -13,9 +13,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import Logo from "@/components/icons/Logo";
-import { Home, Search, PieChart, X, PlusCircle, FileText } from "lucide-react";
+import { Home, Search, PieChart, X, PlusCircle, FileText, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
 
 interface AppSidebarProps {
   isAdminArea?: boolean;
@@ -29,11 +32,21 @@ interface NavItem {
 
 export function AppSidebar({ isAdminArea = false }: AppSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { setOpenMobile, isMobile, openMobile } = useSidebar();
 
   const handleLinkClick = () => {
     if (isMobile) {
       setOpenMobile(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push("/login");
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
     }
   };
 
@@ -182,8 +195,23 @@ export function AppSidebar({ isAdminArea = false }: AppSidebarProps) {
         </SidebarContent>
 
         {/* Footer */}
-        <SidebarFooter className="relative p-4 group-data-[collapsible=icon]:hidden z-10">
-          <div className="rounded-xl bg-white/5 backdrop-blur-sm p-3 text-center border border-white/10">
+        <SidebarFooter className="relative p-3 z-10 flex flex-col gap-3">
+          {/* Logout Button */}
+          <Button
+            onClick={handleLogout}
+            variant="ghost"
+            size="sm"
+            className="w-full justify-center gap-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group-data-[collapsible=icon]:p-2"
+            title="Sair"
+          >
+            <LogOut className="w-4 h-4 flex-shrink-0" />
+            <span className="text-sm font-medium group-data-[collapsible=icon]:hidden">
+              Sair
+            </span>
+          </Button>
+
+          {/* Copyright */}
+          <div className="rounded-xl bg-white/5 backdrop-blur-sm p-3 text-center border border-white/10 group-data-[collapsible=icon]:hidden">
             <p className="text-[11px] text-white/50">
               © {new Date().getFullYear()} Metalgalvano
             </p>

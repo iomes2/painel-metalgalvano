@@ -54,4 +54,24 @@ export const markAllAsRead = catchAsync(async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-export default { getNotifications, markAsRead, markAllAsRead };
+/**
+ * DELETE /api/v1/notifications/read
+ * Delete all read notifications
+ */
+export const deleteReadNotifications = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+
+    const result = await prisma.notification.deleteMany({
+      where: { userId, isRead: true },
+    });
+
+    res.json({
+      success: true,
+      message: `${result.count} notificações lidas foram removidas`,
+      deletedCount: result.count,
+    });
+  }
+);
+
+export default { getNotifications, markAsRead, markAllAsRead, deleteReadNotifications };

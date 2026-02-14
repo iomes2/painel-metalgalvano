@@ -21,6 +21,7 @@ import {
   fetchNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  deleteReadNotifications,
   AppNotification,
 } from "@/lib/api-client";
 import {
@@ -150,10 +151,10 @@ export function AppHeader() {
     errorCountRef.current = 0;
     loadNotifications();
 
-    // Polling every 60 seconds (background sync)
+    // Polling every 5 minutes (300 seconds) - increased from 60s to reduce server load
     const interval = setInterval(() => {
       loadNotifications();
-    }, 60000);
+    }, 300000);
 
     return () => clearInterval(interval);
   }, [loadNotifications]);
@@ -184,6 +185,20 @@ export function AppHeader() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
     await markAllNotificationsAsRead();
+  };
+
+  const handleDeleteReadNotifications = async () => {
+    // Optimistic update - remove notificações lidas
+    const readCount = notifications.filter((n) => n.read).length;
+    setNotifications((prev) => prev.filter((n) => !n.read));
+    
+    // Toasts feedback
+    toast({
+      title: `${readCount} notificação${readCount > 1 ? "s" : ""} removida${readCount > 1 ? "s" : ""}`,
+      description: "As notificações lidas foram limpas",
+    });
+    
+    await deleteReadNotifications();
   };
 
   const getIcon = (type: string) => {
@@ -282,16 +297,29 @@ export function AppHeader() {
                       <span className={loading ? "animate-spin" : ""}>↻</span>
                     </Button>
                   </div>
-                  {unreadCount > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs h-auto py-1 px-2"
-                      onClick={handleMarkAllAsRead}
-                    >
-                      Ler todas
-                    </Button>
-                  )}
+                  <div className="flex gap-1">
+                    {unreadCount > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-auto py-1 px-2"
+                        onClick={handleMarkAllAsRead}
+                      >
+                        Ler todas
+                      </Button>
+                    )}
+                    {notifications.some((n) => n.read) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-auto py-1 px-2 text-muted-foreground hover:text-foreground"
+                        onClick={handleDeleteReadNotifications}
+                        title="Remover notificações já lidas"
+                      >
+                        Limpar lidas
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <ScrollArea className="h-[300px]">
                   {notifications.length === 0 ? (

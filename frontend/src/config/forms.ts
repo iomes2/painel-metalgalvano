@@ -1123,6 +1123,12 @@ export const formDefinitions: FormDefinition[] = [
 
       // Recursos (Mão de Obra e Logística)
       {
+        id: "headerRecursosLogistica",
+        label: "--- RECURSOS E LOGÍSTICA ---",
+        type: "text",
+        defaultValue: "Mão de Obra e Logística",
+      },
+      {
         id: "necessarioHospedagem",
         label: "Necessário hospedagem?",
         type: "select",
@@ -1211,6 +1217,12 @@ export const formDefinitions: FormDefinition[] = [
 
       // 1- EQUIPAMENTOS PREVISTOS NA OBRA
       {
+        id: "headerEquipamentosPrevistos",
+        label: "--- EQUIPAMENTOS PREVISTOS NA OBRA ---",
+        type: "text",
+        defaultValue: "Conferência",
+      },
+      {
         id: "equipamentosPrevistosConferidos",
         label: "1. Equipamentos previstos conferidos conforme Doc. 001?",
         type: "select",
@@ -1227,6 +1239,12 @@ export const formDefinitions: FormDefinition[] = [
       },
 
       // 2- AVALIAÇÃO DO CANTEIRO DE OBRA
+      {
+        id: "headerAvaliacaoCanteiro",
+        label: "--- AVALIAÇÃO DO CANTEIRO DE OBRA ---",
+        type: "text",
+        defaultValue: "Verificação",
+      },
       // Item 1
       {
         id: "canteiroPronto",
@@ -1518,6 +1536,12 @@ export const formDefinitions: FormDefinition[] = [
 
       // AVALIAÇÃO E CONFERENCIA CIVIL (Opções: S, N, NA)
       {
+        id: "headerAvaliacaoCivil",
+        label: "--- AVALIAÇÃO E CONFERÊNCIA CIVIL ---",
+        type: "text",
+        defaultValue: "Conferência",
+      },
+      {
         id: "cotasProjeto",
         label: "1. As cotas estão de acordo com o projeto civil?",
         type: "select",
@@ -1633,6 +1657,12 @@ export const formDefinitions: FormDefinition[] = [
       { id: "planoAcaoItem7", label: "Plano de Ação (Item 7)", type: "text" },
 
       // RECEBIMENTO DOS MATERIAIS
+      {
+        id: "headerRecebimentoMateriais",
+        label: "--- RECEBIMENTO DOS MATERIAIS ---",
+        type: "text",
+        defaultValue: "Verificação",
+      },
       {
         id: "materiaisAcordoOrdem",
         label:
@@ -2097,6 +2127,12 @@ export const formDefinitions: FormDefinition[] = [
 
       // 1. INSPEÇÃO ANTES DO IÇAMENTO (Montagem no térreo)
       {
+        id: "headerInspecaoIcamento",
+        label: "--- INSPEÇÃO ANTES DO IÇAMENTO ---",
+        type: "text",
+        defaultValue: "Montagem no térreo",
+      },
+      {
         id: "nivelamentoAlinhamento",
         label: "1. Nivelamento e alinhamento (Máx 2%)",
         type: "select",
@@ -2209,6 +2245,12 @@ export const formDefinitions: FormDefinition[] = [
 
       // 2. ESTRUTURA MONTADA
       {
+        id: "headerEstruturaMontada",
+        label: "--- ESTRUTURA MONTADA ---",
+        type: "text",
+        defaultValue: "Verificação",
+      },
+      {
         id: "instalacaoColunas",
         label: "1. Instalação e fixação de colunas (Torque/Umidade)",
         type: "select",
@@ -2301,6 +2343,12 @@ export const formDefinitions: FormDefinition[] = [
 
       // 3. TELHAS E ACESSORIOS
       {
+        id: "headerTelhasAcessorios",
+        label: "--- TELHAS E ACESSÓRIOS ---",
+        type: "text",
+        defaultValue: "Fixação e Acabamento",
+      },
+      {
         id: "alinhamentoTelhas",
         label: "1. Alinhamento de telhas",
         type: "select",
@@ -2374,6 +2422,12 @@ export const formDefinitions: FormDefinition[] = [
       { id: "fotosTelhas", label: "Fotos (Telhas)", type: "file" },
 
       // 4. INSPEÇÃO FINAL
+      {
+        id: "headerInspecaoFinal",
+        label: "--- INSPEÇÃO FINAL ---",
+        type: "text",
+        defaultValue: "Limpeza e Acabamento",
+      },
       {
         id: "limpezaGeral",
         label: "1. Limpeza geral (Sujidade/Água)",
@@ -2466,6 +2520,12 @@ export const formDefinitions: FormDefinition[] = [
 
       // VERIFICAÇÕES DE PRÉ-CARGA
       {
+        id: "headerPreCarga",
+        label: "--- VERIFICAÇÕES DE PRÉ-CARGA ---",
+        type: "text",
+        defaultValue: "Almoxarifado",
+      },
+      {
         id: "materialRetiradoAlmoxarifado",
         label: "Algum material complementar a ser retirado do Almoxarifado?",
         type: "select",
@@ -2487,6 +2547,12 @@ export const formDefinitions: FormDefinition[] = [
       },
 
       // CARGA (Gerente interno e Motorista)
+      {
+        id: "headerCarga",
+        label: "--- CARGA ---",
+        type: "text",
+        defaultValue: "Gerente interno e Motorista",
+      },
       {
         id: "manutencaoVeiculo",
         label:
@@ -2595,6 +2661,12 @@ export const formDefinitions: FormDefinition[] = [
 
       // DESCARGA (Motorista e Gerente de Obra)
       {
+        id: "headerDescarga",
+        label: "--- DESCARGA ---",
+        type: "text",
+        defaultValue: "Motorista e Gerente de Obra",
+      },
+      {
         id: "riscoDescarga",
         label: "A carga não oferece risco para descarga?",
         type: "select",
@@ -2671,6 +2743,12 @@ export const formDefinitions: FormDefinition[] = [
       },
 
       // GERENTE DE OBRA
+      {
+        id: "headerGerenteObra",
+        label: "--- GERENTE DE OBRA ---",
+        type: "text",
+        defaultValue: "Verificação Final",
+      },
       {
         id: "treinamentoIcamento",
         label: "Colaboradores possuem treinamento de içamento/movimentação?",
@@ -2854,6 +2932,12 @@ export const formDefinitions: FormDefinition[] = [
 
       // Riscos Potenciais
       {
+        id: "headerRiscosPotenciais",
+        label: "--- RISCOS POTENCIAIS ---",
+        type: "text",
+        defaultValue: "Identificação de Riscos",
+      },
+      {
         id: "riscoExplosao",
         label: "Risco: Explosão / Incêndio",
         type: "checkbox",
@@ -2931,6 +3015,12 @@ export const formDefinitions: FormDefinition[] = [
       { id: "equipOutros", label: "Outros Equipamentos", type: "text" },
 
       // Precauções - TRABALHO COM SOLDA
+      {
+        id: "headerPrecaucoesSolda",
+        label: "--- PRECAUÇÕES - TRABALHO COM SOLDA ---",
+        type: "text",
+        defaultValue: "Segurança",
+      },
       {
         id: "soldaAmbienteAdequado",
         label: "Ambiente adequado para execução?",
@@ -3060,6 +3150,12 @@ export const formDefinitions: FormDefinition[] = [
 
       // Assinaturas
       {
+        id: "headerAssinaturasEPI",
+        label: "--- ASSINATURAS E FICHA DE EPI ---",
+        type: "text",
+        defaultValue: "Finalização",
+      },
+      {
         id: "vistoGerenteObra",
         label: "Visto Gerente da Obra",
         type: "checkbox",
@@ -3117,6 +3213,12 @@ export const formDefinitions: FormDefinition[] = [
 
       // Caracterização da Obra
       {
+        id: "headerCaracterizacao",
+        label: "--- CARACTERIZAÇÃO DA OBRA ---",
+        type: "text",
+        defaultValue: "Dados da Obra",
+      },
+      {
         id: "caracterizacaoObra",
         label: "Caracterização da Obra - Dados da Obra realizada",
         type: "select",
@@ -3139,6 +3241,12 @@ export const formDefinitions: FormDefinition[] = [
 
       // Declaração
       {
+        id: "headerDeclaracao",
+        label: "--- DECLARAÇÃO ---",
+        type: "text",
+        defaultValue: "Conclusão",
+      },
+      {
         id: "declaracaoFinal",
         label:
           "DECLARO para os devidos fins que a instalação SE ENCONTRA CONCLUÍDA E EXECUTADA EM CONFORMIDADE COM O PROJETO APROVADO.",
@@ -3148,6 +3256,12 @@ export const formDefinitions: FormDefinition[] = [
       { id: "vistoGerente", label: "Visto Gerente de Obra", type: "checkbox" },
 
       // Documentos Complementares (Checklist)
+      {
+        id: "headerDocumentosComplementares",
+        label: "--- DOCUMENTOS COMPLEMENTARES ---",
+        type: "text",
+        defaultValue: "Checkout do Dossiê",
+      },
       {
         id: "headerDocs",
         label: "DOCUMENTOS COMPLEMENTARES (PPCP) - Checkout do Dossiê",

@@ -8,16 +8,17 @@ datasource db {
 }
 
 // ==================== USUÁRIOS ====================
+// ==================== USUÁRIOS ====================
 model User {
   id           String   @id @default(uuid())
   firebaseUid  String   @unique
   email        String   @unique
   name         String?
-  role         UserRole @default(MANAGER)
+  // role         UserRole @default(MANAGER) // Deprecated in favor of OrganizationMember role
   isActive     Boolean  @default(true)
 
   // Relações
-  forms        Form[]
+  memberships  OrganizationMember[]
   auditLogs    AuditLog[]
   notifications Notification[]
 
@@ -29,26 +30,121 @@ model User {
   @@map("users")
 }
 
-enum UserRole {
+// ==================== ORGANIZAÇÕES (TEAMS/TENANTS) ====================
+model Organization {
+  id            String   @id @default(uuid())
+  name          String
+  slug          String   @unique // URL friendly identifier
+  
+  // Relações
+  members       OrganizationMember[]
+  projects      Project[]
+  forms         Form[]
+  subscription  Subscription?
+
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String           @id @default(uuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  role           OrganizationRole @default(MEMBER)
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([userId, organizationId])
+  @@map("organization_members")
+}
+
+enum OrganizationRole {
+  OWNER
   ADMIN
-  MANAGER
-  EDITOR
+  MEMBER
   VIEWER
+}
+
+// ==================== PROJETOS ====================
+model Project {
+  id             String       @id @default(uuid())
+  name           String
+  description    String?
+  
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  // Relações
+  // Um projeto pode agrupar formulários/documentos? Se sim:
+  forms          Form[]
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@map("projects")
+}
+
+// ==================== SUBSCRIPTION (STRIPE) ====================
+model Subscription {
+  id                   String       @id @default(uuid())
+  organizationId       String       @unique
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  stripeCustomerId     String?
+  stripeSubscriptionId String?      @unique
+  stripePriceId        String?
+  status               SubscriptionStatus @default(TRIALING)
+  
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean      @default(false)
+
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  PAUSED
 }
 
 // ==================== FORMULÁRIOS ====================
 model Form {
   id              String      @id @default(uuid())
   formType        String      // Ex: 'cronograma-diario-obra'
-  osNumber        String      // Ordem de Serviço
+  osNumber        String?     // Ordem de Serviço (Opcional agora?)
   status          FormStatus  @default(DRAFT)
 
   // Dados do formulário (JSON)
   data            Json
 
-  // Usuário responsável
-  userId          String
-  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Proprietário (Criador)
+  userId          String?     // Opcional se quisermos manter histórico de quem criou, mas o vínculo real é com a Org
+  // user            User?       @relation(fields: [userId], references: [id], onDelete: SetNull) // Comentado para evitar ciclo ou simplificar, mas ideal manter
+
+  // Vínculo com Organização (Multi-tenancy)
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Vínculo com Projeto (Opcional)
+  projectId       String?
+  project         Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   // PDF gerado
   pdfUrl          String?
@@ -64,8 +160,8 @@ model Form {
   submittedAt     DateTime?
   approvedAt      DateTime?
 
-  @@index([osNumber])
-  @@index([userId, formType])
+  @@index([organizationId])
+  @@index([projectId])
   @@index([status])
   @@index([createdAt])
   @@map("forms")
@@ -134,8 +230,10 @@ model AuditLog {
   user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   action      String   // Ex: 'FORM_CREATED', 'FORM_UPDATED', 'PDF_GENERATED'
-  entity      String   // Ex: 'Form', 'Photo', 'User'
+  entity      String   // Ex: 'Form', 'Photo', 'User', 'Organization'
   entityId    String
+  
+  organizationId String? // Logar a qual org pertence a ação
 
   // Dados da ação
   details     Json?
@@ -146,6 +244,7 @@ model AuditLog {
   createdAt   DateTime @default(now())
 
   @@index([userId])
+  @@index([organizationId])
   @@index([entity, entityId])
   @@index([createdAt])
   @@map("audit_logs")

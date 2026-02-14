@@ -51,6 +51,74 @@ import { auth, storage, db } from "@/lib/firebase"; // db importado
 import { Timestamp } from "firebase/firestore";
 import { uploadFiles, submitRelatorio } from "@/lib/api-client";
 import { DynamicField } from "./DynamicField";
+import type { FormField as FormFieldTypeConfig } from "@/config/forms";
+import {
+  FileText,
+  CalendarIcon as CalendarLucideIcon,
+  CheckSquare,
+  List,
+  Hash,
+  Image as ImageIcon,
+  Mail,
+  Type,
+  AlignLeft,
+} from "lucide-react";
+
+// Mapeia tipo do campo para ícone
+const fieldTypeIcons: Record<string, React.ElementType> = {
+  text: Type,
+  email: Mail,
+  number: Hash,
+  textarea: AlignLeft,
+  checkbox: CheckSquare,
+  select: List,
+  date: CalendarLucideIcon,
+  file: ImageIcon,
+};
+
+// Cores de cabeçalho baseadas em tipo de campo (inspirado no view-report)
+const getFieldHeaderColor = (type: FormFieldTypeConfig["type"]) => {
+  switch (type) {
+    case "date":
+      return "from-amber-100 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800";
+    case "checkbox":
+      return "from-green-100 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800";
+    case "select":
+      return "from-violet-100 to-purple-50 dark:from-violet-900/30 dark:to-purple-900/20 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800";
+    case "file":
+      return "from-zinc-100 to-stone-50 dark:from-zinc-900/30 dark:to-stone-900/20 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800";
+    case "textarea":
+      return "from-cyan-100 to-teal-50 dark:from-cyan-900/30 dark:to-teal-900/20 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800";
+    case "number":
+      return "from-sky-100 to-blue-50 dark:from-sky-900/30 dark:to-blue-900/20 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800";
+    case "email":
+      return "from-rose-100 to-pink-50 dark:from-rose-900/30 dark:to-pink-900/20 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800";
+    default:
+      return "from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-700/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700";
+  }
+};
+
+// Fundo suave do corpo do card baseado no tipo de campo
+const getFieldBodyBg = (type: FormFieldTypeConfig["type"]) => {
+  switch (type) {
+    case "date":
+      return "bg-gradient-to-b from-amber-50/50 to-white dark:from-amber-950/20 dark:to-slate-900";
+    case "checkbox":
+      return "bg-gradient-to-b from-green-50/50 to-white dark:from-green-950/20 dark:to-slate-900";
+    case "select":
+      return "bg-gradient-to-b from-violet-50/50 to-white dark:from-violet-950/20 dark:to-slate-900";
+    case "file":
+      return "bg-gradient-to-b from-zinc-50/50 to-white dark:from-zinc-950/20 dark:to-slate-900";
+    case "textarea":
+      return "bg-gradient-to-b from-cyan-50/50 to-white dark:from-cyan-950/20 dark:to-slate-900";
+    case "number":
+      return "bg-gradient-to-b from-sky-50/50 to-white dark:from-sky-950/20 dark:to-slate-900";
+    case "email":
+      return "bg-gradient-to-b from-rose-50/50 to-white dark:from-rose-950/20 dark:to-slate-900";
+    default:
+      return "bg-gradient-to-b from-slate-50/50 to-white dark:from-slate-800/50 dark:to-slate-900";
+  }
+};
 
 interface DynamicFormRendererProps {
   formDefinition: FormDefinition;
@@ -509,7 +577,8 @@ export function DynamicFormRenderer({
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleLocalSubmit)}>
-            <CardContent className="space-y-6">
+            {/* Mobile Layout - mantém a estrutura vertical original */}
+            <CardContent className="md:hidden space-y-6">
               {formDefinition.fields.map((field) => {
                 const shouldRenderField = shouldRenderFormItem(
                   formDefinition,
@@ -519,7 +588,6 @@ export function DynamicFormRenderer({
 
                 if (!shouldRenderField) return null;
 
-                // Determine if this field is conditionally rendered
                 const isConditional = !!field.visibilityCondition;
 
                 return (
@@ -536,6 +604,105 @@ export function DynamicFormRenderer({
                 );
               })}
             </CardContent>
+
+            {/* Desktop/Tablet Layout - grid com cards coloridos e seções */}
+            <CardContent className="hidden md:block p-3 lg:p-4">
+              {(() => {
+                // Agrupar campos em seções baseadas nos campos separadores (--- TÍTULO ---)
+                const sections: { title: string | null; fields: typeof formDefinition.fields }[] = [];
+                let currentSection: { title: string | null; fields: typeof formDefinition.fields } = { title: null, fields: [] };
+
+                formDefinition.fields.forEach((field) => {
+                  const isSectionHeader = field.label.startsWith("---") && field.label.endsWith("---");
+                  if (isSectionHeader) {
+                    // Salvar seção anterior se tem campos
+                    if (currentSection.fields.length > 0) {
+                      sections.push(currentSection);
+                    }
+                    // Iniciar nova seção
+                    const cleanTitle = field.label.replace(/^-+\s*/, "").replace(/\s*-+$/, "").trim();
+                    currentSection = { title: cleanTitle, fields: [] };
+                  } else {
+                    currentSection.fields.push(field);
+                  }
+                });
+                // Salvar última seção
+                if (currentSection.fields.length > 0) {
+                  sections.push(currentSection);
+                }
+
+                return sections.map((section, sectionIndex) => (
+                  <div key={sectionIndex} className={cn(sectionIndex > 0 && "mt-4")}>
+                    {/* Banner da seção */}
+                    {section.title && (
+                      <div className="mb-3 flex items-center gap-3">
+                        <div className="h-px flex-1 bg-gradient-to-r from-primary/30 to-transparent" />
+                        <span className="text-xs font-bold uppercase tracking-wider text-primary/70 whitespace-nowrap">
+                          {section.title}
+                        </span>
+                        <div className="h-px flex-1 bg-gradient-to-l from-primary/30 to-transparent" />
+                      </div>
+                    )}
+                    {/* Grid de campos da seção */}
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-3">
+                      {section.fields.map((field) => {
+                        const shouldRenderField = shouldRenderFormItem(
+                          formDefinition,
+                          field,
+                          watchedValues
+                        );
+
+                        if (!shouldRenderField) return null;
+
+                        const isConditional = !!field.visibilityCondition;
+                        const isLargeField = field.type === "textarea" || field.type === "file";
+                        const FieldIcon = fieldTypeIcons[field.type] || FileText;
+
+                        return (
+                          <div
+                            key={field.id}
+                            className={cn(
+                              "rounded-xl border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden",
+                              isConditional && "animate-slideDown",
+                              isLargeField && "col-span-2 lg:col-span-3"
+                            )}
+                          >
+                            {/* Cabeçalho colorido do campo */}
+                            <div
+                              className={cn(
+                                "flex items-center gap-1.5 px-2.5 py-2.5 bg-gradient-to-r border-b",
+                                getFieldHeaderColor(field.type)
+                              )}
+                            >
+                              <FieldIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                              <span className="text-xs font-semibold leading-tight truncate">
+                                {field.label}
+                                {field.required && (
+                                  <span className="text-red-500 ml-0.5">*</span>
+                                )}
+                              </span>
+                            </div>
+                            {/* Corpo do campo com fundo suave colorido */}
+                            <div className={cn(
+                              "px-2.5 py-3 overflow-hidden",
+                              getFieldBodyBg(field.type)
+                            )}>
+                              <DynamicField
+                                field={field}
+                                control={control}
+                                isSubmitting={isSubmitting}
+                                hideLabel={true}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </CardContent>
+
             <CardFooter className="flex flex-col sm:flex-row justify-end gap-4 pt-6 border-t">
               <Button
                 type="submit"

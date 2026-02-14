@@ -15,5 +15,10 @@ router.patch(
   authenticateFirebase,
   notificationController.markAllAsRead
 );
+router.delete(
+  "/read",
+  authenticateFirebase,
+  notificationController.deleteReadNotifications
+);
 
 export default router;

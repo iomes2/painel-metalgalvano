@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  logging: {
+    fetches: {
+      fullUrl: false,
+    },
+  },
   images: {
     remotePatterns: [
       {
@@ -29,6 +34,10 @@ const nextConfig: NextConfig = {
         pathname: "/**",
       },
     ],
+  },
+  onDemandEntries: {
+    maxInactiveAge: 30000,
+    pagesBufferLength: 2,
   },
 };
 

@@ -28,6 +28,72 @@ import {
 const USE_BACKEND = process.env.NEXT_PUBLIC_USE_BACKEND === "true";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
+// ==================== LOGOUT HANDLER ====================
+
+/**
+ * Realiza logout com redirecionamento e notificação
+ */
+export async function handleUnauthorized() {
+  if (typeof window === "undefined") return;
+
+  // Limpar dados da sessão
+  localStorage.removeItem("firebase_token");
+  localStorage.removeItem("firebase_token_expiry");
+  localStorage.removeItem("currentUser");
+
+  // Fazer logout do Firebase
+  try {
+    await auth.signOut();
+  } catch (error) {
+    console.error("Erro ao fazer logout:", error);
+  }
+
+  // Usar um evento customizado para notificar a UI
+  window.dispatchEvent(
+    new CustomEvent("session-expired", {
+      detail: {
+        message: "Sua sessão expirou. Por favor, faça login novamente.",
+      },
+    })
+  );
+
+  // Redirecionar para login
+  setTimeout(() => {
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+  }, 1500);
+}
+
+// ==================== CACHE ====================
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+const cache = new Map<string, CacheEntry<any>>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
+function setCache<T>(key: string, data: T): void {
+  cache.set(key, {
+    data,
+    timestamp: Date.now(),
+  });
+}
+
+function getCache<T>(key: string): T | null {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  
+  if (Date.now() - entry.timestamp > CACHE_DURATION) {
+    cache.delete(key);
+    return null;
+  }
+  
+  return entry.data as T;
+}
+
 // ==================== TIPOS ====================
 
 export interface Gerente {
@@ -77,7 +143,6 @@ async function getAuthToken(): Promise<string | null> {
     if (storedToken && tokenExpiry) {
       const expiryTime = parseInt(tokenExpiry, 10);
       if (Date.now() < expiryTime) {
-        console.log("[api-client] Token recuperado do localStorage");
         return storedToken;
       } else {
         // Token expirado, remover do localStorage
@@ -105,10 +170,6 @@ async function getAuthToken(): Promise<string | null> {
       localStorage.setItem("firebase_token_expiry", expiryTime.toString());
     }
 
-    console.log(
-      "[api-client] Token obtido com sucesso:",
-      token.substring(0, 20) + "..."
-    );
     return token;
   } catch (error) {
     console.error("[api-client] Erro ao obter token:", error);
@@ -164,14 +225,18 @@ async function handle401Retry(
   endpoint: string,
   options: RequestInit
 ): Promise<Response | null> {
-  console.warn("[api-client] Token inválido ou expirado, limpando cache");
+  // Token inválido ou expirado, tentando renovar
   if (typeof window !== "undefined") {
     localStorage.removeItem("firebase_token");
     localStorage.removeItem("firebase_token_expiry");
   }
 
   const user = auth.currentUser;
-  if (!user) return null;
+  if (!user) {
+    // Usuário não autenticado, fazer logout
+    handleUnauthorized();
+    return null;
+  }
 
   try {
     const newToken = await user.getIdToken(true);
@@ -192,13 +257,17 @@ async function handle401Retry(
     });
 
     if (retryResponse.ok) {
-      console.log(
-        "[api-client] Requisição refeita com sucesso após atualizar token"
-      );
       return retryResponse;
+    }
+
+    // Se o retry também falhou com 401, fazer logout
+    if (retryResponse.status === 401) {
+      handleUnauthorized();
+      return null;
     }
   } catch (retryError) {
     console.error("[api-client] Erro ao tentar obter novo token:", retryError);
+    handleUnauthorized();
   }
 
   return null;
@@ -264,11 +333,24 @@ export interface UserProfile {
  * Busca dados do usuário atual (incluindo role)
  */
 export async function fetchCurrentUser(): Promise<UserProfile | null> {
+  // Verificar cache primeiro
+  const cached = getCache<UserProfile>("currentUser");
+  if (cached) {
+    return cached;
+  }
+
   if (USE_BACKEND) {
     try {
       const response = await fetchBackend("/api/v1/users/me");
       const data = await response.json();
-      return data.data;
+      const userProfile = data.data;
+      
+      // Cache o resultado
+      if (userProfile) {
+        setCache("currentUser", userProfile);
+      }
+      
+      return userProfile;
     } catch (error) {
       console.error("Erro ao buscar perfil do usuário:", error);
       return null;
@@ -708,7 +790,15 @@ export async function fetchNotifications(): Promise<AppNotification[]> {
     try {
       const response = await fetchBackend("/api/v1/notifications");
       const data = await response.json();
-      return data.data || [];
+      const notifications = data.data || [];
+      
+      // Cache o resultado com duração menor (2 minutos para notificações)
+      cache.set("notifications", {
+        data: notifications,
+        timestamp: Date.now(),
+      });
+      
+      return notifications;
     } catch (e) {
       console.error("Error fetching notifications", e);
       return [];
@@ -737,6 +827,18 @@ export async function markAllNotificationsAsRead(): Promise<void> {
       });
     } catch (e) {
       console.error("Error marking all notifications read", e);
+    }
+  }
+}
+
+export async function deleteReadNotifications(): Promise<void> {
+  if (USE_BACKEND) {
+    try {
+      await fetchBackend("/api/v1/notifications/read", {
+        method: "DELETE",
+      });
+    } catch (e) {
+      console.error("Error deleting read notifications", e);
     }
   }
 }

@@ -40,12 +40,14 @@ interface DynamicFieldProps {
   field: FormFieldType;
   control: Control<any>;
   isSubmitting: boolean;
+  hideLabel?: boolean;
 }
 
 export function DynamicField({
   field,
   control,
   isSubmitting,
+  hideLabel = false,
 }: DynamicFieldProps) {
   const searchParams = useSearchParams();
 
@@ -56,10 +58,12 @@ export function DynamicField({
       name={field.id}
       render={({ field: controllerField }) => (
         <FormItem>
-          <FormLabel className="font-semibold">
-            <span>{field.label}</span>
-            {field.required && <span className="text-destructive ml-1">*</span>}
-          </FormLabel>
+          {!hideLabel && (
+            <FormLabel className="font-semibold">
+              <span>{field.label}</span>
+              {field.required && <span className="text-destructive ml-1">*</span>}
+            </FormLabel>
+          )}
           <FormControl>
             <div>
               {field.type === "text" && (
@@ -67,6 +71,7 @@ export function DynamicField({
                   placeholder={field.placeholder}
                   {...controllerField}
                   value={(controllerField.value as string) || ""}
+                  className="bg-white"
                   disabled={
                     isSubmitting ||
                     (field.id === "ordemServico" && !!searchParams.get("os"))
@@ -79,6 +84,7 @@ export function DynamicField({
                   placeholder={field.placeholder}
                   {...controllerField}
                   value={(controllerField.value as string) || ""}
+                  className="bg-white"
                   disabled={isSubmitting}
                 />
               )}
@@ -93,6 +99,7 @@ export function DynamicField({
                       ? ""
                       : String(controllerField.value)
                   }
+                  className="bg-white"
                   onChange={(e) =>
                     controllerField.onChange(
                       e.target.value === "" ? null : Number(e.target.value)
@@ -106,6 +113,7 @@ export function DynamicField({
                   placeholder={field.placeholder}
                   {...controllerField}
                   value={(controllerField.value as string) || ""}
+                  className="bg-white"
                   disabled={isSubmitting}
                 />
               )}
@@ -125,7 +133,7 @@ export function DynamicField({
                   value={(controllerField.value as string) || undefined}
                   disabled={isSubmitting}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white">
                     <SelectValue
                       placeholder={field.placeholder || "Selecione..."}
                     />
@@ -152,7 +160,7 @@ export function DynamicField({
                   accept="image/*"
                   multiple
                   disabled={isSubmitting}
-                  className="pt-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                  className="pt-2 bg-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
                   onChange={(e) => controllerField.onChange(e.target.files)}
                 />
               )}
@@ -210,7 +218,7 @@ function DatePickerField({
         <Button
           variant={"outline"}
           className={cn(
-            "w-full justify-start text-left font-normal",
+            "w-full justify-start text-left font-normal bg-white",
             !controllerField.value && "text-muted-foreground"
           )}
           disabled={isSubmitting}

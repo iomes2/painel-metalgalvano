@@ -151,7 +151,7 @@ export const documentDefinitions: DocumentDefinition[] = [
   },
   {
     id: "doc-020",
-    title: "DOC-020: Diário de Obra e Cronograma",
+    title: "DOC-020: Acompanhamento de Cronograma e Diário de Obra",
     description: "Registro diário de desenvolvimento da etapa e ocorrências.",
     category: "Formulário",
     type: "pdf",

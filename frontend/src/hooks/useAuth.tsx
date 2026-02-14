@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
 import { User } from "firebase/auth";
 import { AuthContext } from "@/components/auth/AuthInitializer";
 
@@ -13,16 +13,22 @@ export function useAuth() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const loadedUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     async function loadProfile() {
       if (contextUser) {
+        // Evitar refetch desnecessário do mesmo usuário
+        if (loadedUserIdRef.current === contextUser.uid) {
+          return;
+        }
+
         setProfileLoading(true);
         try {
           const { fetchCurrentUser } = await import("@/lib/api-client");
           const userProfile = await fetchCurrentUser();
-          console.log("[useAuth] Fetched Profile:", userProfile);
           setProfile(userProfile);
+          loadedUserIdRef.current = contextUser.uid;
         } catch (error) {
           console.error("Error fetching user profile:", error);
           setProfile(null);
@@ -31,6 +37,7 @@ export function useAuth() {
         }
       } else {
         setProfile(null);
+        loadedUserIdRef.current = null;
       }
     }
 
