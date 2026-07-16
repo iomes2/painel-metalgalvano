@@ -1,6 +1,6 @@
 <div align="center">
 
-Português (BR) | **[English](./README.markdown)** 🌐
+🌐 **[Português (BR)](./README.pt-br.md)** | English
 
 # 🏗️ Painel Metalgalvano
 
