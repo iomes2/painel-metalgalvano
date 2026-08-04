@@ -48,7 +48,7 @@ The platform replaces manual, paper-based document workflows at **Metalgalvano**
 ## ✨ Features
 
 - 🔐 **Secure authentication** — Email/password login via Firebase Auth, password recovery, session management and secure logout
-- 📝 **Dynamic forms** — 6+ customizable document templates (Schedule, Daily Log, Checklists, Measurements, Photo Report, Inspection) with conditional field visibility and auto-fill from linked forms
+- 📝 **Dynamic forms** — 14 customizable document templates (Schedule, Daily Log, Checklists, Risk Analysis, Work Permit, Non-Conformity Report, Safety Dialogue, and more) with conditional field visibility and auto-fill from linked forms
 - 📸 **Photo uploads** — Image attachment per form field with Firebase Storage, gallery view and deletion
 - 📑 **PDF generation** — Professional reports auto-generated via PDFMake and downloadable on demand
 - 📊 **Analytics dashboard** — Real-time stats per work order (forms submitted, photos uploaded, linked reports)

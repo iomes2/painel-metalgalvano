@@ -48,7 +48,7 @@ A plataforma substitui os processos manuais e descentralizados de gerenciamento 
 ## ✨ Funcionalidades
 
 - 🔐 **Autenticação segura** — Login com e-mail/senha via Firebase Auth, recuperação de senha, controle de sessão e logout seguro
-- 📝 **Formulários dinâmicos** — 6+ modelos de documentos customizáveis (Cronograma, Diário de Obra, Checklists, Medições, Relatório Fotográfico, Inspeção) com visibilidade condicional de campos e preenchimento automático por formulários vinculados
+- 📝 **Formulários dinâmicos** — 14 modelos de documentos customizáveis (Cronograma, Diário de Obra, Checklists, Análise Preliminar de Risco, Permissão de Trabalho, Relatório de Não-Conformidade, Diálogo de Segurança e mais) com visibilidade condicional de campos e preenchimento automático por formulários vinculados
 - 📸 **Upload de fotos** — Envio de imagens por campo do formulário via Firebase Storage, galeria e exclusão
 - 📑 **Geração de PDFs** — Relatórios profissionais gerados automaticamente via PDFMake e disponíveis para download
 - 📊 **Dashboard analítico** — Estatísticas em tempo real por ordem de serviço (formulários enviados, fotos, relatórios vinculados)
