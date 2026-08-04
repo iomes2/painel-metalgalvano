@@ -4,7 +4,7 @@
 
 # 🏗️ Painel Metalgalvano
 
-### Enterprise Construction Project Management System
+### Construction Site Management Panel — Software Engineering Capstone Project (TCC)
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -13,7 +13,7 @@
 [![Firebase](https://img.shields.io/badge/Firebase-Auth%20%26%20Storage-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
 
-**A full-stack web application to digitize and centralize construction site document management — featuring dynamic forms, photo uploads, automated PDF reports, project timelines, and AI-powered workflows.**
+**A full-stack web application to digitize and centralize construction site document management — featuring role-based access, dynamic forms, photo uploads, automated PDF reports, project timelines, and an analytics dashboard.**
 
 [Overview](#-overview) •
 [Features](#-features) •
@@ -29,40 +29,36 @@
 
 ## 📋 Overview
 
-**Painel Metalgalvano** is an enterprise system built as a **capstone project (TCC)** for the Software Engineering program at Centro Universitário Católica de Santa Catarina — Joinville, Brazil.
+**Painel Metalgalvano** is an enterprise web system developed as a **capstone project (TCC)** for the Software Engineering program at Centro Universitário Católica de Santa Catarina — Joinville, Brazil.
 
-The platform replaces manual, decentralized document workflows at **Metalgalvano** (a galvanization company based in Araquari/Joinville) with a modern, intelligent web panel.
+The platform replaces manual, paper-based document workflows at **Metalgalvano** (a galvanization company in Araquari/Joinville) with a modern, centralized web panel for construction site managers.
 
 ### The Problem
 
 | Before (manual) | After (Painel Metalgalvano) |
 |---|---|
 | 📄 Paper documents & scattered emails | ☁️ Everything centralized in the cloud |
-| 🔍 Hard to search by project/period | 🔎 Advanced filtering & search |
-| 📸 Photos lost in WhatsApp chats | 📁 Organized uploads per form field |
-| 📊 Reports created manually | 📑 Auto-generated PDF reports |
-| 👥 No access control | 🔐 Organization-based roles (Owner/Admin/Member/Viewer) |
+| 🔍 Hard to find documents by project | 🔎 Advanced filtering & full-text search |
+| 📸 Photos scattered across WhatsApp | 📁 Organized uploads per form |
+| 📊 Reports filled out by hand | 📑 Auto-generated, downloadable PDF reports |
+| 👥 No access control | 🔐 Role-based access (Admin / Manager / Editor / Viewer) |
 
 ---
 
 ## ✨ Features
 
-### Core
-- 🔐 **Secure authentication** — Email/password login via Firebase Auth, password recovery, and secure logout
-- 📝 **Dynamic forms** — Create and fill customizable templates (Schedule, Daily Log, Checklists, Measurements, etc.) with a visual Form Builder for admins
-- 📸 **Photo uploads** — Attach images per form field with Firebase Storage
-- 📑 **PDF generation** — Professional reports auto-generated via PDFMake/Puppeteer
-- 📊 **Analytics dashboard** — Real-time project monitoring with Recharts visualizations
-
-### Advanced
-- 🏢 **Multi-tenancy** — Multiple organizations with full data isolation (Stripe integration for subscriptions)
-- 📅 **Project timeline** — Chronological view of each project's progress
-- 📥 **Excel export** — Tabular data downloads via ExcelJS
-- 🔔 **Notifications** — Alert system for document updates
-- 🔍 **Advanced search** — Filter by project, period, manager, and document status
-- 🤖 **Artificial Intelligence** — Google Gemini integration (via Genkit) for process optimization
-- 🛡️ **Audit logging** — Detailed action logs retained for 90 days (IP, user-agent, entity)
-- 🌐 **Internationalization** — Multi-language UI support
+- 🔐 **Secure authentication** — Email/password login via Firebase Auth, password recovery, session management and secure logout
+- 📝 **Dynamic forms** — 6+ customizable document templates (Schedule, Daily Log, Checklists, Measurements, Photo Report, Inspection) with conditional field visibility and auto-fill from linked forms
+- 📸 **Photo uploads** — Image attachment per form field with Firebase Storage, gallery view and deletion
+- 📑 **PDF generation** — Professional reports auto-generated via PDFMake and downloadable on demand
+- 📊 **Analytics dashboard** — Real-time stats per work order (forms submitted, photos uploaded, linked reports)
+- 📅 **Activity timeline** — Chronological history of submissions and updates per work order
+- 🔍 **Advanced search** — Filter by work order number, form type, date range and status
+- 📂 **Document library** — Central repository for company documents (PDFs, images, spreadsheets)
+- 📥 **Excel export** — Download tabular data for reporting and offline analysis
+- 🔔 **Notifications** — In-app alerts for form approvals, updates and relevant events
+- 🛡️ **Audit logs** — Detailed action history stored for 90 days (action, entity, IP, user agent)
+- 🔗 **Linked forms** — After submitting one document, the system auto-suggests and navigates to the next related form in the workflow
 
 ---
 
@@ -76,10 +72,9 @@ The platform replaces manual, decentralized document workflows at **Metalgalvano
 | **TypeScript 5** | Static typing |
 | **Tailwind CSS 3** | Utility-first styling |
 | **Shadcn/UI** (Radix Primitives) | Accessible component library |
-| **TanStack Query** | Data caching & synchronization |
-| **React Hook Form + Zod** | Form management with validation |
+| **TanStack Query** | Data fetching, caching & synchronization |
+| **React Hook Form + Zod** | Form management with runtime validation |
 | **Recharts** | Charts & data visualization |
-| **Genkit (Google AI)** | Generative AI integration |
 | **Lucide React** | Icon library |
 
 ### Backend
@@ -88,37 +83,40 @@ The platform replaces manual, decentralized document workflows at **Metalgalvano
 | **Node.js 18+** | JavaScript runtime |
 | **Express.js 4** | HTTP framework |
 | **TypeScript 5** | Static typing |
-| **Prisma ORM 5** | Database access layer |
-| **PostgreSQL 15** | Relational database |
-| **Firebase Admin SDK** | Server-side auth & storage |
-| **PDFMake + Puppeteer** | PDF report generation |
+| **Prisma ORM 5** | Type-safe database access |
+| **PostgreSQL 15** | Primary relational database |
+| **Firebase Admin SDK** | Server-side auth token verification |
+| **Firebase Storage** | Photo & file storage |
+| **Google Cloud Firestore** | Real-time data sync (work orders) |
+| **PDFMake** | PDF report generation |
 | **ExcelJS** | Spreadsheet export |
-| **Stripe** | Payments & subscriptions |
 | **Winston** | Structured logging |
-| **Zod** | Schema validation |
-| **Helmet + CORS + Rate Limit** | HTTP security |
+| **Zod** | Request schema validation |
+| **Helmet + CORS + Rate Limiting** | HTTP security hardening |
 
 ### DevOps & Quality
 | Technology | Purpose |
 |---|---|
-| **Docker + Docker Compose** | Containerization |
-| **GitHub Actions** | CI/CD to GCP |
-| **SonarCloud** | Static code analysis |
-| **Jest + Testing Library** | Unit & integration tests |
+| **Docker + Docker Compose** | Local development environment |
+| **GitHub Actions** | CI/CD pipeline (build, test, deploy to GCP) |
+| **GCP Cloud Run** | Backend hosting |
 | **Netlify** | Frontend hosting |
-| **Render / GCP Cloud Run** | Backend hosting |
+| **SonarCloud** | Static code analysis & quality gate |
+| **Jest + React Testing Library** | Unit & integration tests |
 
 ---
 
 ## 🏛 Architecture
 
+The system follows a **client–server** architecture with a hybrid database strategy: PostgreSQL (via Prisma) for structured relational data, and Firebase (Auth + Storage + Firestore) for authentication, file storage, and real-time work order sync.
+
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │                          CLIENT (Browser)                        │
 │                                                                  │
-│   Next.js 15 (SSR)  ◄──►  TanStack Query  ◄──►  React 18 UI    │
-│   Tailwind + Shadcn/UI         │                Recharts         │
-└────────────────────────────────┼─────────────────────────────────┘
+│   Next.js 15 (SSR/App Router)  ◄──►  TanStack Query             │
+│   Tailwind CSS + Shadcn/UI           React Hook Form             │
+└────────────────────────────────┬─────────────────────────────────┘
                                  │ HTTPS
                                  ▼
 ┌──────────────────────────────────────────────────────────────────┐
@@ -126,32 +124,27 @@ The platform replaces manual, decentralized document workflows at **Metalgalvano
 │                                                                  │
 │   Controllers ──► Services ──► Prisma ORM ──► PostgreSQL 15     │
 │        │                                                         │
-│        ├── Firebase Admin (Auth verification + Storage)          │
-│        ├── PDFMake / Puppeteer (PDF generation)                  │
+│        ├── Firebase Admin SDK (Auth token verification)          │
+│        ├── PDFMake (PDF generation)                              │
 │        ├── ExcelJS (Excel export)                                │
-│        ├── Stripe (Payments)                                     │
 │        └── Winston (Structured logging)                          │
 └──────────────────────────────────────────────────────────────────┘
-                                 │
-          ┌──────────────────────┼──────────────────────┐
-          ▼                      ▼                      ▼
-   ┌─────────────┐    ┌──────────────────┐    ┌────────────────┐
-   │ PostgreSQL   │    │ Firebase Auth    │    │ Firebase       │
-   │ (Prisma)     │    │ & Storage        │    │ Storage        │
-   │              │    │                  │    │ (Photos)       │
-   └─────────────┘    └──────────────────┘    └────────────────┘
+                         │                  │
+              ┌──────────┘                  └──────────┐
+              ▼                                        ▼
+   ┌──────────────────┐                   ┌────────────────────┐
+   │   PostgreSQL 15  │                   │  Firebase Platform  │
+   │   (Prisma ORM)   │                   │  Auth + Storage +   │
+   │  Forms, Photos,  │                   │     Firestore       │
+   │  Users, Logs...  │                   └────────────────────┘
+   └──────────────────┘
 ```
 
-### Data Model (main entities)
+### Database Model
 
 ```
-User ──┬── OrganizationMember ──── Organization
-       │                              ├── Project
-       │                              ├── FormTemplate
-       │                              ├── Form ──── Photo
-       │                              │         └── LinkedReport
-       │                              ├── Document
-       │                              └── Subscription (Stripe)
+User ──┬── Form ──── Photo
+       │       └─── LinkedReport
        ├── AuditLog
        └── Notification
 ```
@@ -165,7 +158,7 @@ User ──┬── OrganizationMember ──── Organization
 - **Node.js** ≥ 18.0.0
 - **npm** ≥ 9.0.0
 - **PostgreSQL** 15 (or Docker)
-- A configured **Firebase** project (Auth + Storage)
+- A configured **Firebase** project (Auth + Storage + Firestore)
 
 ### 1. Clone the repository
 
@@ -179,12 +172,7 @@ cd painel-metalgalvano
 ```bash
 cd backend
 npm install
-```
-
-Copy the environment file and fill in your credentials:
-
-```bash
-cp .env.example .env
+cp .env.example .env   # fill in your credentials
 ```
 
 <details>
@@ -197,12 +185,10 @@ cp .env.example .env
 | `FIREBASE_PRIVATE_KEY` | Service account private key |
 | `FIREBASE_CLIENT_EMAIL` | Service account email |
 | `FIREBASE_STORAGE_BUCKET` | Firebase Storage bucket |
-| `JWT_SECRET` | JWT token secret |
 | `CORS_ORIGIN` | Frontend URL (e.g. `http://localhost:3000`) |
+| `JWT_SECRET` | JWT token secret |
 
 </details>
-
-Run the database migrations and start the server:
 
 ```bash
 npx prisma migrate dev
@@ -215,10 +201,7 @@ npm run dev          # Starts at http://localhost:3001
 ```bash
 cd ../frontend
 npm install
-```
-
-```bash
-cp .env.example .env.local
+cp .env.example .env.local   # fill in your credentials
 ```
 
 <details>
@@ -232,8 +215,8 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Storage bucket |
 | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Sender ID |
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | App ID |
-| `NEXT_PUBLIC_API_URL` | API URL (e.g. `http://localhost:3001`) |
-| `NEXT_PUBLIC_USE_BACKEND` | `true` to use the real API |
+| `NEXT_PUBLIC_API_URL` | Backend API URL (e.g. `http://localhost:3001`) |
+| `NEXT_PUBLIC_USE_BACKEND` | Set to `true` to use the real API |
 
 </details>
 
@@ -243,37 +226,35 @@ npm run dev          # Starts at http://localhost:3000
 
 ### 4. Using Docker (alternative)
 
-Prefer to spin everything up with Docker Compose:
-
 ```bash
 cd backend
-docker compose up -d    # PostgreSQL + Backend + Prisma Studio
+docker compose up -d    # Starts PostgreSQL + Backend + Prisma Studio
 ```
 
-**Prisma Studio** will be available at `http://localhost:5555` to visually explore the database.
+**Prisma Studio** is available at `http://localhost:5555` to browse the database visually.
 
 ---
 
 ## 🔌 API Endpoints
 
-The REST API follows the `/api/v1` pattern, authenticated via Firebase ID Token in the `Authorization: Bearer <token>` header.
+All routes require a Firebase ID Token via `Authorization: Bearer <token>` header.
 
 | Method | Route | Description |
 |---|---|---|
-| `POST` | `/api/v1/forms` | Create a form |
-| `GET` | `/api/v1/forms` | List forms |
+| `POST` | `/api/v1/forms` | Submit a form |
+| `GET` | `/api/v1/forms` | List forms (with filters) |
 | `GET` | `/api/v1/forms/:id` | Get form details |
 | `PUT` | `/api/v1/forms/:id` | Update a form |
-| `POST` | `/api/v1/forms/:id/photos` | Upload photos |
-| `GET` | `/api/v1/forms/:id/pdf` | Generate/download PDF |
-| `GET` | `/api/v1/documents` | List documents |
+| `DELETE` | `/api/v1/forms/:id` | Delete a form |
+| `POST` | `/api/v1/forms/:id/photos` | Upload photos to a form |
+| `DELETE` | `/api/v1/photos/:id` | Delete a photo |
+| `GET` | `/api/v1/forms/:id/pdf` | Generate and download PDF |
 | `GET` | `/api/v1/stats` | Dashboard statistics |
 | `GET` | `/api/v1/timeline` | Activity timeline |
-| `GET` | `/api/v1/ordens-servico` | Work orders |
-| `POST` | `/api/v1/form-templates` | Create form template |
-| `GET` | `/api/v1/organizations` | User organizations |
-| `GET` | `/api/v1/notifications` | Notifications |
-| `GET` | `/api/v1/export` | Export data (Excel) |
+| `GET` | `/api/v1/ordens-servico` | List work orders |
+| `GET` | `/api/v1/notifications` | List notifications |
+| `PATCH` | `/api/v1/notifications/:id/read` | Mark notification as read |
+| `GET` | `/api/v1/export` | Export data as Excel |
 
 ---
 
@@ -283,48 +264,45 @@ The REST API follows the `/api/v1` pattern, authenticated via Firebase ID Token 
 painel-metalgalvano/
 ├── frontend/                    # Next.js 15 (App Router)
 │   ├── src/
-│   │   ├── app/                 # Routes (login, dashboard, admin, lobby)
-│   │   ├── components/          # React components organized by domain
-│   │   │   ├── auth/            # Authentication
-│   │   │   ├── dashboard/       # Main panel
-│   │   │   ├── forms/           # Dynamic forms
-│   │   │   ├── layout/          # Navbar, Sidebar, Footer
-│   │   │   ├── reports/         # Reports & PDFs
-│   │   │   ├── search/          # Advanced search
-│   │   │   ├── timeline/        # Project timeline
+│   │   ├── app/                 # Routes: /login, /dashboard, /admin
+│   │   │   ├── dashboard/       # Main app: forms, search, timeline, docs, monitoring
+│   │   │   └── admin/           # Form builder (admin only)
+│   │   ├── components/
+│   │   │   ├── auth/            # Firebase auth guard & initializer
+│   │   │   ├── dashboard/       # Stats cards, monitoring panel
+│   │   │   ├── forms/           # Dynamic form renderer
+│   │   │   ├── layout/          # Sidebar, header, user nav
+│   │   │   ├── reports/         # PDF preview & report viewer
+│   │   │   ├── search/          # Search & filter UI
+│   │   │   ├── timeline/        # Activity timeline component
 │   │   │   └── ui/              # Shadcn/UI primitives
-│   │   ├── ai/                  # Genkit (Google Gemini) flows
-│   │   ├── contexts/            # React Contexts (Organization)
-│   │   ├── hooks/               # Custom hooks
-│   │   ├── lib/                 # Utilities & config
-│   │   └── types/               # TypeScript types
-│   └── public/                  # Static assets
+│   │   ├── config/
+│   │   │   └── forms.ts         # All form definitions (fields, types, linked triggers)
+│   │   ├── hooks/               # Custom hooks (useAuth, useSessionExpiration, etc.)
+│   │   └── lib/                 # API client, Firebase config, utilities
+│   └── public/
 │
-├── backend/                     # Express.js + Prisma
+├── backend/                     # Express.js REST API
 │   ├── src/
-│   │   ├── controllers/         # Route handlers
-│   │   ├── services/            # Business logic
-│   │   ├── middleware/          # Auth, validation, rate-limit
-│   │   ├── routes/              # Route definitions
-│   │   ├── validators/          # Validation schemas (Zod)
-│   │   ├── utils/               # Helpers
-│   │   └── tests/               # Unit tests
+│   │   ├── controllers/         # formsController, photosController, statsController...
+│   │   ├── services/            # formService, pdfService, exportService, backupService...
+│   │   ├── middleware/          # Firebase auth, error handler, rate limiter
+│   │   ├── routes/              # Route definitions for all resources
+│   │   ├── validators/          # Zod schemas for request validation
+│   │   └── utils/               # Logger, helpers
 │   ├── prisma/
-│   │   ├── schema.prisma        # Database model
+│   │   ├── schema.prisma        # Data model: User, Form, Photo, LinkedReport, AuditLog...
 │   │   ├── migrations/          # Migration history
-│   │   └── seed.ts              # Seed data
-│   └── docker-compose.yml       # PostgreSQL + Backend + Prisma Studio
+│   │   └── seed.ts              # Initial data seeding
+│   └── docker-compose.yml
 │
 ├── docs/                        # Technical documentation
-│   ├── ARCHITECTURE_C4.md       # C4 diagrams
+│   ├── ARCHITECTURE_C4.md
 │   ├── FUNCTIONAL_REQUIREMENTS.md
 │   ├── USER_STORIES.md
-│   ├── deployment_guide.md
-│   └── GCP_SETUP_QUICKSTART.md
+│   └── deployment_guide.md
 │
-├── .github/workflows/           # CI/CD (GitHub Actions → GCP)
-├── sonar-project.properties     # SonarCloud configuration
-└── netlify.toml                 # Frontend deploy (Netlify)
+└── .github/workflows/           # CI/CD: test → build → deploy to GCP Cloud Run
 ```
 
 ---
@@ -333,40 +311,38 @@ painel-metalgalvano/
 
 | Layer | Implementation |
 |---|---|
-| **Authentication** | Firebase Auth (email/password, recovery, 2FA) |
-| **Authorization** | Organization-level RBAC (Owner → Admin → Member → Viewer) |
-| **API** | Helmet, configured CORS, Rate Limiting |
-| **Data** | Prisma (SQL injection prevention), Zod validation |
-| **Storage** | Temporary token-signed URLs on Firebase Storage |
-| **Compliance** | LGPD compliant, 90-day audit logs |
+| **Authentication** | Firebase Auth — email/password, password recovery |
+| **Authorization** | Role-based access control (Admin / Manager / Editor / Viewer) validated server-side |
+| **API hardening** | Helmet, CORS allowlist, Express Rate Limiter |
+| **Data integrity** | Prisma (prevents SQL injection), Zod validation on every route |
+| **File storage** | Signed temporary URLs from Firebase Storage |
+| **Audit** | Logs every action (entity, user, IP, timestamp) for 90 days |
+| **Compliance** | LGPD-aware data handling |
 
 ---
 
 ## 🧪 Testing
 
 ```bash
-# Backend
-cd backend
-npm test                  # Jest
-npm run test:watch        # Watch mode
+# Backend (Jest)
+cd backend && npm test
 
-# Frontend
-cd frontend
-npm test                  # Jest + React Testing Library
-npm run test:watch        # Watch mode
+# Frontend (Jest + React Testing Library)
+cd frontend && npm test
 ```
+
+Code quality is enforced via **SonarCloud** on every push to `master`, with a quality gate that blocks builds on critical issues.
 
 ---
 
-## 📚 Additional Documentation
+## 📚 Documentation
 
-| Document | Contents |
+| File | Contents |
 |---|---|
-| [`docs/ARCHITECTURE_C4.md`](./docs/ARCHITECTURE_C4.md) | C4 Diagrams (Context, Containers, Components) |
-| [`docs/FUNCTIONAL_REQUIREMENTS.md`](./docs/FUNCTIONAL_REQUIREMENTS.md) | Detailed functional requirements |
+| [`docs/ARCHITECTURE_C4.md`](./docs/ARCHITECTURE_C4.md) | C4 architecture diagrams |
+| [`docs/FUNCTIONAL_REQUIREMENTS.md`](./docs/FUNCTIONAL_REQUIREMENTS.md) | Full functional requirements list |
 | [`docs/USER_STORIES.md`](./docs/USER_STORIES.md) | User stories |
-| [`docs/deployment_guide.md`](./docs/deployment_guide.md) | Deployment guide |
-| [`docs/GCP_SETUP_QUICKSTART.md`](./docs/GCP_SETUP_QUICKSTART.md) | Google Cloud setup |
+| [`docs/deployment_guide.md`](./docs/deployment_guide.md) | Production deployment guide |
 | [`backend/README.md`](./backend/README.md) | Backend-specific documentation |
 
 ---
@@ -375,6 +351,7 @@ npm run test:watch        # Watch mode
 
 **Renan Iomes**
 Software Engineering — Centro Universitário Católica de Santa Catarina (Joinville, Brazil)
+Capstone Project (TCC) — 2025
 
 [![GitHub](https://img.shields.io/badge/GitHub-iomes2-181717?style=flat-square&logo=github)](https://github.com/iomes2)
 
@@ -382,7 +359,7 @@ Software Engineering — Centro Universitário Católica de Santa Catarina (Join
 
 ## 📄 License
 
-This project was developed as a university capstone project (TCC). All rights reserved.
+All rights reserved. This project was developed as a university capstone project (TCC) and is not open for commercial use by third parties.
 
 ---
 
